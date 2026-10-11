@@ -415,7 +415,8 @@ public sealed class ArtView : Decorator
     {
         PartVisual? found = null;
         VisualTreeHelper.HitTest(this,
-            target => target is UIElement { IsHitTestVisible: true } ? HitTestFilterBehavior.Continue : HitTestFilterBehavior.ContinueSkipSelfAndChildren,
+            // Only skip elements that opted out (glows and shadows); the Viewbox's own internal visuals are not UIElements and must be searched
+            target => target is UIElement { IsHitTestVisible: false } ? HitTestFilterBehavior.ContinueSkipSelfAndChildren : HitTestFilterBehavior.Continue,
             result =>
             {
                 for (DependencyObject? v = result.VisualHit; v != null && !ReferenceEquals(v, this); v = VisualTreeHelper.GetParent(v))
