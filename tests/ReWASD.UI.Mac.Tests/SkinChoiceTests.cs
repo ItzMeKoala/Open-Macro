@@ -93,3 +93,58 @@ public class SkinChoiceTests
         Assert.Equal(SkinKind.Xbox, vm.SelectedSkin);
     }
 }
+
+public class SkinMemoryTests
+{
+    private static MainViewModel New(string dir) =>
+        new(Fakes.Platform(ReWASD.Engine.Platform.PlatformServices.MacOSInfo), new Fakes.Ui(), dir);
+
+    [Fact]
+    public void ThePictureYouPick_IsRememberedNextTime()
+    {
+        string dir = Fakes.TempProfiles();
+        var first = New(dir);
+        first.SelectedSkin = SkinKind.PlayStation5;
+
+        var second = New(dir);
+
+        Assert.Equal(SkinKind.PlayStation5, second.SelectedSkin);
+        Assert.True(second.ShowSkinArt);
+        Directory.Delete(dir, true);
+    }
+
+    [Fact]
+    public void WithNothingSaved_ThePictureIsTheDefault_AndNothingIsWritten()
+    {
+        string dir = Fakes.TempProfiles();
+
+        var vm = New(dir);
+
+        Assert.Equal(SkinKind.Xbox, vm.SelectedSkin);
+        Assert.False(File.Exists(Path.Combine(dir, "skin.txt")));
+    }
+
+    [Fact]
+    public void ADamagedMemory_IsIgnored()
+    {
+        string dir = Fakes.TempProfiles();
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "skin.txt"), "not a picture");
+
+        var vm = New(dir);
+
+        Assert.Equal(SkinKind.Xbox, vm.SelectedSkin);
+        Directory.Delete(dir, true);
+    }
+
+    [Fact]
+    public void TheAutomaticPick_IsNotSavedAsAChoice()
+    {
+        string dir = Fakes.TempProfiles();
+        var pad = new Fakes.Pad { State = new ReWASD.Engine.Input.PhysicalState(new HashSet<ControllerButton>(), 0, 0, 0, 0, 0, 0) };
+        var vm = new MainViewModel(Fakes.Platform(ReWASD.Engine.Platform.PlatformServices.MacOSInfo, pad), new Fakes.Ui(), dir);
+
+        Assert.False(File.Exists(Path.Combine(dir, "skin.txt")));
+        Assert.NotNull(vm);
+    }
+}

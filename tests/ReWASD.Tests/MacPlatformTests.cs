@@ -106,17 +106,24 @@ public class MacPlatformTests
         if (!MacPermissions.CanControlInput) return;
 
         using var backend = new MacInputBackend();
-        var before = Position();
-        try
+
+        // A person using the machine at the same time can nudge the pointer mid-test, so allow a few tries
+        bool moved = false;
+        for (int attempt = 0; attempt < 4 && !moved; attempt++)
         {
-            backend.MouseMove(12, 7);
-            Assert.True(WaitFor(() => Math.Abs(Position().X - (before.X + 12)) < 1.5 && Math.Abs(Position().Y - (before.Y + 7)) < 1.5),
-                "the pointer did not move by the requested amount");
+            var before = Position();
+            try
+            {
+                backend.MouseMove(12, 7);
+                moved = WaitFor(() => Math.Abs(Position().X - (before.X + 12)) < 1.5 && Math.Abs(Position().Y - (before.Y + 7)) < 1.5, 800);
+            }
+            finally
+            {
+                backend.MouseMove(-12, -7);
+            }
         }
-        finally
-        {
-            backend.MouseMove(-12, -7);
-        }
+
+        Assert.True(moved, "the pointer did not move by the requested amount");
     }
 
     private static CGPoint Position()

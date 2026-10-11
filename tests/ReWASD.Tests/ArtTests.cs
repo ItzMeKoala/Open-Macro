@@ -225,6 +225,39 @@ public class ArtTests
     }
 
     [Fact]
+    public void DualSense_HasNoStrayCurves()
+    {
+        // A curve whose control points fly far from its ends draws a thin spike across the picture (a fitting glitch once did)
+        var paths = new List<ArtPath>();
+        void Walk(ArtGroup g) { foreach (var c in g.Children) { if (c is ArtPath p) paths.Add(p); else if (c is ArtGroup sub) Walk(sub); } }
+        Walk(ArtLibrary.DualSense.Root);
+        Assert.True(paths.Count > 100);
+
+        foreach (var p in paths)
+        {
+            var t = System.Text.RegularExpressions.Regex.Matches(p.D, @"[MLCZ]|-?\d+(?:\.\d+)?").Select(m => m.Value).ToList();
+            (double X, double Y) cur = (0, 0);
+            for (int i = 0; i < t.Count;)
+            {
+                double N(int k) => double.Parse(t[i + k], System.Globalization.CultureInfo.InvariantCulture);
+                switch (t[i])
+                {
+                    case "M" or "L": cur = (N(1), N(2)); i += 3; break;
+                    case "C":
+                    {
+                        var c1 = (X: N(1), Y: N(2)); var c2 = (X: N(3), Y: N(4)); var end = (X: N(5), Y: N(6));
+                        double chord = Math.Sqrt(Math.Pow(end.X - cur.X, 2) + Math.Pow(end.Y - cur.Y, 2));
+                        double reach = Math.Max(Math.Sqrt(Math.Pow(c1.X - cur.X, 2) + Math.Pow(c1.Y - cur.Y, 2)), Math.Sqrt(Math.Pow(c2.X - end.X, 2) + Math.Pow(c2.Y - end.Y, 2)));
+                        Assert.True(reach <= chord * 1.6 + 4, $"a curve in {p.Id ?? p.D[..Math.Min(40, p.D.Length)]} reaches {reach:0} on a {chord:0} chord");
+                        cur = end; i += 7; break;
+                    }
+                    default: i++; break;
+                }
+            }
+        }
+    }
+
+    [Fact]
     public void DualSense_MotionsMatchTheHardware()
     {
         var s = ArtLibrary.DualSense;

@@ -342,6 +342,7 @@ public partial class MainViewModel : ObservableObject
         if (start != null) SelectButton(start);
 
         _constructed = true;
+        LoadSkinChoice();
         AutoSelectSkin();
     }
 
@@ -491,8 +492,42 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnSelectedSkinChanged(SkinKind value)
     {
-        if (!_autoSkin) _skinPinned = true; // the person chose this picture, so a different controller plugged in later won't change it
+        if (!_autoSkin)
+        {
+            _skinPinned = true; // the person chose this picture, so a different controller plugged in later won't change it
+            SaveSkinChoice(value);
+        }
         ApplySkin(value);
+    }
+
+    // The picture is remembered between runs in a small file next to the saved configs (which only read *.json, so it is ignored by them)
+    private string SkinChoicePath => System.IO.Path.Combine(_profilesDirectory, "skin.txt");
+
+    private void SaveSkinChoice(SkinKind kind)
+    {
+        if (!_constructed) return;
+        try
+        {
+            System.IO.Directory.CreateDirectory(_profilesDirectory);
+            System.IO.File.WriteAllText(SkinChoicePath, kind.ToString());
+        }
+        catch (Exception)
+        {
+            // Not being able to remember the choice must never get in the way of using the app
+        }
+    }
+
+    private void LoadSkinChoice()
+    {
+        try
+        {
+            if (System.IO.File.Exists(SkinChoicePath) && Enum.TryParse<SkinKind>(System.IO.File.ReadAllText(SkinChoicePath).Trim(), out var kind) && Enum.IsDefined(kind))
+                SelectedSkin = kind; // counts as chosen by hand, so it also stops the automatic pick
+        }
+        catch (Exception)
+        {
+            // An unreadable file just means the default picture
+        }
     }
 
     private bool _skinPinned;
