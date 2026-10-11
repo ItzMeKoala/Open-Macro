@@ -60,4 +60,35 @@ public class ProfileTests
         // Midpoint: (0.5 - 0.1) / (0.9 - 0.1) = 0.4 / 0.8 = 0.5
         Assert.Equal(0.5, settings.TransformAxis(0.5), 2);
     }
+
+    [Fact]
+    public void TransformStick_RadialDeadzone_PreservesDirection()
+    {
+        var settings = new StickSettings { DeadzoneMin = 0.2, DeadzoneMax = 1.0 };
+
+        // Each axis is under 0.2 but the vector (length ~0.226) is outside the deadzone,
+        // so a per-axis deadzone would zero it while a radial one keeps it.
+        var (x, y) = settings.TransformStick(0.16, 0.16);
+        Assert.True(x > 0 && y > 0);
+        Assert.Equal(x, y, 6);
+
+        // Inside the radial deadzone
+        Assert.Equal((0.0, 0.0), settings.TransformStick(0.1, 0.1));
+    }
+
+    [Fact]
+    public void TransformStick_FullDeflection_NeverExceedsUnitLength()
+    {
+        var (x, y) = new StickSettings().TransformStick(1.0, 1.0);
+
+        Assert.Equal(1.0, Math.Sqrt(x * x + y * y), 6);
+    }
+
+    [Fact]
+    public void Sensitivity_AppliesPastOuterDeadzone()
+    {
+        var settings = new StickSettings { Sensitivity = 0.5 };
+
+        Assert.Equal(0.5, settings.TransformAxis(1.0), 6);
+    }
 }

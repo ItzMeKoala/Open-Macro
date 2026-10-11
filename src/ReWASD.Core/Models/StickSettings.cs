@@ -14,14 +14,33 @@ public class StickSettings
     {
         if (double.IsNaN(input)) return 0.0; // Math.Sign(NaN) throws
 
-        double sign = Math.Sign(input);
-        double abs = Math.Abs(input);
+        return Math.Sign(input) * Shape(Math.Abs(input));
+    }
 
+    /// <summary>
+    /// Radial variant for a whole stick: the deadzone and curve act on the vector's length, so diagonals
+    /// are not squared off and direction is preserved. Prefer this over two <see cref="TransformAxis"/> calls.
+    /// </summary>
+    public (double X, double Y) TransformStick(double x, double y)
+    {
+        if (double.IsNaN(x) || double.IsNaN(y)) return (0.0, 0.0);
+
+        double magnitude = Math.Sqrt(x * x + y * y);
+        double shaped = Shape(magnitude);
+        if (shaped == 0.0) return (0.0, 0.0);
+
+        double scale = shaped / magnitude;
+        return (x * scale, y * scale);
+    }
+
+    // Maps a non-negative magnitude through deadzone, curve and sensitivity to 0..1
+    private double Shape(double abs)
+    {
         if (abs <= DeadzoneMin) return 0.0;
-        if (abs >= DeadzoneMax) return sign * 1.0; // also guards a degenerate Max <= Min range
 
-        // Normalize between DeadzoneMin and DeadzoneMax
-        double normalized = (abs - DeadzoneMin) / (DeadzoneMax - DeadzoneMin);
+        // A degenerate range (Max <= Min) means everything past the deadzone is full deflection
+        double range = DeadzoneMax - DeadzoneMin;
+        double normalized = range <= 0 ? 1.0 : Math.Min((abs - DeadzoneMin) / range, 1.0);
 
         // Apply curve
         double curved = CurveType switch
@@ -33,8 +52,6 @@ public class StickSettings
         };
 
         curved *= Sensitivity;
-        curved = Math.Clamp(curved, 0.0, 1.0);
-
-        return sign * curved;
+        return Math.Clamp(curved, 0.0, 1.0);
     }
 }

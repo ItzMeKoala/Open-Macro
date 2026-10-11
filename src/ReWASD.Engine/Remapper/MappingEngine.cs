@@ -187,16 +187,14 @@ public class MappingEngine
 
         if (leftStickFree)
         {
-            result.LeftStickX = CurrentProfile.LeftStick.TransformAxis(rawLeftStickX);
-            result.LeftStickY = CurrentProfile.LeftStick.TransformAxis(rawLeftStickY);
+            (result.LeftStickX, result.LeftStickY) = CurrentProfile.LeftStick.TransformStick(rawLeftStickX, rawLeftStickY);
             if (CurrentProfile.LeftStick.InvertX) result.LeftStickX = -result.LeftStickX;
             if (CurrentProfile.LeftStick.InvertY) result.LeftStickY = -result.LeftStickY;
         }
 
         if (rightStickFree)
         {
-            result.RightStickX = CurrentProfile.RightStick.TransformAxis(rawRightStickX);
-            result.RightStickY = CurrentProfile.RightStick.TransformAxis(rawRightStickY);
+            (result.RightStickX, result.RightStickY) = CurrentProfile.RightStick.TransformStick(rawRightStickX, rawRightStickY);
             if (CurrentProfile.RightStick.InvertX) result.RightStickX = -result.RightStickX;
             if (CurrentProfile.RightStick.InvertY) result.RightStickY = -result.RightStickY;
         }

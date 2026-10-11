@@ -10,7 +10,8 @@ public class RemapTarget
     // For KeyboardKey (e.g., "Space", "ShiftKey", "W", "A", "S", "D")
     public string KeyboardKey { get; set; } = string.Empty;
 
-    // For MouseButton (e.g., "Left", "Right", "Middle", "XButton1", "XButton2")
+    // For MouseButton: "Left Click", "Right Click", "Middle Click", "Mouse Button 4", "Mouse Button 5",
+    // "Wheel Up", "Wheel Down". Short forms ("Left", "XButton1", ...) are accepted too; see KeyMap.TryResolveMouse.
     public string MouseButton { get; set; } = string.Empty;
 
     // For MouseScroll: positive scrolls up, negative scrolls down
