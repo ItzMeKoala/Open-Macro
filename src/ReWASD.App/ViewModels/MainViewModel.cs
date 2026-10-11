@@ -181,6 +181,9 @@ public partial class MainViewModel : ObservableObject
     public bool IsMacOS => Platform.NeedsInputPermissions;
     public string PanicKeyText => Platform.PanicKeyText;
 
+    /// <summary>The version and git commit of this build, shown in the bottom bar.</summary>
+    public string BuildText => BuildInfo.Text;
+
     public string DriverStatusText =>
         !SupportsVirtualController ? $"Virtual controller: not available on {Platform.Name}"
         : IsDriverAvailable ? "ViGEmBus: Ready" : "ViGEmBus: Not installed";
@@ -429,7 +432,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ShowInfo()
     {
-        StatusMessage = "ReWASD Open Source v0.1.0-alpha — clean-room gamepad remapper";
+        StatusMessage = $"ReWASD Open Source {BuildInfo.Text} — clean-room gamepad remapper";
     }
 
     [RelayCommand]

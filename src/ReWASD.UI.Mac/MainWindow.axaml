@@ -255,7 +255,7 @@
                     <TextBlock Text="{Binding DriverStatusText}" Classes="status" Classes.ok="{Binding IsDriverAvailable}" IsVisible="{Binding !IsMacOS}" />
                     <TextBlock Text="{Binding HidHideStatusText}" Classes="status" Classes.ok="{Binding IsHidHideAvailable}" IsVisible="{Binding !IsMacOS}" />
                     <TextBlock Text="{Binding PermissionStatusText}" Classes="status" Classes.ok="{Binding !HasPermissionIssue}" IsVisible="{Binding IsMacOS}" />
-                    <TextBlock Text="v0.1.0-alpha" Foreground="{StaticResource BrushTextMuted}" FontSize="11" Margin="4,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding BuildText}" Foreground="{StaticResource BrushTextMuted}" FontSize="11" Margin="4,0,0,0" VerticalAlignment="Center" />
                 </StackPanel>
             </Grid>
         </Border>

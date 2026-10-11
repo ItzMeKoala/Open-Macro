@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:vm="clr-namespace:ReWASD.UI.ViewModels;assembly=ReWASD.App"
              xmlns:views="clr-namespace:ReWASD.UI.Views"
+             xmlns:art="clr-namespace:ReWASD.UI.Art"
              mc:Ignorable="d"
              d:DesignHeight="460" d:DesignWidth="700">
     <UserControl.Resources>
@@ -117,7 +118,18 @@
         </Grid.RowDefinitions>
 
         <!-- The drawing: a fixed 700x440 canvas scaled to whatever room there is, a little smaller than the space -->
-        <Viewbox Grid.Row="1" Stretch="Uniform" Margin="56,0,56,22">
+        <Viewbox x:Name="Legacy" Grid.Row="1" Stretch="Uniform" Margin="56,0,56,22">
+            <Viewbox.Style>
+                <Style TargetType="Viewbox">
+                    <Setter Property="Visibility" Value="Visible" />
+                    <Style.Triggers>
+                        <!-- Hidden while a controller has its own detailed picture -->
+                        <DataTrigger Binding="{Binding ShowSkinArt}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Viewbox.Style>
             <Canvas Width="700" Height="440" RenderTransformOrigin="0.5,0.5">
                 <Canvas.RenderTransform>
                     <ScaleTransform ScaleX="{Binding SurfaceScale}" ScaleY="{Binding SurfaceScale}" />
@@ -154,6 +166,10 @@
                 </ItemsControl>
             </Canvas>
         </Viewbox>
+
+        <!-- A detailed animated picture, for controllers that have one (falls back to the outline above if it cannot be drawn) -->
+        <art:ArtView x:Name="Art" Grid.Row="1" Margin="40,0,40,10" Scene="{Binding SkinArt}" Sources="{Binding ControllerButtons}"
+                     Visibility="{Binding ShowSkinArt, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
         <!-- Which controller picture to draw (gamepad only) -->
         <Border Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="16,0,6,0" Height="42" CornerRadius="10"

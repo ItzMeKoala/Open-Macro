@@ -27,8 +27,12 @@ The agent will automatically invoke REA's MCP tools (or the `rea` CLI) to decomp
 
 ### Running it
 
-- **Windows:** build `src/ReWASD.UI` (WPF). A virtual controller needs the ViGEmBus driver; hiding the pad needs HidHide.
-- **macOS:** see [docs/macos.md](docs/macos.md). Run `scripts/package-macos.sh` to build `ReWASD.app`.
+Pull the latest and run it; the scripts rebuild first and close any older copy, so you always see the newest build.
+
+- **Windows** (needs the .NET 9 SDK): `git pull` then `.\scripts\run-windows.ps1`. A virtual controller needs the ViGEmBus driver; hiding the pad needs HidHide.
+- **macOS** (needs the .NET 9 SDK): `git pull && scripts/run-macos.sh`. See [docs/macos.md](docs/macos.md).
+
+The bottom bar of the Mac app shows the version and git commit it was built from, so you can tell whether you are looking at the latest build.
 
 ```sh
 dotnet build ReWASD.sln     # works on Windows and macOS

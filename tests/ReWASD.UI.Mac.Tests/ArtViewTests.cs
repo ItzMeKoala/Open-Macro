@@ -187,10 +187,13 @@ public class ArtViewTests
         Click(369, 403);       // left stick
         Assert.Equal(ControllerButton.LeftStickClick, vm.SelectedButton!.Button);
 
-        Click(204, 59);        // the dome of the left trigger (it leans with the shell)
+        // Aim at the middle of each part's box, which lies inside it (the shoulder shapes lean, so fixed points near an edge are fragile)
+        var trigger = view.Scene!.PartFor(ControllerButton.LeftTrigger)!.HitBounds;
+        var bumper = view.Scene!.PartFor(ControllerButton.LeftBumper)!.HitBounds;
+        Click(trigger.CenterX, trigger.Y + trigger.Height * 0.22);   // the upper part of the dome, clear of the bumper
         Assert.Equal(ControllerButton.LeftTrigger, vm.SelectedButton!.Button);
 
-        Click(213, 113);       // the bumper under it
+        Click(bumper.CenterX, bumper.CenterY);                       // the bumper under it
         Assert.Equal(ControllerButton.LeftBumper, vm.SelectedButton!.Button);
 
         Click(140, 450);       // plain shell

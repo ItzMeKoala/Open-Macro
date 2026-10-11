@@ -310,7 +310,7 @@
                             </Style>
                         </TextBlock.Style>
                     </TextBlock>
-                    <TextBlock Text="v0.1.0-alpha" Foreground="{StaticResource BrushTextMuted}" FontSize="11" Margin="4,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding BuildText}" Foreground="{StaticResource BrushTextMuted}" FontSize="11" Margin="4,0,0,0" VerticalAlignment="Center" />
                 </StackPanel>
             </Grid>
         </Border>

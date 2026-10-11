@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, feat/macos-support]
+    branches: ['**']   # every branch, so a change can be checked on Windows and macOS before it is merged
   pull_request:
 
 jobs:

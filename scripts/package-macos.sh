@@ -16,6 +16,15 @@ if [[ -z "$RID" ]]; then
   [[ "$(uname -m)" == "arm64" ]] && RID="osx-arm64" || RID="osx-x64"
 fi
 
+# A running copy would keep showing the old build, so close it first
+osascript -e 'tell application "ReWASD" to quit' >/dev/null 2>&1 || true
+pkill -f "ReWASD.app/Contents/MacOS/ReWASD" >/dev/null 2>&1 || true
+
+if ! command -v dotnet >/dev/null 2>&1; then
+  echo "The .NET 9 SDK is needed to build ReWASD: https://dotnet.microsoft.com/download/dotnet/9.0" >&2
+  exit 1
+fi
+
 OUT="artifacts/macos/$RID"
 APP="$OUT/ReWASD.app"
 VERSION="0.1.0"

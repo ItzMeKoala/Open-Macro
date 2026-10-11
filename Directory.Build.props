@@ -3,6 +3,14 @@
   <PropertyGroup>
     <!-- Lets the whole solution (including the WPF project) be built and checked on macOS and Linux; it only compiles, WPF still runs on Windows only -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Version>0.1.0-alpha</Version>
   </PropertyGroup>
+
+  <!-- Stamps the short git commit into the version, so the app can show exactly which build is running -->
+  <Target Name="StampGitRevision" BeforeTargets="AddSourceRevisionToInformationalVersion;GetAssemblyAttributes" Condition="'$(SourceRevisionId)' == ''">
+    <Exec Command="git rev-parse --short HEAD" ConsoleToMSBuild="true" IgnoreExitCode="true" StandardOutputImportance="low" StandardErrorImportance="low" ContinueOnError="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="SourceRevisionId" />
+    </Exec>
+  </Target>
 
 </Project>
