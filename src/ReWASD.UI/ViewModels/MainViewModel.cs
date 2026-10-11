@@ -12,10 +12,15 @@ namespace ReWASD.UI.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    private const string ScrollUpLabel = "Scroll Up";
+    private const string ScrollDownLabel = "Scroll Down";
+
     private readonly MappingEngine _mappingEngine;
     private readonly VirtualGamepadService _virtualService;
     private readonly XInputReader _reader = new();
-    private readonly KeyboardMouseInjector _injector = new(new Win32InputBackend());
+    private readonly Win32InputBackend _inputBackend = new();
+    private readonly KeyboardMouseInjector _injector;
+    private readonly MacroRunner _macros;
     private readonly InputPipeline _pipeline;
 
     [ObservableProperty]
@@ -53,6 +58,18 @@ public partial class MainViewModel : ObservableObject
     private string _selectedMouseButton = "Left Click";
 
     [ObservableProperty]
+    private string _selectedScrollDirection = ScrollUpLabel;
+
+    [ObservableProperty]
+    private string _macroScript = string.Empty;
+
+    [ObservableProperty]
+    private MacroRepeatMode _selectedMacroRepeat = MacroRepeatMode.Once;
+
+    [ObservableProperty]
+    private string _macroError = string.Empty;
+
+    [ObservableProperty]
     private MappingMode _selectedMode = MappingMode.Normal;
 
     [ObservableProperty]
@@ -65,6 +82,9 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<ControllerButton> AvailableVirtualButtons { get; } = new();
     public ObservableCollection<string> AvailableKeyboardKeys { get; } = new();
     public ObservableCollection<string> AvailableMouseButtons { get; } = new();
+    public IReadOnlyList<string> AvailableScrollDirections { get; } = new[] { ScrollUpLabel, ScrollDownLabel };
+    public IReadOnlyList<MappingMode> AvailableModes { get; } = Enum.GetValues<MappingMode>();
+    public IReadOnlyList<MacroRepeatMode> AvailableMacroRepeatModes { get; } = Enum.GetValues<MacroRepeatMode>();
     public ObservableCollection<ButtonViewModel> ControllerButtons { get; } = new();
     public ObservableCollection<string> ConnectedDevices { get; } = new();
 
@@ -78,7 +98,9 @@ public partial class MainViewModel : ObservableObject
         _mappingEngine = new MappingEngine(_selectedProfile);
         _virtualService = new VirtualGamepadService();
         _virtualService.Initialize();
-        _pipeline = new InputPipeline(_mappingEngine, _reader, _virtualService, _injector);
+        _injector = new KeyboardMouseInjector(_inputBackend);
+        _macros = new MacroRunner(_inputBackend);
+        _pipeline = new InputPipeline(_mappingEngine, _reader, _virtualService, _injector, _macros);
 
         PopulateInspectorOptions();
         PopulateConnectedDevices();
@@ -185,6 +207,10 @@ public partial class MainViewModel : ObservableObject
             SelectedVirtualButton = mapping.Target.VirtualButton != ControllerButton.None ? mapping.Target.VirtualButton : ControllerButton.A;
             SelectedKeyboardKey = !string.IsNullOrEmpty(mapping.Target.KeyboardKey) ? mapping.Target.KeyboardKey : "Space";
             SelectedMouseButton = !string.IsNullOrEmpty(mapping.Target.MouseButton) ? mapping.Target.MouseButton : "Left Click";
+            SelectedScrollDirection = mapping.Target.ScrollDelta < 0 ? ScrollDownLabel : ScrollUpLabel;
+            MacroScript = mapping.Target.Macro?.ToScript() ?? string.Empty;
+            SelectedMacroRepeat = mapping.Target.Macro?.RepeatMode ?? MacroRepeatMode.Once;
+            MacroError = string.Empty;
             SelectedMode = mapping.Mode;
             TurboRateMs = mapping.TurboRateMs;
             IsMuted = mapping.IsMuted;
@@ -193,6 +219,10 @@ public partial class MainViewModel : ObservableObject
         {
             SelectedTargetType = TargetType.VirtualControllerButton;
             SelectedVirtualButton = button.Button;
+            SelectedScrollDirection = ScrollUpLabel;
+            MacroScript = string.Empty;
+            SelectedMacroRepeat = MacroRepeatMode.Once;
+            MacroError = string.Empty;
             SelectedMode = MappingMode.Normal;
             TurboRateMs = 50;
             IsMuted = false;
@@ -225,12 +255,27 @@ public partial class MainViewModel : ObservableObject
     {
         if (SelectedButton == null) return;
 
+        MacroDefinition? macro = null;
+        if (SelectedTargetType == TargetType.Macro)
+        {
+            if (!MacroDefinition.TryParseScript(MacroScript, SelectedMacroRepeat, out var parsed, out var error))
+            {
+                MacroError = error;
+                StatusMessage = $"Macro not saved: {error}";
+                return;
+            }
+            macro = parsed;
+        }
+        MacroError = string.Empty;
+
         var target = new RemapTarget
         {
             Type = SelectedTargetType,
             VirtualButton = SelectedTargetType == TargetType.VirtualControllerButton ? SelectedVirtualButton : ControllerButton.None,
             KeyboardKey = SelectedTargetType == TargetType.KeyboardKey ? SelectedKeyboardKey : string.Empty,
-            MouseButton = SelectedTargetType == TargetType.MouseButton ? SelectedMouseButton : string.Empty
+            MouseButton = SelectedTargetType == TargetType.MouseButton ? SelectedMouseButton : string.Empty,
+            ScrollDelta = SelectedScrollDirection == ScrollDownLabel ? -1 : 1,
+            Macro = macro
         };
 
         // The pipeline thread reads these mappings, so edit under the engine's lock

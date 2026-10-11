@@ -13,14 +13,30 @@ public class RemapTarget
     // For MouseButton (e.g., "Left", "Right", "Middle", "XButton1", "XButton2")
     public string MouseButton { get; set; } = string.Empty;
 
+    // For MouseScroll: positive scrolls up, negative scrolls down
+    public int ScrollDelta { get; set; } = 1;
+
+    // For Macro
+    public MacroDefinition? Macro { get; set; }
+
+    public RemapTarget Clone() => new()
+    {
+        Type = Type,
+        VirtualButton = VirtualButton,
+        KeyboardKey = KeyboardKey,
+        MouseButton = MouseButton,
+        ScrollDelta = ScrollDelta,
+        Macro = Macro?.Clone()
+    };
+
     // Display string helper
     public string DisplayText => Type switch
     {
         TargetType.VirtualControllerButton => VirtualButton != ControllerButton.None ? VirtualButton.ToString() : "Unassigned",
         TargetType.KeyboardKey => !string.IsNullOrEmpty(KeyboardKey) ? $"Key: {KeyboardKey}" : "Unassigned",
         TargetType.MouseButton => !string.IsNullOrEmpty(MouseButton) ? $"Mouse: {MouseButton}" : "Unassigned",
-        TargetType.MouseScroll => "Mouse Scroll",
-        TargetType.Macro => "Macro Sequence",
+        TargetType.MouseScroll => ScrollDelta >= 0 ? "Scroll Up" : "Scroll Down",
+        TargetType.Macro => Macro is { Steps.Count: > 0 } ? $"Macro ({Macro.Steps.Count} steps)" : "Unassigned",
         _ => "Unassigned"
     };
 

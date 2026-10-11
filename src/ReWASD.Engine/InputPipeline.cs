@@ -22,12 +22,15 @@ public sealed class InputPipeline : IDisposable
     private Thread? _thread;
     private volatile bool _running;
 
-    public InputPipeline(MappingEngine engine, IGamepadReader reader, VirtualGamepadService virtualPad, KeyboardMouseInjector injector)
+    private readonly MacroRunner? _macros;
+
+    public InputPipeline(MappingEngine engine, IGamepadReader reader, VirtualGamepadService virtualPad, KeyboardMouseInjector injector, MacroRunner? macros = null)
     {
         _engine = engine;
         _reader = reader;
         _virtualPad = virtualPad;
         _injector = injector;
+        _macros = macros;
     }
 
     public bool IsRunning => _running;
@@ -54,6 +57,7 @@ public sealed class InputPipeline : IDisposable
         _thread = null;
         timeEndPeriod(1);
         _injector.ReleaseAll();
+        _macros?.CancelAll();
     }
 
     private void Loop()
@@ -75,11 +79,13 @@ public sealed class InputPipeline : IDisposable
 
                     _virtualPad.SendReport(state);
                     _injector.Apply(state);
+                    _macros?.Update(state.ActiveMacros);
                     FrameProcessed?.Invoke(state);
                 }
                 else
                 {
                     _injector.ReleaseAll();
+                    _macros?.CancelAll();
                 }
             }
             catch (Exception)

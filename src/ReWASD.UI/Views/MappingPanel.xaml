@@ -4,8 +4,12 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:models="clr-namespace:ReWASD.Core.Models;assembly=ReWASD.Core"
-             mc:Ignorable="d" 
+             xmlns:conv="clr-namespace:ReWASD.UI.Converters"
+             mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="300">
+    <UserControl.Resources>
+        <conv:EnumToBoolConverter x:Key="EnumToBool" />
+    </UserControl.Resources>
     <Border Background="{StaticResource BrushBgPanel}" 
             BorderBrush="{StaticResource BrushBorder}" 
             BorderThickness="1,0,0,0" 
@@ -43,20 +47,18 @@
                            FontWeight="Bold" />
 
                 <!-- Controller / Keyboard / Mouse Category Tabs -->
-                <Grid Margin="0,4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    
-                    <RadioButton Content="🎮 Pad" 
-                                 Style="{StaticResource ShiftTabButtonStyle}" 
-                                 Grid.Column="0"
-                                 IsChecked="{Binding SelectedTargetType, Converter={x:Null}, Mode=OneWay}">
-                        <!-- Helper or simple binding -->
-                    </RadioButton>
-                </Grid>
+                <UniformGrid Columns="5" Margin="0,4">
+                    <RadioButton Content="Pad" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0"
+                                 IsChecked="{Binding SelectedTargetType, Converter={StaticResource EnumToBool}, ConverterParameter=VirtualControllerButton}" />
+                    <RadioButton Content="Key" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0"
+                                 IsChecked="{Binding SelectedTargetType, Converter={StaticResource EnumToBool}, ConverterParameter=KeyboardKey}" />
+                    <RadioButton Content="Mouse" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0"
+                                 IsChecked="{Binding SelectedTargetType, Converter={StaticResource EnumToBool}, ConverterParameter=MouseButton}" />
+                    <RadioButton Content="Scroll" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0"
+                                 IsChecked="{Binding SelectedTargetType, Converter={StaticResource EnumToBool}, ConverterParameter=MouseScroll}" />
+                    <RadioButton Content="Macro" Style="{StaticResource ShiftTabButtonStyle}"
+                                 IsChecked="{Binding SelectedTargetType, Converter={StaticResource EnumToBool}, ConverterParameter=Macro}" />
+                </UniformGrid>
 
                 <!-- Virtual Controller Target Selection -->
                 <StackPanel Margin="0,4">
@@ -100,6 +102,43 @@
                               Padding="8,6" />
                 </StackPanel>
 
+                <!-- Scroll Direction -->
+                <StackPanel Margin="0,4">
+                    <TextBlock Text="Or Mouse Scroll"
+                               Foreground="{StaticResource BrushTextSecondary}"
+                               FontSize="12"
+                               Margin="0,0,0,4" />
+                    <ComboBox ItemsSource="{Binding AvailableScrollDirections}"
+                              SelectedItem="{Binding SelectedScrollDirection}"
+                              Background="{StaticResource BrushBgCard}"
+                              Foreground="{StaticResource BrushTextPrimary}"
+                              BorderBrush="{StaticResource BrushBorder}"
+                              Padding="8,6" />
+                </StackPanel>
+
+                <!-- Macro Editor -->
+                <StackPanel Margin="0,4">
+                    <TextBlock Text="Or Macro (Action:Value; ...)"
+                               Foreground="{StaticResource BrushTextSecondary}"
+                               FontSize="12"
+                               Margin="0,0,0,4" />
+                    <TextBox Text="{Binding MacroScript, UpdateSourceTrigger=PropertyChanged}"
+                             AcceptsReturn="False" TextWrapping="Wrap" MinHeight="48"
+                             Background="{StaticResource BrushBgCard}"
+                             Foreground="{StaticResource BrushTextPrimary}"
+                             BorderBrush="{StaticResource BrushBorder}"
+                             Padding="8,6" />
+                    <ComboBox ItemsSource="{Binding AvailableMacroRepeatModes}"
+                              SelectedItem="{Binding SelectedMacroRepeat}"
+                              Background="{StaticResource BrushBgCard}"
+                              Foreground="{StaticResource BrushTextPrimary}"
+                              BorderBrush="{StaticResource BrushBorder}"
+                              Padding="8,6" Margin="0,6,0,0" />
+                    <TextBlock Text="{Binding MacroError}" Foreground="#FF6B6B" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0" />
+                    <TextBlock Text="Actions: KeyDown, KeyUp, KeyTap, MouseDown, MouseUp, MouseClick, Wheel, Delay"
+                               Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" Margin="0,2,0,0" />
+                </StackPanel>
+
                 <!-- Mapping Behavior (Mode) -->
                 <Border BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0" Margin="0,8" />
 
@@ -107,6 +146,13 @@
                            Foreground="{StaticResource BrushTextMuted}" 
                            FontSize="11" 
                            FontWeight="Bold" />
+
+                <ComboBox ItemsSource="{Binding AvailableModes}"
+                          SelectedItem="{Binding SelectedMode}"
+                          Background="{StaticResource BrushBgCard}"
+                          Foreground="{StaticResource BrushTextPrimary}"
+                          BorderBrush="{StaticResource BrushBorder}"
+                          Padding="8,6" Margin="0,4" />
 
                 <!-- Turbo Rate Slider -->
                 <StackPanel Margin="0,4">

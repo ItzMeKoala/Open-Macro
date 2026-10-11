@@ -11,13 +11,7 @@ public class ButtonMapping
     public ButtonMapping Clone() => new()
     {
         SourceButton = SourceButton,
-        Target = new RemapTarget
-        {
-            Type = Target.Type,
-            VirtualButton = Target.VirtualButton,
-            KeyboardKey = Target.KeyboardKey,
-            MouseButton = Target.MouseButton
-        },
+        Target = Target.Clone(),
         Mode = Mode,
         TurboRateMs = TurboRateMs,
         IsMuted = IsMuted

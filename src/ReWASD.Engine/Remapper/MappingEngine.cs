@@ -8,6 +8,9 @@ public class RemappedState
     public HashSet<ControllerButton> ActiveVirtualButtons { get; } = new();
     public HashSet<string> ActiveKeyboardKeys { get; } = new();
     public HashSet<string> ActiveMouseButtons { get; } = new();
+
+    /// <summary>Macros whose trigger is currently held; compared by reference, so the profile's instances persist across frames.</summary>
+    public HashSet<MacroDefinition> ActiveMacros { get; } = new();
     public double LeftStickX { get; set; }
     public double LeftStickY { get; set; }
     public double RightStickX { get; set; }
@@ -242,6 +245,21 @@ public class MappingEngine
                 if (!string.IsNullOrEmpty(mapping.Target.MouseButton))
                 {
                     state.ActiveMouseButtons.Add(mapping.Target.MouseButton);
+                }
+                break;
+
+            case TargetType.MouseScroll:
+                // Scrolling is expressed as a wheel "button" so the injector fires one notch per press edge (and Turbo repeats it)
+                if (mapping.Target.ScrollDelta != 0)
+                {
+                    state.ActiveMouseButtons.Add(mapping.Target.ScrollDelta > 0 ? "Wheel Up" : "Wheel Down");
+                }
+                break;
+
+            case TargetType.Macro:
+                if (mapping.Target.Macro is { Steps.Count: > 0 } macro)
+                {
+                    state.ActiveMacros.Add(macro);
                 }
                 break;
         }
