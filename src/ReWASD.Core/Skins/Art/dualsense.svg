@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="32 66 962 690" id="dualsense">
+<!-- DualSense front view, drawn for ReWASD. Geometry follows the reference line drawing; shading and colours are original. -->
 <defs>
 <linearGradient id="g-shell" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="0.36" stop-color="#F2F5FA"/><stop offset="0.72" stop-color="#DFE4EE"/><stop offset="1" stop-color="#C6CEDC"/></linearGradient>
 <linearGradient id="g-shell-edge-l" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6E7A92" stop-opacity="0.5"/><stop offset="0.1" stop-color="#8F9AB1" stop-opacity="0.22"/><stop offset="0.32" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
@@ -8,7 +9,7 @@
 <linearGradient id="g-letters" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#B3BDCF"/><stop offset="1" stop-color="#DCE1EB"/></linearGradient>
 <linearGradient id="g-light" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8CBDFF"/><stop offset="0.5" stop-color="#3F7CF3"/><stop offset="1" stop-color="#2152D6"/></linearGradient>
 <linearGradient id="g-trigger" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#667086"/><stop offset="0.4" stop-color="#363C49"/><stop offset="1" stop-color="#1B1E26"/></linearGradient>
-<linearGradient id="g-bumper" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="0.55" stop-color="#F0F3F8"/><stop offset="1" stop-color="#C9D0DD"/></linearGradient>
+<linearGradient id="g-bumper" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9AA6BE"/><stop offset="0.18" stop-color="#707B93"/><stop offset="0.6" stop-color="#444C60"/><stop offset="1" stop-color="#2A2F3C"/></linearGradient>
 <radialGradient id="g-btn" cx="0.36" cy="0.3" r="0.8"><stop offset="0" stop-color="#5B6479"/><stop offset="0.55" stop-color="#282C37"/><stop offset="1" stop-color="#15171D"/></radialGradient>
 <linearGradient id="g-btn-rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.5"/><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.35"/></linearGradient>
 <linearGradient id="g-dpad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#525A6E"/><stop offset="0.5" stop-color="#292D38"/><stop offset="1" stop-color="#15171D"/></linearGradient>
@@ -71,16 +72,16 @@
 <g id="bumper-l" data-button="LeftBumper" data-anim="press" data-origin="226 150" data-press-scale="0.985" data-press-dy="4" data-name="L1">
 <path d="M 156 148 L 290 123 C 297 121.7 301 125 300.5 131 L 298 161 L 150 188 C 143 181 145 160 156 148 Z" fill="#000" opacity="0.5" filter="url(#f-soft)" transform="translate(0 5)"/>
 <path d="M 156 148 L 290 123 C 297 121.7 301 125 300.5 131 L 298 161 L 150 188 C 143 181 145 160 156 148 Z" fill="url(#g-bumper)"/>
-<path d="M 156 148 L 290 123 C 297 121.7 301 125 300.5 131 L 298 161 L 150 188 C 143 181 145 160 156 148 Z" fill="none" stroke="#FFFFFF" stroke-width="2.4" opacity="0.9" transform="translate(0 2)"/>
-<path d="M 298 161 L 150 188 C 143 181 145 160 156 148 L 290 123 C 297 121.7 301 125 300.5 131" fill="none" stroke="#232834" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 156 148 L 290 123 C 297 121.7 301 125 300.5 131 L 298 161 L 150 188 C 143 181 145 160 156 148 Z" fill="none" stroke="#E8EEFA" stroke-width="2.6" opacity="0.95" transform="translate(0 2.2)"/>
+<path d="M 298 161 L 150 188 C 143 181 145 160 156 148 L 290 123 C 297 121.7 301 125 300.5 131" fill="none" stroke="#0F1218" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M 156 148 L 290 123 C 297 121.7 301 125 300.5 131 L 298 161 L 150 188 C 143 181 145 160 156 148 Z" fill="#6FA6FF" data-fx="glow" data-max="0.32" opacity="0"/>
 <path d="M 156 148 L 290 123 C 297 121.7 301 125 300.5 131 L 298 161 L 150 188 C 143 181 145 160 156 148 Z" fill="transparent" class="hit"/>
 </g>
 <g id="bumper-r" data-button="RightBumper" data-anim="press" data-origin="801 150" data-press-scale="0.985" data-press-dy="4" data-name="R1">
 <path d="M 871 148 L 737 123 C 730 121.7 726 125 726.5 131 L 729 161 L 877 188 C 884 181 882 160 871 148 Z" fill="#000" opacity="0.5" filter="url(#f-soft)" transform="translate(0 5)"/>
 <path d="M 871 148 L 737 123 C 730 121.7 726 125 726.5 131 L 729 161 L 877 188 C 884 181 882 160 871 148 Z" fill="url(#g-bumper)"/>
-<path d="M 871 148 L 737 123 C 730 121.7 726 125 726.5 131 L 729 161 L 877 188 C 884 181 882 160 871 148 Z" fill="none" stroke="#FFFFFF" stroke-width="2.4" opacity="0.9" transform="translate(0 2)"/>
-<path d="M 729 161 L 877 188 C 884 181 882 160 871 148 L 737 123 C 730 121.7 726 125 726.5 131" fill="none" stroke="#232834" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 871 148 L 737 123 C 730 121.7 726 125 726.5 131 L 729 161 L 877 188 C 884 181 882 160 871 148 Z" fill="none" stroke="#E8EEFA" stroke-width="2.6" opacity="0.95" transform="translate(0 2.2)"/>
+<path d="M 729 161 L 877 188 C 884 181 882 160 871 148 L 737 123 C 730 121.7 726 125 726.5 131" fill="none" stroke="#0F1218" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M 871 148 L 737 123 C 730 121.7 726 125 726.5 131 L 729 161 L 877 188 C 884 181 882 160 871 148 Z" fill="#6FA6FF" data-fx="glow" data-max="0.32" opacity="0"/>
 <path d="M 871 148 L 737 123 C 730 121.7 726 125 726.5 131 L 729 161 L 877 188 C 884 181 882 160 871 148 Z" fill="transparent" class="hit"/>
 </g>
