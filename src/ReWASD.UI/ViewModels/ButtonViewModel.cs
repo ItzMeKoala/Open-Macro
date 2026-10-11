@@ -34,6 +34,24 @@ public partial class ButtonViewModel : ObservableObject
     [ObservableProperty]
     private double _cornerRadius = 19;
 
+    /// <summary>When set, the source is drawn as this shape (a path, in drawing coordinates) instead of a box.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasShape))]
+    private string? _shapeData;
+
+    /// <summary>Cuts <see cref="ShapeData"/> down to a region of it, so a button can be part of a bigger outline.</summary>
+    [ObservableProperty]
+    private string? _clipData;
+
+    public bool HasShape => !string.IsNullOrEmpty(ShapeData);
+
+    /// <summary>Where the legend is printed for shaped sources, in drawing coordinates.</summary>
+    [ObservableProperty]
+    private double _legendLeft;
+
+    [ObservableProperty]
+    private double _legendTop;
+
     [ObservableProperty]
     private double _legendFontSize = 12;
 

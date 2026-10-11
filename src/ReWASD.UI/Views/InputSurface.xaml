@@ -4,8 +4,112 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:vm="clr-namespace:ReWASD.UI.ViewModels"
+             xmlns:views="clr-namespace:ReWASD.UI.Views"
              mc:Ignorable="d"
              d:DesignHeight="460" d:DesignWidth="700">
+    <UserControl.Resources>
+
+        <!-- A source drawn as a box: pad buttons and keyboard keys -->
+        <DataTemplate x:Key="BoxSourceTemplate" DataType="{x:Type vm:ButtonViewModel}">
+            <Button Command="{Binding SelectCommand}" Width="{Binding Width}" Height="{Binding Height}" Cursor="Hand" ToolTip="{Binding FriendlyName}">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bg" Background="#252A36" BorderBrush="#384254" BorderThickness="1.5"
+                                CornerRadius="{Binding CornerRadius}">
+                            <Grid>
+                                <!-- Live trigger pull: a fill that rises with the analog value -->
+                                <Border Background="#88E9C46A" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,1"
+                                        Height="{Binding Height}" CornerRadius="{Binding CornerRadius}" IsHitTestVisible="False">
+                                    <Border.RenderTransform>
+                                        <ScaleTransform ScaleY="{Binding AnalogValue}" />
+                                    </Border.RenderTransform>
+                                </Border>
+
+                                <!-- Live stick position -->
+                                <Ellipse Width="9" Height="9" Fill="{StaticResource BrushCyan}" IsHitTestVisible="False"
+                                         HorizontalAlignment="Center" VerticalAlignment="Center"
+                                         Visibility="{Binding StickActive, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
+                                    <Ellipse.RenderTransform>
+                                        <TranslateTransform X="{Binding StickOffsetX}" Y="{Binding StickOffsetY}" />
+                                    </Ellipse.RenderTransform>
+                                </Ellipse>
+
+                                <TextBlock Text="{Binding DisplayName}" Foreground="{Binding LegendColor}"
+                                           FontWeight="Bold" FontSize="{Binding LegendFontSize}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+                                <!-- Remapped indicator -->
+                                <Ellipse Width="6" Height="6" Fill="{StaticResource BrushCyan}"
+                                         HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,4,0"
+                                         Visibility="{Binding IsRemapped, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bg" Property="Background" Value="#313847" />
+                                <Setter TargetName="bg" Property="BorderBrush" Value="{StaticResource BrushCyanHover}" />
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter TargetName="bg" Property="BorderBrush" Value="{StaticResource BrushCyan}" />
+                                <Setter TargetName="bg" Property="BorderThickness" Value="2" />
+                                <Setter TargetName="bg" Property="Background" Value="#1E3747" />
+                            </DataTrigger>
+                            <!-- Physically held right now -->
+                            <DataTrigger Binding="{Binding IsPressed}" Value="True">
+                                <Setter TargetName="bg" Property="Background" Value="#9C7E2C" />
+                                <Setter TargetName="bg" Property="BorderBrush" Value="#F2D68F" />
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </DataTemplate>
+
+        <!--
+            A source drawn as its own shape: a region of the mouse body, or a piece of the wheel. The button covers the whole
+            drawing but is only "hit" where the shape is painted, so each region is clickable and highlights as itself.
+        -->
+        <DataTemplate x:Key="ShapeSourceTemplate" DataType="{x:Type vm:ButtonViewModel}">
+            <Button Command="{Binding SelectCommand}" Width="700" Height="440" Cursor="Hand" ToolTip="{Binding FriendlyName}">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Canvas Width="700" Height="440">
+                            <Path x:Name="shape" Data="{Binding ShapeData}" Clip="{Binding ClipData}"
+                                  Fill="#151921" Stroke="#8F7B45" StrokeThickness="1.6" StrokeLineJoin="Round" />
+                            <TextBlock x:Name="legend" Canvas.Left="{Binding LegendLeft}" Canvas.Top="{Binding LegendTop}" Width="80" TextAlignment="Center"
+                                       Text="{Binding DisplayName}" Foreground="{Binding LegendColor}" FontWeight="Bold" FontSize="{Binding LegendFontSize}"
+                                       IsHitTestVisible="False" />
+                        </Canvas>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="shape" Property="Fill" Value="#2A3140" />
+                                <Setter TargetName="shape" Property="Stroke" Value="#F2D68F" />
+                            </Trigger>
+                            <!-- A remapped button's legend turns gold -->
+                            <DataTrigger Binding="{Binding IsRemapped}" Value="True">
+                                <Setter TargetName="legend" Property="Foreground" Value="{StaticResource BrushCyan}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter TargetName="shape" Property="Fill" Value="#3A3220" />
+                                <Setter TargetName="shape" Property="Stroke" Value="{StaticResource BrushCyan}" />
+                                <Setter TargetName="shape" Property="StrokeThickness" Value="2.6" />
+                            </DataTrigger>
+                            <!-- Physically held right now -->
+                            <DataTrigger Binding="{Binding IsPressed}" Value="True">
+                                <Setter TargetName="shape" Property="Fill" Value="#9C7E2C" />
+                                <Setter TargetName="shape" Property="Stroke" Value="#F2D68F" />
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </DataTemplate>
+
+        <views:SourceTemplateSelector x:Key="SourceTemplates"
+                                      BoxTemplate="{StaticResource BoxSourceTemplate}"
+                                      ShapeTemplate="{StaticResource ShapeSourceTemplate}" />
+    </UserControl.Resources>
+
     <Grid Background="Transparent">
         <Grid.RowDefinitions>
             <RowDefinition Height="64" />
@@ -14,7 +118,10 @@
 
         <!-- The drawing: a fixed 700x440 canvas scaled to whatever room there is, a little smaller than the space -->
         <Viewbox Grid.Row="1" Stretch="Uniform" Margin="56,0,56,22">
-            <Canvas Width="700" Height="440">
+            <Canvas Width="700" Height="440" RenderTransformOrigin="0.5,0.5">
+                <Canvas.RenderTransform>
+                    <ScaleTransform ScaleX="{Binding SurfaceScale}" ScaleY="{Binding SurfaceScale}" />
+                </Canvas.RenderTransform>
 
                 <!-- Body, wells, touchpad, keyboard plate... -->
                 <ItemsControl ItemsSource="{Binding SurfaceDecor}" IsHitTestVisible="False">
@@ -31,8 +138,8 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <!-- Selectable buttons / keys -->
-                <ItemsControl ItemsSource="{Binding CurrentSources}">
+                <!-- Selectable buttons / keys / mouse regions -->
+                <ItemsControl ItemsSource="{Binding CurrentSources}" ItemTemplateSelector="{StaticResource SourceTemplates}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <Canvas Width="700" Height="440" />
@@ -44,62 +151,6 @@
                             <Setter Property="Canvas.Top" Value="{Binding Y}" />
                         </Style>
                     </ItemsControl.ItemContainerStyle>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type vm:ButtonViewModel}">
-                            <Button Command="{Binding SelectCommand}" Width="{Binding Width}" Height="{Binding Height}" Cursor="Hand" ToolTip="{Binding FriendlyName}">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border x:Name="bg" Background="#252A36" BorderBrush="#384254" BorderThickness="1.5"
-                                                CornerRadius="{Binding CornerRadius}">
-                                            <Grid>
-                                                <!-- Live trigger pull: a fill that rises with the analog value -->
-                                                <Border Background="#88E9C46A" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,1"
-                                                        Height="{Binding Height}" CornerRadius="{Binding CornerRadius}" IsHitTestVisible="False">
-                                                    <Border.RenderTransform>
-                                                        <ScaleTransform ScaleY="{Binding AnalogValue}" />
-                                                    </Border.RenderTransform>
-                                                </Border>
-
-                                                <!-- Live stick position -->
-                                                <Ellipse Width="9" Height="9" Fill="{StaticResource BrushCyan}" IsHitTestVisible="False"
-                                                         HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                         Visibility="{Binding StickActive, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
-                                                    <Ellipse.RenderTransform>
-                                                        <TranslateTransform X="{Binding StickOffsetX}" Y="{Binding StickOffsetY}" />
-                                                    </Ellipse.RenderTransform>
-                                                </Ellipse>
-
-                                                <TextBlock Text="{Binding DisplayName}" Foreground="{Binding LegendColor}"
-                                                           FontWeight="Bold" FontSize="{Binding LegendFontSize}"
-                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-
-                                                <!-- Remapped indicator -->
-                                                <Ellipse Width="6" Height="6" Fill="{StaticResource BrushCyan}"
-                                                         HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,4,0"
-                                                         Visibility="{Binding IsRemapped, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" />
-                                            </Grid>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="bg" Property="Background" Value="#313847" />
-                                                <Setter TargetName="bg" Property="BorderBrush" Value="{StaticResource BrushCyanHover}" />
-                                            </Trigger>
-                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                <Setter TargetName="bg" Property="BorderBrush" Value="{StaticResource BrushCyan}" />
-                                                <Setter TargetName="bg" Property="BorderThickness" Value="2" />
-                                                <Setter TargetName="bg" Property="Background" Value="#1E3747" />
-                                            </DataTrigger>
-                                            <!-- Physically held right now -->
-                                            <DataTrigger Binding="{Binding IsPressed}" Value="True">
-                                                <Setter TargetName="bg" Property="Background" Value="#9C7E2C" />
-                                                <Setter TargetName="bg" Property="BorderBrush" Value="#F2D68F" />
-                                            </DataTrigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </Canvas>
         </Viewbox>

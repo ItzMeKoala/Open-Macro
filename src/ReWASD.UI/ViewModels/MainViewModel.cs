@@ -415,6 +415,10 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<DecorShape> _surfaceDecor = new();
 
+    /// <summary>How much larger than the shared drawing area the current picture is drawn. The mouse is a small shape, so it is enlarged.</summary>
+    [ObservableProperty]
+    private double _surfaceScale = 1.0;
+
     public IReadOnlyList<SkinOption> SkinOptions => ControllerSkins.Options;
 
     partial void OnSelectedSkinChanged(SkinKind value) => ApplySkin(value);
@@ -475,20 +479,41 @@ public partial class MainViewModel : ObservableObject
         UpdateAllButtonDisplays();
     }
 
-    private ButtonViewModel MakeSource(SourceKind kind, SourcePlacement s) => new()
+    private ButtonViewModel MakeSource(SourceKind kind, SourcePlacement s)
     {
-        Kind = kind,
-        SourceName = s.Name,
-        FriendlyName = s.Name,
-        DisplayName = s.Legend,
-        X = s.Place.Cx - s.Place.W / 2,
-        Y = s.Place.Cy - s.Place.H / 2,
-        Width = s.Place.W,
-        Height = s.Place.H,
-        CornerRadius = s.Radius,
-        LegendFontSize = s.FontSize,
-        OnSelected = SelectButton
-    };
+        var vm = new ButtonViewModel
+        {
+            Kind = kind,
+            SourceName = s.Name,
+            FriendlyName = s.Name,
+            DisplayName = s.Legend,
+            CornerRadius = s.Radius,
+            LegendFontSize = s.FontSize,
+            OnSelected = SelectButton
+        };
+
+        if (s.ShapeData != null)
+        {
+            // A shaped source (part of the mouse body, say) covers the whole drawing and is hit-tested by its outline
+            vm.ShapeData = s.ShapeData;
+            vm.ClipData = s.ClipData;
+            vm.X = 0;
+            vm.Y = 0;
+            vm.Width = ControllerSkins.CanvasWidth;
+            vm.Height = ControllerSkins.CanvasHeight;
+            vm.LegendLeft = s.Place.Cx - 40; // the legend box is 80 wide and centred on the legend position
+            vm.LegendTop = s.Place.Cy - s.FontSize * 0.7;
+        }
+        else
+        {
+            vm.X = s.Place.Cx - s.Place.W / 2;
+            vm.Y = s.Place.Cy - s.Place.H / 2;
+            vm.Width = s.Place.W;
+            vm.Height = s.Place.H;
+        }
+
+        return vm;
+    }
 
     private void InitializeSourcePickers()
     {
@@ -513,6 +538,7 @@ public partial class MainViewModel : ObservableObject
             _ => ControllerSkins.Get(SelectedSkin).Decor
         };
         SurfaceDecor = new ObservableCollection<DecorShape>(decor);
+        SurfaceScale = value == InputTab.Mouse ? 1.2 : 1.0;
 
         var first = value == InputTab.Gamepad
             ? CurrentSources.FirstOrDefault(b => b.Button == ControllerButton.A)
