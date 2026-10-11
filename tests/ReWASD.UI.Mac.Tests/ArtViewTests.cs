@@ -260,14 +260,140 @@ public class ArtViewTests
     }
 
     [AvaloniaFact]
-    public void Xbox_KeepsTheOutlineDrawing()
+    public void SwitchPro_KeepsTheOutlineDrawing()
     {
         var (vm, _, view) = Open();
 
-        vm.SelectedSkin = SkinKind.Xbox;
+        vm.SelectedSkin = SkinKind.SwitchPro;
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
         Assert.False(vm.ShowSkinArt);
         Assert.False(view.IsVisible);
+    }
+}
+
+public class XboxArtViewTests
+{
+    private static (MainViewModel Vm, MainWindow Window, ArtView View) Open()
+    {
+        var vm = new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo), new Fakes.Ui(), Fakes.TempProfiles());
+        Assert.Equal(SkinKind.Xbox, vm.SelectedSkin);   // the default picture
+        var window = new MainWindow { DataContext = vm };
+        window.Show();
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        return (vm, window, window.GetVisualDescendants().OfType<ArtView>().Single());
+    }
+
+    private static ButtonViewModel Pad(MainViewModel vm, ControllerButton b) => vm.ControllerButtons.First(x => x.Button == b);
+    private static ArtView.PartSnapshot Look(ArtView v, ControllerButton b) => v.Inspect(b)!.Value;
+
+    private static void Shot(Window window, string name)
+    {
+        string? dir = Environment.GetEnvironmentVariable("REWASD_SHOTS");
+        if (string.IsNullOrEmpty(dir)) return;
+        Directory.CreateDirectory(dir);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        window.CaptureRenderedFrame()?.Save(Path.Combine(dir, name + ".png"));
+    }
+
+    private static void Gallery(string name, Action<MainViewModel>? configure = null)
+    {
+        var vm = new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo), new Fakes.Ui(), Fakes.TempProfiles());
+        configure?.Invoke(vm);
+        var view = new ArtView { Scene = vm.SkinArt, Sources = vm.ControllerButtons };
+        var window = new Window { Width = 1700, Height = 1300, Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#161617")), Content = view, DataContext = vm };
+        window.Show();
+        view.Settle();
+        Shot(window, name);
+    }
+
+    [AvaloniaFact]
+    public void TheDefaultPicture_IsTheDetailedXbox()
+    {
+        var (vm, window, view) = Open();
+
+        Assert.True(vm.ShowSkinArt);
+        Assert.True(view.IsVisible);
+        Shot(window, "xbox-idle");
+    }
+
+    [AvaloniaFact]
+    public void LiveInput_MovesTheXboxDrawing()
+    {
+        var (vm, window, view) = Open();
+
+        Pad(vm, ControllerButton.A).IsPressed = true;
+        Pad(vm, ControllerButton.DpadLeft).IsPressed = true;
+        Pad(vm, ControllerButton.LeftBumper).IsPressed = true;
+        Pad(vm, ControllerButton.RightTrigger).AnalogValue = 1;
+        var rs = Pad(vm, ControllerButton.RightStickClick);
+        rs.StickOffsetX = -12; rs.StickOffsetY = 6; rs.IsPressed = true;
+        view.Settle();
+
+        Assert.True(Look(view, ControllerButton.A).Glow > 0.5);
+        Assert.True(Look(view, ControllerButton.DpadLeft).Glow > 0.5);
+        Assert.Equal(0, Look(view, ControllerButton.DpadRight).Glow);
+        // Where the part's pivot ends up, compared with where it rests
+        Avalonia.Point Shift(ControllerButton b) { var o = view.Scene!.PartFor(b)!.Origin; var p = Look(view, b).Transform.Transform(new Avalonia.Point(o.X, o.Y)); return new Avalonia.Point(p.X - o.X, p.Y - o.Y); }
+        Assert.True(Shift(ControllerButton.LeftBumper).Y > 3);       // the bumper dipped
+        Assert.True(Shift(ControllerButton.RightTrigger).Y > 20);    // the trigger was pulled
+        Assert.True(Shift(ControllerButton.RightStickClick).X < -20); // the cap leaned left
+        Assert.True(Shift(ControllerButton.RightStickClick).Y > 5);   // and down
+        Shot(window, "xbox-live");
+    }
+
+    [AvaloniaFact]
+    public void Gallery_IdleAndPressed()
+    {
+        Gallery("xbox-art-idle");
+        Gallery("xbox-art-pressed", vm =>
+        {
+            foreach (var b in new[] { ControllerButton.A, ControllerButton.X, ControllerButton.DpadUp, ControllerButton.LeftBumper, ControllerButton.Menu, ControllerButton.Guide, ControllerButton.LeftStickClick })
+                Pad(vm, b).IsPressed = true;
+            Pad(vm, ControllerButton.RightTrigger).AnalogValue = 1;
+            Pad(vm, ControllerButton.LeftTrigger).AnalogValue = 0.5;
+            Pad(vm, ControllerButton.RightStickClick).StickOffsetX = 9;
+            Pad(vm, ControllerButton.RightStickClick).StickOffsetY = -10;
+            vm.SelectButton(Pad(vm, ControllerButton.B));
+        });
+    }
+
+    private static Avalonia.Point Screen(Window window, ArtView view, double x, double y)
+    {
+        var root = ((Avalonia.Controls.Viewbox)view.Child!).Child!;
+        return Avalonia.VisualExtensions.TranslatePoint(root, new Avalonia.Point(x, y), window)!.Value;
+    }
+
+    [AvaloniaFact]
+    public void ClickingAPart_SelectsIt_AndTheBodyDoesNot()
+    {
+        var (vm, window, view) = Open();
+
+        void Click(double x, double y)
+        {
+            var p = Screen(window, view, x, y);
+            window.MouseDown(p, Avalonia.Input.MouseButton.Left);
+            window.MouseUp(p, Avalonia.Input.MouseButton.Left);
+        }
+
+        Click(1291.7, 267.1);   // Y
+        Assert.Equal(ControllerButton.Y, vm.SelectedButton!.Button);
+        Click(1186.6, 365.3);   // X
+        Assert.Equal(ControllerButton.X, vm.SelectedButton!.Button);
+        Click(902, 198);        // Xbox button
+        Assert.Equal(ControllerButton.Guide, vm.SelectedButton!.Button);
+        Click(516, 363);        // left stick
+        Assert.Equal(ControllerButton.LeftStickClick, vm.SelectedButton!.Button);
+        Click(702.7, 540);      // d-pad up
+        Assert.Equal(ControllerButton.DpadUp, vm.SelectedButton!.Button);
+        Click(640, 604);        // d-pad left
+        Assert.Equal(ControllerButton.DpadLeft, vm.SelectedButton!.Button);
+        Click(789.5, 365);      // view
+        Assert.Equal(ControllerButton.View, vm.SelectedButton!.Button);
+
+        Click(400, 800);        // plain body
+        Assert.Equal(ControllerButton.View, vm.SelectedButton!.Button);
+        Click(900, 600);        // plain body
+        Assert.Equal(ControllerButton.View, vm.SelectedButton!.Button);
     }
 }

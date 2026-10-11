@@ -41,17 +41,18 @@ Controllers are read through Apple's GameController framework, so any pad macOS 
 macOS to keep delivering controller input while another app has focus. This has not been tried with real controllers
 yet; please report what you see.
 
-## The PlayStation 5 picture
+## The PlayStation 5 and Xbox pictures
 
-Pick **PlayStation 5** in the picture menu (it is chosen for you when a DualSense is connected) to get a detailed,
-animated DualSense drawing. It follows your real controller: buttons sink and glow while held, triggers pull down
+Pick **PlayStation 5** or **Xbox** in the picture menu (the right one is chosen for you when a DualSense or Xbox pad is
+connected) to get a detailed, animated drawing of that controller. It follows your real controller: buttons sink and glow while held, triggers pull down
 with the analog value, sticks lean and shrink when clicked, and the button you are editing is outlined in gold.
-Click any part of the drawing to select it. The drawing is `src/ReWASD.Core/Skins/Art/dualsense.svg`; it opens in a
-browser and carries the part names and motion settings as `data-*` attributes (see `SvgArtParser`). Other pictures
+Click any part of the drawing to select it. The drawings are `src/ReWASD.Core/Skins/Art/dualsense.svg` and `xboxone.svg`; they open in a
+browser (`docs/design/*-preview.html` also react to a real controller) and carries the part names and motion settings as `data-*` attributes (see `SvgArtParser`). The Xbox picture is an Xbox One style pad with a trigger and a bumper on each side. The PlayStation 4 and Switch Pro pictures
 and the Windows app still use the outline drawings.
 
-The PlayStation logo on the PS button is the public-domain "PlayStation logo.svg" from Wikimedia Commons. The mark is a
-trademark of Sony Interactive Entertainment and is shown only to depict the controller.
+The PlayStation logo on the PS button and the Xbox sphere on the Xbox button are the public-domain "PlayStation logo.svg" and
+"Xbox one logo.svg" from Wikimedia Commons. The marks are trademarks of Sony Interactive Entertainment and Microsoft and are
+shown only to depict the controllers.
 
 ## Differences to know about
 

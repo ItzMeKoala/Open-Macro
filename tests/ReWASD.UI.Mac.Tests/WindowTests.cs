@@ -36,9 +36,10 @@ public class WindowTests
     public void TheWindowOpens_AndDrawsEveryControllerButton()
     {
         var vm = NewViewModel();
+        vm.SelectedSkin = ReWASD.Core.Skins.SkinKind.SwitchPro;   // a skin with only the outline drawing
         var window = Show(vm);
 
-        var buttons = window.GetVisualDescendants().OfType<Button>().Where(b => b.Classes.Contains("src")).ToList();
+        var buttons = window.GetVisualDescendants().OfType<Button>().Where(b => b.Classes.Contains("src") && b.IsEffectivelyVisible).ToList();
         Assert.Equal(vm.ControllerButtons.Count, buttons.Count);
         Assert.Equal("Default Controller Profile", vm.SelectedProfile.Name);
         Shot(window, "gamepad");

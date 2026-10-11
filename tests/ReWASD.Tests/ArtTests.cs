@@ -284,12 +284,135 @@ public class ArtTests
         static bool HasGlow(ArtGroup g) => g.Children.Any(c => c is ArtPath { IsGlow: true } || (c is ArtGroup sub && HasGlow(sub)));
     }
 
+    // ---- the shipped Xbox drawing ------------------------------------------------------------------------------------
+
     [Fact]
-    public void OnlyThePlayStation5Skin_HasTheDetailedDrawing()
+    public void XboxOne_HasEveryButtonOnce_InsideTheDrawing()
+    {
+        var scene = ArtLibrary.XboxOne;
+
+        Assert.Equal(DualSenseButtons.Length, scene.Parts.Count);
+        foreach (var button in DualSenseButtons)
+        {
+            var part = scene.PartFor(button);
+            Assert.True(part != null, $"{button} is missing");
+            Assert.InRange(part!.HitBounds.X, scene.OriginX, scene.OriginX + scene.Width);
+            Assert.InRange(part.HitBounds.Right, scene.OriginX, scene.OriginX + scene.Width);
+            Assert.InRange(part.HitBounds.Y, scene.OriginY, scene.OriginY + scene.Height);
+            Assert.InRange(part.HitBounds.Bottom, scene.OriginY, scene.OriginY + scene.Height);
+            Assert.True(part.HitBounds.Width > 30 && part.HitBounds.Height > 30, $"{button} is too small to click");
+        }
+    }
+
+    [Fact]
+    public void XboxOne_PlacesButtonsWhereTheRealOnesAre()
+    {
+        var s = ArtLibrary.XboxOne;
+        ArtRect B(ControllerButton b) => s.PartFor(b)!.HitBounds;
+
+        // Face buttons: Y on top, A at the bottom, X on the left, B on the right
+        Assert.True(B(ControllerButton.Y).CenterY < B(ControllerButton.X).CenterY);
+        Assert.True(B(ControllerButton.X).CenterY < B(ControllerButton.A).CenterY);
+        Assert.True(B(ControllerButton.X).CenterX < B(ControllerButton.Y).CenterX);
+        Assert.True(B(ControllerButton.Y).CenterX < B(ControllerButton.B).CenterX);
+        Assert.Equal(B(ControllerButton.Y).CenterX, B(ControllerButton.A).CenterX, 1);
+        Assert.Equal(B(ControllerButton.X).CenterY, B(ControllerButton.B).CenterY, 1);
+
+        // Left stick top-left, d-pad below it, right stick lower-middle, face buttons on the right
+        Assert.True(B(ControllerButton.LeftStickClick).CenterY < B(ControllerButton.DpadUp).CenterY);
+        Assert.True(B(ControllerButton.DpadUp).CenterY < B(ControllerButton.DpadDown).CenterY);
+        Assert.True(B(ControllerButton.DpadLeft).CenterX < B(ControllerButton.DpadRight).CenterX);
+        Assert.True(B(ControllerButton.DpadRight).CenterX < B(ControllerButton.RightStickClick).CenterX);
+        Assert.True(B(ControllerButton.RightStickClick).CenterX < B(ControllerButton.A).CenterX);
+
+        // The centre of the top: Xbox button between View and Menu, which sit between the left stick and the face buttons
+        Assert.True(B(ControllerButton.View).CenterX < B(ControllerButton.Guide).CenterX);
+        Assert.True(B(ControllerButton.Guide).CenterX < B(ControllerButton.Menu).CenterX);
+        Assert.True(B(ControllerButton.LeftStickClick).CenterX < B(ControllerButton.View).CenterX);
+        Assert.True(B(ControllerButton.Menu).CenterX < B(ControllerButton.X).CenterX);
+        Assert.True(B(ControllerButton.Guide).CenterY < B(ControllerButton.View).CenterY);
+
+        // Triggers above the bumpers, bumpers above the sticks
+        Assert.True(B(ControllerButton.LeftTrigger).Y < B(ControllerButton.LeftBumper).Y);
+        Assert.True(B(ControllerButton.LeftBumper).CenterY < B(ControllerButton.LeftStickClick).CenterY);
+    }
+
+    [Fact]
+    public void XboxOne_LeftAndRightPartsMirrorEachOther()
+    {
+        var s = ArtLibrary.XboxOne;
+        const double axis = 900.3;
+
+        foreach (var (left, right) in new[]
+                 {
+                     (ControllerButton.LeftTrigger, ControllerButton.RightTrigger), (ControllerButton.LeftBumper, ControllerButton.RightBumper),
+                     (ControllerButton.View, ControllerButton.Menu)
+                 })
+        {
+            var l = s.PartFor(left)!.HitBounds;
+            var r = s.PartFor(right)!.HitBounds;
+            Assert.Equal(2 * axis - l.CenterX, r.CenterX, 2);
+            Assert.Equal(l.CenterY, r.CenterY, 2);
+            Assert.Equal(l.Width, r.Width, 2);
+        }
+
+        Assert.Equal(axis, s.PartFor(ControllerButton.Guide)!.HitBounds.CenterX, 3);
+    }
+
+    [Fact]
+    public void XboxOne_MotionsMatchTheHardware_AndEveryPartCanGlow()
+    {
+        var s = ArtLibrary.XboxOne;
+
+        Assert.All(new[] { ControllerButton.LeftTrigger, ControllerButton.RightTrigger }, b => Assert.Equal(ArtMotion.Trigger, s.PartFor(b)!.Motion));
+        Assert.All(new[] { ControllerButton.LeftStickClick, ControllerButton.RightStickClick }, b => Assert.Equal(ArtMotion.Stick, s.PartFor(b)!.Motion));
+        foreach (var stick in s.Parts.Where(p => p.Motion == ArtMotion.Stick))
+            Assert.Contains(stick.Group.Children.OfType<ArtGroup>(), g => g.Get("role") == "move");
+        foreach (var part in s.Parts)
+            Assert.True(HasGlow(part.Group), $"{part.Name} has nothing that lights up");
+
+        static bool HasGlow(ArtGroup g) => g.Children.Any(c => c is ArtPath { IsGlow: true } || (c is ArtGroup sub && HasGlow(sub)));
+    }
+
+    [Fact]
+    public void XboxOne_HasNoStrayCurves()
+    {
+        var paths = new List<ArtPath>();
+        void Walk(ArtGroup g) { foreach (var c in g.Children) { if (c is ArtPath p) paths.Add(p); else if (c is ArtGroup sub) Walk(sub); } }
+        Walk(ArtLibrary.XboxOne.Root);
+        Assert.True(paths.Count > 100);
+
+        foreach (var p in paths)
+        {
+            var t = System.Text.RegularExpressions.Regex.Matches(p.D, @"[MLCZQ]|-?\d+(?:\.\d+)?").Select(m => m.Value).ToList();
+            (double X, double Y) cur = (0, 0);
+            for (int i = 0; i < t.Count;)
+            {
+                double N(int k) => double.Parse(t[i + k], System.Globalization.CultureInfo.InvariantCulture);
+                switch (t[i])
+                {
+                    case "M" or "L": cur = (N(1), N(2)); i += 3; break;
+                    case "Q": cur = (N(3), N(4)); i += 5; break;
+                    case "C":
+                    {
+                        var c1 = (X: N(1), Y: N(2)); var c2 = (X: N(3), Y: N(4)); var end = (X: N(5), Y: N(6));
+                        double chord = Math.Sqrt(Math.Pow(end.X - cur.X, 2) + Math.Pow(end.Y - cur.Y, 2));
+                        double reach = Math.Max(Math.Sqrt(Math.Pow(c1.X - cur.X, 2) + Math.Pow(c1.Y - cur.Y, 2)), Math.Sqrt(Math.Pow(c2.X - end.X, 2) + Math.Pow(c2.Y - end.Y, 2)));
+                        Assert.True(reach <= chord * 1.6 + 8, $"a curve in {p.Id ?? p.D[..Math.Min(40, p.D.Length)]} reaches {reach:0} on a {chord:0} chord");
+                        cur = end; i += 7; break;
+                    }
+                    default: i++; break;
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public void OnlyThePlayStation5AndXboxSkins_HaveTheDetailedDrawing()
     {
         Assert.NotNull(ControllerSkins.Get(SkinKind.PlayStation5).Art);
+        Assert.NotNull(ControllerSkins.Get(SkinKind.Xbox).Art);
         Assert.Null(ControllerSkins.Get(SkinKind.PlayStation4).Art);
-        Assert.Null(ControllerSkins.Get(SkinKind.Xbox).Art);
         Assert.Null(ControllerSkins.Get(SkinKind.SwitchPro).Art);
     }
 

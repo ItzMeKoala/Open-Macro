@@ -288,6 +288,7 @@ public static class ControllerSkins
         {
             Kind = SkinKind.Xbox,
             Name = "Xbox",
+            Art = ArtLibrary.TryGetXboxOne(),
             Layout = WithShoulders(
                 (ControllerButton.LeftStickClick, 209, 164, 50, 50), (ControllerButton.RightStickClick, 394, 249, 50, 50),
                 (ControllerButton.DpadUp, 262, 222, 34, 34), (ControllerButton.DpadDown, 262, 292, 34, 34),
