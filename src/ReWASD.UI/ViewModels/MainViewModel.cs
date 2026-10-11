@@ -45,7 +45,7 @@ public partial class MainViewModel : ObservableObject
     private string _selectedKeyboardKey = "Space";
 
     [ObservableProperty]
-    private string _selectedMouseButton = "Left";
+    private string _selectedMouseButton = "Left Click";
 
     [ObservableProperty]
     private MappingMode _selectedMode = MappingMode.Normal;
@@ -83,6 +83,15 @@ public partial class MainViewModel : ObservableObject
         {
             SelectButton(ControllerButtons[0]);
         }
+    }
+
+    partial void OnSelectedProfileChanged(Profile value)
+    {
+        // Keep the engine on the profile being edited
+        _mappingEngine.CurrentProfile = value;
+        if (!value.ShiftLayers.ContainsKey(ActiveShiftLayer)) ActiveShiftLayer = 0;
+        _mappingEngine.SetShiftLayer(ActiveShiftLayer);
+        UpdateAllButtonDisplays();
     }
 
     private void PopulateInspectorOptions()

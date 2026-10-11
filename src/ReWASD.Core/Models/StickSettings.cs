@@ -12,11 +12,13 @@ public class StickSettings
     // Apply deadzone and curve to raw input coordinate (-1.0 to 1.0)
     public double TransformAxis(double input)
     {
+        if (double.IsNaN(input)) return 0.0; // Math.Sign(NaN) throws
+
         double sign = Math.Sign(input);
         double abs = Math.Abs(input);
 
         if (abs <= DeadzoneMin) return 0.0;
-        if (abs >= DeadzoneMax) return sign * 1.0;
+        if (abs >= DeadzoneMax) return sign * 1.0; // also guards a degenerate Max <= Min range
 
         // Normalize between DeadzoneMin and DeadzoneMax
         double normalized = (abs - DeadzoneMin) / (DeadzoneMax - DeadzoneMin);

@@ -50,11 +50,14 @@ public class VirtualGamepadService : IDisposable
         try
         {
             _virtualXbox?.Disconnect();
-            _virtualXbox = null;
         }
         catch (Exception)
         {
             // Ignore on disconnect
+        }
+        finally
+        {
+            _virtualXbox = null;
         }
     }
 
@@ -86,8 +89,11 @@ public class VirtualGamepadService : IDisposable
             _virtualXbox.SetButtonState(Xbox360Button.Right, state.ActiveVirtualButtons.Contains(ControllerButton.DpadRight));
 
             // Set Triggers (byte 0..255)
-            _virtualXbox.SetSliderValue(Xbox360Slider.LeftTrigger, (byte)Math.Clamp((int)(state.LeftTrigger * 255), 0, 255));
-            _virtualXbox.SetSliderValue(Xbox360Slider.RightTrigger, (byte)Math.Clamp((int)(state.RightTrigger * 255), 0, 255));
+            // A button remapped onto a trigger counts as a full pull
+            double lt = state.ActiveVirtualButtons.Contains(ControllerButton.LeftTrigger) ? 1.0 : state.LeftTrigger;
+            double rt = state.ActiveVirtualButtons.Contains(ControllerButton.RightTrigger) ? 1.0 : state.RightTrigger;
+            _virtualXbox.SetSliderValue(Xbox360Slider.LeftTrigger, (byte)Math.Clamp((int)Math.Round(lt * 255), 0, 255));
+            _virtualXbox.SetSliderValue(Xbox360Slider.RightTrigger, (byte)Math.Clamp((int)Math.Round(rt * 255), 0, 255));
 
             // Set Sticks (short -32768..32767)
             _virtualXbox.SetAxisValue(Xbox360Axis.LeftThumbX, (short)Math.Clamp((int)(state.LeftStickX * 32767), -32768, 32767));

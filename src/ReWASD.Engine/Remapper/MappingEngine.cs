@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+using System.Diagnostics;
 using ReWASD.Core.Models;
 
 namespace ReWASD.Engine.Remapper;
@@ -22,15 +22,16 @@ public class MappingEngine
     public bool IsActive { get; set; } = false;
     public int ActiveShiftLayerIndex { get; private set; } = 0;
 
-    // Toggle states for buttons configured with MappingMode.Toggle
-    private readonly ConcurrentDictionary<ControllerButton, bool> _toggleStates = new();
-    
-    // Turbo timers tracking
-    private readonly ConcurrentDictionary<ControllerButton, long> _turboLastTicks = new();
+    // Not thread-safe: ProcessInputs is expected to be called from a single polling loop.
+    private readonly Dictionary<ControllerButton, bool> _toggleStates = new();
+    private readonly Dictionary<ControllerButton, long> _pressStartMs = new();
+    private HashSet<ControllerButton> _previousPressed = new();
+    private readonly Func<long> _clockMs;
 
-    public MappingEngine(Profile? initialProfile = null)
+    public MappingEngine(Profile? initialProfile = null, Func<long>? clockMs = null)
     {
         CurrentProfile = initialProfile ?? Profile.CreateDefault();
+        _clockMs = clockMs ?? (() => Stopwatch.GetTimestamp() * 1000 / Stopwatch.Frequency);
     }
 
     public void SetShiftLayer(int layerIndex)
@@ -84,27 +85,68 @@ public class MappingEngine
             ? layerObj
             : CurrentProfile.ShiftLayers[0];
 
-        // 2. Process Button Mappings
+        // 2. Track press edges for Turbo timing and Toggle state
+        long now = _clockMs();
         foreach (var button in pressedButtons)
         {
-            if (activeLayer.Mappings.TryGetValue(button, out var mapping))
+            if (_previousPressed.Contains(button)) continue;
+            _pressStartMs[button] = now;
+            if (activeLayer.Mappings.TryGetValue(button, out var pressed) && pressed.Mode == MappingMode.Toggle)
             {
-                ApplyMapping(mapping, result);
+                _toggleStates[button] = !_toggleStates.GetValueOrDefault(button);
             }
-            else
+        }
+        foreach (var button in _previousPressed)
+        {
+            if (!pressedButtons.Contains(button)) _pressStartMs.Remove(button);
+        }
+        _previousPressed = new HashSet<ControllerButton>(pressedButtons);
+
+        // 3. Process Button Mappings
+        foreach (var button in pressedButtons)
+        {
+            if (!activeLayer.Mappings.TryGetValue(button, out var mapping))
             {
                 // Fall back to 1:1 if not explicitly remapped
                 result.ActiveVirtualButtons.Add(button);
+                continue;
+            }
+
+            switch (mapping.Mode)
+            {
+                case MappingMode.Turbo:
+                    long rate = Math.Max(1, mapping.TurboRateMs);
+                    if (((now - _pressStartMs[button]) / rate) % 2 == 0) ApplyMapping(mapping, result);
+                    break;
+                case MappingMode.Toggle:
+                    break; // Output is driven by toggle state below, not by the physical hold
+                default:
+                    ApplyMapping(mapping, result);
+                    break;
             }
         }
 
-        // 3. Process Analog Sticks with Deadzones & Curves
+        // Toggled-on buttons stay active after release
+        foreach (var (button, isOn) in _toggleStates)
+        {
+            if (isOn && activeLayer.Mappings.TryGetValue(button, out var toggled) && toggled.Mode == MappingMode.Toggle)
+            {
+                ApplyMapping(toggled, result);
+            }
+        }
+
+        // 4. Process Analog Sticks with Deadzones & Curves
         result.LeftStickX = CurrentProfile.LeftStick.TransformAxis(rawLeftStickX);
         result.LeftStickY = CurrentProfile.LeftStick.TransformAxis(rawLeftStickY);
         result.RightStickX = CurrentProfile.RightStick.TransformAxis(rawRightStickX);
         result.RightStickY = CurrentProfile.RightStick.TransformAxis(rawRightStickY);
 
-        // 4. Process Triggers
+        if (CurrentProfile.LeftStick.InvertX) result.LeftStickX = -result.LeftStickX;
+        if (CurrentProfile.LeftStick.InvertY) result.LeftStickY = -result.LeftStickY;
+        if (CurrentProfile.RightStick.InvertX) result.RightStickX = -result.RightStickX;
+        if (CurrentProfile.RightStick.InvertY) result.RightStickY = -result.RightStickY;
+
+        // 5. Process Triggers
         result.LeftTrigger = rawLeftTrigger;
         result.RightTrigger = rawRightTrigger;
 
