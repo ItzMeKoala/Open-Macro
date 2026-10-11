@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using ReWASD.Core.Models;
 using ReWASD.Core.Serialization;
 using ReWASD.Engine;
+using ReWASD.Engine.HidHide;
 using ReWASD.Engine.Input;
 using ReWASD.Engine.Remapper;
 using ReWASD.Engine.VirtualOutput;
@@ -20,6 +21,7 @@ public partial class MainViewModel : ObservableObject
     private readonly XInputReader _reader = new();
     private readonly Win32InputBackend _inputBackend = new();
     private readonly KeyboardMouseInjector _injector;
+    private readonly HidHideService _hidHide = new();
     private readonly MacroRunner _macros;
     private readonly InputPipeline _pipeline;
 
@@ -349,14 +351,27 @@ public partial class MainViewModel : ObservableObject
         {
             // Snapshot XInput slots first: the virtual pad is the slot that appears after connecting
             var before = XInputReader.GetConnectedSlots();
+
+            // "Mute" hides the physical pad from games. Capture it before the virtual pad exists so only real devices are hidden.
+            bool wantMute = SelectedProfile.ShiftLayers.Values.Any(l => l.Mappings.Values.Any(m => m.IsMuted));
+            var devicesToHide = wantMute && _hidHide.IsAvailable ? _hidHide.GetPresentGamingDevices() : Array.Empty<string>();
+
             bool ok = _virtualService.ConnectVirtualXbox();
             _reader.ExcludedUserIndex = ok ? FindNewSlot(before) : -1;
+
+            bool muted = ok && _hidHide.Hide(devicesToHide);
 
             _pipeline.Start();
             PopulateConnectedDevices();
             StatusMessage = ok
                 ? "🟢 REMAPPING ACTIVE — Virtual Xbox 360 Controller Connected"
                 : "🟡 REMAPPING ACTIVE — Virtual Output (ViGEm Driver not detected, running in simulation mode)";
+            if (wantMute)
+            {
+                StatusMessage += muted ? " — physical controller hidden"
+                    : _hidHide.IsAvailable ? " — could not hide physical controller"
+                    : " — install HidHide to mute the physical controller";
+            }
         }
         else
         {
@@ -383,6 +398,7 @@ public partial class MainViewModel : ObservableObject
     public void Shutdown()
     {
         _pipeline.Stop();
+        _hidHide.Restore();
         _virtualService.DisconnectVirtualXbox();
         _reader.ExcludedUserIndex = -1;
     }
