@@ -89,6 +89,39 @@ public class SkinTests
     }
 
     [Fact]
+    public void EveryMouseButton_IsAShapeOfTheMouse_NotABox()
+    {
+        Assert.All(InputLayouts.Mouse, s => Assert.False(string.IsNullOrWhiteSpace(s.ShapeData), $"{s.Name} has no shape"));
+
+        // The big buttons and the thumb buttons are regions of the one body outline; the wheel parts have their own shapes
+        var body = InputLayouts.Mouse.First(s => s.Name == "Left Click").ShapeData;
+        foreach (var name in new[] { "Left Click", "Right Click", "Mouse Button 4", "Mouse Button 5" })
+        {
+            var s = InputLayouts.Mouse.First(m => m.Name == name);
+            Assert.Equal(body, s.ShapeData);
+            Assert.False(string.IsNullOrWhiteSpace(s.ClipData), $"{name} should be cut down to its own region");
+        }
+    }
+
+    [Fact]
+    public void MouseDrawing_CoversEveryInputTheHookCanReport()
+    {
+        var drawn = InputLayouts.Mouse.Select(s => s.Name).OrderBy(n => n).ToList();
+        var reported = ReWASD.Engine.Input.LowLevelInputHook.MouseNames.OrderBy(n => n).ToList();
+
+        Assert.Equal(reported, drawn);
+    }
+
+    [Fact]
+    public void MouseLegends_SitInsideTheBody_OnTheirOwnSide()
+    {
+        Assert.All(InputLayouts.Mouse, s => Assert.InRange(s.Place.Cx, 250, 450));
+        Assert.True(InputLayouts.Mouse.First(s => s.Name == "Left Click").Place.Cx < 330);
+        Assert.True(InputLayouts.Mouse.First(s => s.Name == "Right Click").Place.Cx > 370);
+        Assert.True(InputLayouts.Mouse.First(s => s.Name == "Mouse Button 5").Place.Cy < InputLayouts.Mouse.First(s => s.Name == "Mouse Button 4").Place.Cy);
+    }
+
+    [Fact]
     public void KeyboardAndMouse_HaveNoOverlappingKeys()
     {
         foreach (var layout in new[] { InputLayouts.Keyboard, InputLayouts.Mouse })
