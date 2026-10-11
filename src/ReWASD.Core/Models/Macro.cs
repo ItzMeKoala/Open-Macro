@@ -35,7 +35,13 @@ public enum MacroRepeatMode
     Once,
 
     /// <summary>Loops while the button is held and stops when it is released.</summary>
-    WhileHeld
+    WhileHeld,
+
+    /// <summary>
+    /// Runs the steps once, then keeps whatever they pressed held until the button is released.
+    /// This is how one button can press several others at once.
+    /// </summary>
+    HoldUntilRelease
 }
 
 public class MacroStep
@@ -76,6 +82,18 @@ public class MacroDefinition
         RepeatMode = RepeatMode,
         Steps = Steps.Select(s => s.Clone()).ToList()
     };
+
+    /// <summary>Whether a step undoes an earlier press (or is just waiting), i.e. it is not needed to keep inputs held.</summary>
+    public static bool IsReleaseOrWait(MacroStep step) =>
+        step.Action is MacroActionType.KeyUp or MacroActionType.MouseUp or MacroActionType.PadUp or MacroActionType.Delay;
+
+    /// <summary>
+    /// Drops trailing releases and waits so that, in HoldUntilRelease mode, the inputs the macro pressed stay held.
+    /// </summary>
+    public static void TrimTrailingReleases(List<MacroStep> steps)
+    {
+        while (steps.Count > 0 && IsReleaseOrWait(steps[^1])) steps.RemoveAt(steps.Count - 1);
+    }
 
     /// <summary>Formats the steps as "KeyDown:W; Delay:50; KeyUp:W" for editing in a text box.</summary>
     public string ToScript() => string.Join("; ", Steps);

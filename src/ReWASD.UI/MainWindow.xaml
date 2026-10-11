@@ -229,10 +229,11 @@
                                             <Button.Style>
                                                 <Style TargetType="Button">
                                                     <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+                                                    <Setter Property="Background" Value="{StaticResource BrushBgCard}" />
                                                     <Setter Property="Template">
                                                         <Setter.Value>
                                                             <ControlTemplate TargetType="Button">
-                                                                <Border x:Name="Bd" Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}"
+                                                                <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{StaticResource BrushBorder}"
                                                                         BorderThickness="1" CornerRadius="6">
                                                                     <TextBlock Text="{Binding DisplayName}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"
                                                                                Foreground="{TemplateBinding Foreground}" />
@@ -251,6 +252,10 @@
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                                             <Setter Property="Foreground" Value="{StaticResource BrushCyan}" />
+                                                        </DataTrigger>
+                                                        <!-- Physically held right now -->
+                                                        <DataTrigger Binding="{Binding IsPressed}" Value="True">
+                                                            <Setter Property="Background" Value="#9C7E2C" />
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
@@ -478,6 +483,9 @@
                                 <StackPanel Margin="14,10,14,12">
                                     <CheckBox Content="Mute all" IsChecked="{Binding MuteAll}" Foreground="{StaticResource BrushTextPrimary}" Margin="0,0,0,8" ToolTip="Hide the physical controller from games while remapping (needs HidHide)" />
                                     <CheckBox Content="Hide input device from the system" IsChecked="{Binding HideInputDevice}" IsEnabled="{Binding IsHidHideAvailable}" Foreground="{StaticResource BrushTextPrimary}" ToolTip="Needs HidHide" />
+                                    <TextBlock Text="{Binding HideStatusText}" Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0" />
+                                    <Button Content="HidHide diagnostics" Command="{Binding ShowHidHideDiagnosticsCommand}" Style="{StaticResource SecondaryButtonStyle}"
+                                            HorizontalAlignment="Left" Padding="10,4" Margin="0,8,0,0" ToolTip="Show what HidHide has configured, in the status bar" />
                                 </StackPanel>
                             </StackPanel>
                         </Border>

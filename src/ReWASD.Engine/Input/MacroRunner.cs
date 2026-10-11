@@ -45,7 +45,8 @@ public sealed class MacroRunner : IDisposable
 
         foreach (var macro in _previouslyHeld)
         {
-            if (!held.Contains(macro) && macro.RepeatMode == MacroRepeatMode.WhileHeld) Cancel(macro);
+            // Looping and hold-style macros end with the trigger; a Once macro always finishes
+            if (!held.Contains(macro) && macro.RepeatMode is MacroRepeatMode.WhileHeld or MacroRepeatMode.HoldUntilRelease) Cancel(macro);
         }
 
         _previouslyHeld = new HashSet<MacroDefinition>(held);
@@ -104,6 +105,9 @@ public sealed class MacroRunner : IDisposable
                 if (!broke && macro.RepeatMode == MacroRepeatMode.WhileHeld) await Task.Delay(1, token);
             }
             while (!broke && macro.RepeatMode == MacroRepeatMode.WhileHeld);
+
+            // Hold-style macros keep what they pressed down until the trigger is released (which cancels this wait)
+            if (!broke && macro.RepeatMode == MacroRepeatMode.HoldUntilRelease) await Task.Delay(Timeout.Infinite, token);
         }
         catch (OperationCanceledException)
         {

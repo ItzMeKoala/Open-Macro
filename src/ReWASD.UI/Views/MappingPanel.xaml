@@ -183,6 +183,21 @@
                               Foreground="{StaticResource BrushTextPrimary}"
                               BorderBrush="{StaticResource BrushBorder}"
                               Padding="8,6" Margin="0,6,0,0" />
+                    <TextBlock Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" Margin="0,2,0,0">
+                        <Run Text="Once: runs through once.  WhileHeld: loops while you hold the button.  HoldUntilRelease: runs once, then keeps everything it pressed held until you let go." />
+                    </TextBlock>
+
+                    <!-- Record a sequence instead of typing it -->
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Content="● Record" Command="{Binding StartMacroRecordingCommand}" Style="{StaticResource SecondaryButtonStyle}"
+                                Padding="14,6" Margin="0,0,8,0" ToolTip="Record keys, mouse clicks and controller buttons with their timing" />
+                        <Button Content="■ Stop" Command="{Binding StopMacroRecordingCommand}" Style="{StaticResource SecondaryButtonStyle}"
+                                Padding="14,6" ToolTip="Finish recording and fill in the macro above" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding RecordingHint}" Foreground="{StaticResource BrushOrange}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0" />
+                    <TextBlock Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" Margin="0,4,0,0">
+                        <Run Text="Press two controller buttons from one: record pressing both (or type PadDown:A; PadDown:B), pick HoldUntilRelease, then save." />
+                    </TextBlock>
                     <TextBlock Text="{Binding MacroError}" Foreground="#FF6B6B" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0" />
                     <TextBlock Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" Margin="0,2,0,0">
                         <Run Text="Keys and mouse: KeyDown:W  KeyUp:W  KeyTap:E  MouseDown:Left Click  MouseUp:…  MouseClick:…  Wheel:-2  MouseMove:right:40" />

@@ -69,7 +69,24 @@
                                                 BorderBrush="#384254" 
                                                 BorderThickness="1.5" 
                                                 CornerRadius="19">
-                                            <Grid>
+                                            <Grid ClipToBounds="True">
+                                                <!-- Live trigger pull: a fill that rises with the analog value -->
+                                                <Border Background="#88E9C46A" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,1"
+                                                        Height="{Binding Height}" CornerRadius="17" IsHitTestVisible="False">
+                                                    <Border.RenderTransform>
+                                                        <ScaleTransform ScaleY="{Binding AnalogValue}" />
+                                                    </Border.RenderTransform>
+                                                </Border>
+
+                                                <!-- Live stick position -->
+                                                <Ellipse Width="9" Height="9" Fill="{StaticResource BrushCyan}" IsHitTestVisible="False"
+                                                         HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                         Visibility="{Binding StickActive, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
+                                                    <Ellipse.RenderTransform>
+                                                        <TranslateTransform X="{Binding StickOffsetX}" Y="{Binding StickOffsetY}" />
+                                                    </Ellipse.RenderTransform>
+                                                </Ellipse>
+
                                                 <!-- Button Label -->
                                                 <TextBlock Text="{Binding DisplayName}" 
                                                            Foreground="#E0E6EE" 
@@ -97,6 +114,11 @@
                                             <Setter TargetName="bg" Property="BorderBrush" Value="{StaticResource BrushCyan}" />
                                             <Setter TargetName="bg" Property="BorderThickness" Value="2" />
                                             <Setter TargetName="bg" Property="Background" Value="#1E3747" />
+                                        </DataTrigger>
+                                        <!-- Physically held right now -->
+                                        <DataTrigger Binding="{Binding IsPressed}" Value="True">
+                                            <Setter TargetName="bg" Property="Background" Value="#9C7E2C" />
+                                            <Setter TargetName="bg" Property="BorderBrush" Value="#F2D68F" />
                                         </DataTrigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>

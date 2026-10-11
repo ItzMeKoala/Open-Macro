@@ -42,6 +42,28 @@ public partial class ButtonViewModel : ObservableObject
     [ObservableProperty]
     private string _targetText = string.Empty;
 
+    // Live state of the physical input, updated many times a second
+    [ObservableProperty]
+    private bool _isPressed;
+
+    /// <summary>0..1 for triggers; shown as a fill rising inside the icon.</summary>
+    [ObservableProperty]
+    private double _analogValue;
+
+    /// <summary>True for the stick-click buttons, whose icons show a dot following the stick.</summary>
+    [ObservableProperty]
+    private bool _hasStick;
+
+    /// <summary>True while the stick is pushed away from centre, so the dot is hidden when idle.</summary>
+    [ObservableProperty]
+    private bool _stickActive;
+
+    [ObservableProperty]
+    private double _stickOffsetX;
+
+    [ObservableProperty]
+    private double _stickOffsetY;
+
     public Action<ButtonViewModel>? OnSelected { get; set; }
 
     [RelayCommand]

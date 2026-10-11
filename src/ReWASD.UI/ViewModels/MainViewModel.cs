@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReWASD.Core.Models;
@@ -51,6 +52,12 @@ public partial class MainViewModel : ObservableObject
     private readonly MacroPadState _macroPad;
     private readonly LowLevelInputHook _hook;
     private readonly InputPipeline _pipeline;
+    private readonly MacroRecorder _recorder = new();
+    private readonly DispatcherTimer _liveTimer;
+    private readonly Action<string, bool> _recordKey;
+    private readonly Action<string, bool> _recordMouse;
+    private bool _hookStartedForRecording;
+    private IReadOnlyList<string> _physicalDevices = Array.Empty<string>();
     private bool _loadingLayerOptions;
 
     [ObservableProperty]
@@ -96,6 +103,19 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _hideInputDevice;
+
+    // What hiding the physical controller actually did, so a failure is never silent
+    [ObservableProperty]
+    private string _hideStatusText = "Physical controller is not hidden";
+
+    [ObservableProperty]
+    private bool _isRecording;
+
+    [ObservableProperty]
+    private string _recordingHint = string.Empty;
+
+    partial void OnMuteAllChanged(bool value) => ApplyHidingNow();
+    partial void OnHideInputDeviceChanged(bool value) => ApplyHidingNow();
 
     public IReadOnlyList<int> SlotNumbers { get; } = new[] { 1, 2, 3, 4 };
 
@@ -217,6 +237,13 @@ public partial class MainViewModel : ObservableObject
         _hook = new LowLevelInputHook(_mappingEngine.IsKeySuppressed, _mappingEngine.IsMouseSuppressed);
         _hook.PanicRequested += OnPanicRequested;
         _pipeline = new InputPipeline(_mappingEngine, _reader, _virtualService, _injector, _macros, _macroPad, _hook);
+        _recordKey = _recorder.OnKey;
+        _recordMouse = _recorder.OnMouse;
+
+        // Drives the live button, trigger and stick display (and pad recording) from the UI thread
+        _liveTimer = new DispatcherTimer(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(16) };
+        _liveTimer.Tick += OnLiveTick;
+        _liveTimer.Start();
 
         PopulateInspectorOptions();
         PopulateConnectedDevices();
@@ -370,6 +397,7 @@ public partial class MainViewModel : ObservableObject
             Kind = SourceKind.Pad,
             Button = btn,
             SourceName = btn.ToString(),
+            HasStick = btn is ControllerButton.LeftStickClick or ControllerButton.RightStickClick,
             DisplayName = label,
             X = x,
             Y = y,
@@ -739,14 +767,15 @@ public partial class MainViewModel : ObservableObject
             // Snapshot XInput slots first: the virtual pad is the slot that appears after connecting
             var before = XInputReader.GetConnectedSlots();
 
-            // "Mute" hides the physical pad from games. Capture it before the virtual pad exists so only real devices are hidden.
-            bool wantMute = MuteAll || HideInputDevice || AnyMappingMuted();
-            var devicesToHide = wantMute && _hidHide.IsAvailable ? _hidHide.GetPresentGamingDevices() : Array.Empty<string>();
+            // Find the physical controller's devices before the virtual pad exists, so the virtual pad is never hidden
+            _physicalDevices = _hidHide.IsAvailable ? _hidHide.GetPhysicalControllerDevices() : Array.Empty<string>();
 
             bool ok = _virtualService.ConnectVirtualXbox();
             _reader.ExcludedUserIndex = ok ? FindNewSlot(before) : -1;
 
-            bool muted = ok && _hidHide.Hide(devicesToHide);
+            bool wantMute = MuteAll || HideInputDevice || AnyMappingMuted();
+            HideResult? hide = wantMute ? (ok ? _hidHide.Hide(_physicalDevices) : HideResult.Fail("Hiding needs the virtual controller, which is not connected.")) : null;
+            HideStatusText = hide?.Message ?? "Physical controller is not hidden";
 
             _pipeline.Start();
             PopulateConnectedDevices();
@@ -757,22 +786,149 @@ public partial class MainViewModel : ObservableObject
             {
                 StatusMessage += " — keyboard/mouse hook unavailable";
             }
-            if (wantMute)
+            if (hide != null)
             {
-                StatusMessage += muted ? " — physical controller hidden"
-                    : _hidHide.IsAvailable ? " — could not hide physical controller"
-                    : " — install HidHide to mute the physical controller";
+                StatusMessage += hide.Success ? " — physical controller hidden" : $" — NOT hidden: {hide.Message}";
             }
         }
         else
         {
             Shutdown();
+            HideStatusText = "Physical controller is not hidden";
             StatusMessage = "⚪ REMAPPING PAUSED — Emulation Disconnected";
 
             // The driver removes the virtual pad asynchronously; refreshing immediately would still list it
             await Task.Delay(500);
             PopulateConnectedDevices();
         }
+    }
+
+    // Switch hiding on or off straight away when a checkbox changes while remapping is running
+    private void ApplyHidingNow()
+    {
+        if (!IsRemappingActive) return;
+
+        bool want = MuteAll || HideInputDevice || AnyMappingMuted();
+        if (want && !_hidHide.IsHiding)
+        {
+            var result = _hidHide.Hide(_physicalDevices);
+            HideStatusText = result.Message;
+            StatusMessage = result.Success ? "Physical controller hidden" : $"NOT hidden: {result.Message}";
+        }
+        else if (!want && _hidHide.IsHiding)
+        {
+            _hidHide.Restore();
+            HideStatusText = "Physical controller is not hidden";
+            StatusMessage = "Physical controller visible again";
+        }
+    }
+
+    [RelayCommand]
+    private void ShowHidHideDiagnostics()
+    {
+        StatusMessage = "HidHide: " + _hidHide.Diagnostics().Replace(Environment.NewLine, " | ");
+    }
+
+    // ---- Live input display and macro recording -------------------------------------------------------------------
+
+    private void OnLiveTick(object? sender, EventArgs e)
+    {
+        // While remapping runs the pipeline owns the pad reader; otherwise read it here so the display still works
+        PhysicalState? phys = _pipeline.IsRunning ? _pipeline.LatestPhysical : _reader.Read();
+
+        if (IsRecording && phys != null) _recorder.OnPad(phys.Buttons);
+
+        foreach (var vm in ControllerButtons)
+        {
+            vm.IsPressed = phys != null && phys.Buttons.Contains(vm.Button);
+            vm.AnalogValue = phys == null ? 0
+                : vm.Button == ControllerButton.LeftTrigger ? phys.LeftTrigger
+                : vm.Button == ControllerButton.RightTrigger ? phys.RightTrigger
+                : 0;
+
+            if (vm.HasStick)
+            {
+                double x = 0, y = 0;
+                if (phys != null)
+                {
+                    (x, y) = vm.Button == ControllerButton.LeftStickClick ? (phys.LeftStickX, phys.LeftStickY) : (phys.RightStickX, phys.RightStickY);
+                }
+                vm.StickOffsetX = x * 12;
+                vm.StickOffsetY = -y * 12; // stick up is positive, screen y grows downward
+                vm.StickActive = Math.Abs(x) > 0.08 || Math.Abs(y) > 0.08;
+            }
+        }
+
+        // Keys and mouse buttons are only watched while the hook runs (remapping or recording)
+        IReadOnlyCollection<string> keys = Array.Empty<string>(), mouse = Array.Empty<string>();
+        if (_hook.IsInstalled) (keys, mouse) = _hook.Snapshot();
+
+        foreach (var vm in KeyboardSources) vm.IsPressed = keys.Contains(vm.SourceName, StringComparer.OrdinalIgnoreCase);
+        foreach (var vm in MouseSources) vm.IsPressed = mouse.Contains(vm.SourceName, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [RelayCommand]
+    private void StartMacroRecording()
+    {
+        if (IsRecording) return;
+        if (IsRemappingActive)
+        {
+            StatusMessage = "Stop remapping before recording, so the keys you press aren't remapped or swallowed";
+            return;
+        }
+
+        SelectedTargetType = TargetType.Macro;
+        _recorder.Start();
+
+        // The hook is what sees real keys and mouse buttons; the pad is read by the live timer
+        bool hooked = _hook.IsInstalled || _hook.Start();
+        _hookStartedForRecording = hooked && !_pipeline.IsRunning;
+        if (hooked)
+        {
+            _hook.KeyEvent += _recordKey;
+            _hook.MouseEvent += _recordMouse;
+        }
+
+        IsRecording = true;
+        RecordingHint = hooked
+            ? "Recording keys, mouse and controller. Do your sequence, then click Stop."
+            : "Recording the controller only (the keyboard/mouse hook could not start). Click Stop when done.";
+        StatusMessage = "● Recording macro…";
+    }
+
+    [RelayCommand]
+    private void StopMacroRecording()
+    {
+        if (!IsRecording) return;
+
+        _hook.KeyEvent -= _recordKey;
+        _hook.MouseEvent -= _recordMouse;
+        if (_hookStartedForRecording) _hook.Stop();
+        _hookStartedForRecording = false;
+
+        var macro = _recorder.Stop(SelectedMacroRepeat);
+        IsRecording = false;
+        RecordingHint = string.Empty;
+
+        int steps = macro.Steps.Count(s => s.Action != MacroActionType.Delay);
+        if (steps == 0)
+        {
+            StatusMessage = "Nothing was recorded";
+            return;
+        }
+
+        MacroScript = macro.ToScript();
+        MacroError = string.Empty;
+        StatusMessage = SelectedMacroRepeat == MacroRepeatMode.HoldUntilRelease
+            ? $"Recorded {steps} steps; they stay held while the button is held. Press SAVE MAPPING to keep it."
+            : $"Recorded {steps} steps. Press SAVE MAPPING to keep it.";
+    }
+
+    /// <summary>Stops the live display timer. Call when the window closes.</summary>
+    public void StopLiveUpdates()
+    {
+        _liveTimer.Stop();
+        if (IsRecording) StopMacroRecording();
     }
 
     private static int FindNewSlot(IReadOnlyList<int> before)

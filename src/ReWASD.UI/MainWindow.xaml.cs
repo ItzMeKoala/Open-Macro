@@ -19,6 +19,11 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        Closing += (_, _) => (DataContext as ViewModels.MainViewModel)?.Shutdown();
+        Closing += (_, _) =>
+        {
+            var vm = DataContext as ViewModels.MainViewModel;
+            vm?.StopLiveUpdates();
+            vm?.Shutdown();
+        };
     }
 }

@@ -122,6 +122,12 @@ public sealed class LowLevelInputHook : IDisposable
     /// <summary>Raised on a thread-pool thread when the panic hotkey (Ctrl+Alt+Shift+F12) is pressed.</summary>
     public event Action? PanicRequested;
 
+    /// <summary>Raised for every real key press/release (name, isDown), whether or not it is swallowed. Handlers must be quick.</summary>
+    public event Action<string, bool>? KeyEvent;
+
+    /// <summary>Raised for every real mouse button press/release and wheel notch (name, isDown). Handlers must be quick.</summary>
+    public event Action<string, bool>? MouseEvent;
+
     public bool Start()
     {
         if (_running) return IsInstalled;
@@ -251,6 +257,8 @@ public sealed class LowLevelInputHook : IDisposable
 
         if (!KeyMap.TryGetKeyName(vk, out var name)) return false;
 
+        KeyEvent?.Invoke(name, down);
+
         lock (_gate)
         {
             if (down)
@@ -305,6 +313,7 @@ public sealed class LowLevelInputHook : IDisposable
             case WmMouseWheel:
                 short delta = (short)(mouseData >> 16);
                 name = delta > 0 ? "Wheel Up" : "Wheel Down";
+                MouseEvent?.Invoke(name, true);
                 lock (_gate)
                 {
                     if (!_isMouseSuppressed(name)) return false;
@@ -315,6 +324,8 @@ public sealed class LowLevelInputHook : IDisposable
             default:
                 return false; // movement and everything else is left alone
         }
+
+        MouseEvent?.Invoke(name, down);
 
         lock (_gate)
         {

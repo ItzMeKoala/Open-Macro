@@ -51,6 +51,10 @@ public sealed class InputPipeline : IDisposable
 
     public bool HasPhysicalController { get; private set; }
 
+    /// <summary>The most recent physical pad reading (null when no pad is connected). Safe to read from any thread.</summary>
+    public PhysicalState? LatestPhysical => _latestPhysical;
+    private volatile PhysicalState? _latestPhysical;
+
     public void Start()
     {
         if (_running) return;
@@ -84,6 +88,7 @@ public sealed class InputPipeline : IDisposable
             {
                 var physical = _reader.Read();
                 HasPhysicalController = physical != null;
+                _latestPhysical = physical;
 
                 // Keyboard and mouse mappings must keep working without a controller, so every frame is processed
                 physical ??= NoController;
