@@ -19,7 +19,9 @@ public static class ProfileSerializer
 
     public static Profile FromJson(string json)
     {
-        return JsonSerializer.Deserialize<Profile>(json, Options) ?? new Profile();
+        var profile = JsonSerializer.Deserialize<Profile>(json, Options) ?? new Profile();
+        foreach (var layer in profile.ShiftLayers.Values) layer.RestoreComparers();
+        return profile;
     }
 
     public static void SaveToFile(Profile profile, string filePath)

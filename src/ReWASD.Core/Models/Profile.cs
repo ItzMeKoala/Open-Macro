@@ -10,6 +10,8 @@ public class Profile
     public int ActiveSlot { get; set; } = 1; // 1 to 4
     public Dictionary<int, ShiftLayer> ShiftLayers { get; set; } = new();
 
+    public ActivatorTimings Timings { get; set; } = new();
+
     public StickSettings LeftStick { get; set; } = new();
     public StickSettings RightStick { get; set; } = new();
 

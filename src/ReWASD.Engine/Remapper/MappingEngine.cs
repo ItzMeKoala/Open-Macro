@@ -17,8 +17,16 @@ public class RemappedState
     public double RightStickY { get; set; }
     public double LeftTrigger { get; set; }
     public double RightTrigger { get; set; }
+
+    /// <summary>Layer requested by an active JumpToLayer mapping this frame; the engine applies it on the next frame.</summary>
+    public int? RequestedLayer { get; set; }
 }
 
+/// <summary>
+/// Turns physical input (pad, keyboard, mouse) into outputs. Each source runs through a small state machine that
+/// decides which activator (single, long, double, triple, start, release) fires; the fired binding's mode
+/// (hold, repeat, toggle, one-time) then decides how its target is held.
+/// </summary>
 public class MappingEngine
 {
     // Sources that are read from analog values; their 1:1 pass-through must not become a digital press.
@@ -44,9 +52,38 @@ public class MappingEngine
     /// </summary>
     public object SyncRoot { get; } = new();
 
-    private readonly Dictionary<ControllerButton, bool> _toggleStates = new();
-    private readonly Dictionary<ControllerButton, long> _pressStartMs = new();
-    private HashSet<ControllerButton> _previousPressed = new();
+    // One press-tracking record per physical source
+    private sealed class Tracker
+    {
+        public SourceKind Kind;
+        public string Name = string.Empty;
+        public ControllerButton Pad;
+        public bool Down;
+        public long PressStart;
+        public long LastRelease;
+        public int Taps;
+        public bool LongFired;
+        public long ResolveAt = -1;
+        public ButtonMapping? Mapping; // captured at press so a layer change mid-hold doesn't change the outcome
+    }
+
+    // A fired activator that is currently producing output
+    private sealed class Activation
+    {
+        public string Source = string.Empty;
+        public ActivatorBinding Binding = new();
+        public long FireAt;
+        public long PressStart;
+        public bool HoldWithSource;
+    }
+
+    private readonly Dictionary<string, Tracker> _trackers = new();
+    private readonly List<Activation> _activations = new();
+    private readonly Dictionary<string, ActivatorBinding> _latched = new();
+    private readonly HashSet<int> _chordHeld = new();
+    private readonly HashSet<int> _toggledLayers = new();
+    private int? _pendingJump;
+    private ShiftLayer? _currentLayer;
     private readonly Func<long> _clockMs;
 
     public MappingEngine(Profile? initialProfile = null, Func<long>? clockMs = null)
@@ -66,6 +103,24 @@ public class MappingEngine
         }
     }
 
+    /// <summary>Forgets presses, toggles and running activations (call when remapping stops).</summary>
+    public void Reset()
+    {
+        lock (SyncRoot) ResetState();
+    }
+
+    /// <summary>True if the key has a mapping in the active layer, so the original keystroke should be swallowed.</summary>
+    public bool IsKeySuppressed(string keyName)
+    {
+        lock (SyncRoot) return IsActive && _currentLayer != null && LookupKey(_currentLayer, keyName) != null;
+    }
+
+    /// <summary>True if the mouse button or wheel direction has a mapping in the active layer.</summary>
+    public bool IsMouseSuppressed(string mouseName)
+    {
+        lock (SyncRoot) return IsActive && _currentLayer != null && LookupMouse(_currentLayer, mouseName) != null;
+    }
+
     public RemappedState ProcessInputs(
         HashSet<ControllerButton> pressedButtons,
         double rawLeftStickX,
@@ -75,14 +130,43 @@ public class MappingEngine
         double rawLeftTrigger,
         double rawRightTrigger)
     {
+        return ProcessInputs(pressedButtons, Array.Empty<string>(), Array.Empty<string>(),
+            rawLeftStickX, rawLeftStickY, rawRightStickX, rawRightStickY, rawLeftTrigger, rawRightTrigger);
+    }
+
+    public RemappedState ProcessInputs(
+        HashSet<ControllerButton> pressedButtons,
+        IReadOnlyCollection<string> pressedKeys,
+        IReadOnlyCollection<string> pressedMouse,
+        double rawLeftStickX,
+        double rawLeftStickY,
+        double rawRightStickX,
+        double rawRightStickY,
+        double rawLeftTrigger,
+        double rawRightTrigger)
+    {
         lock (SyncRoot)
         {
-            return ProcessInputsCore(pressedButtons, rawLeftStickX, rawLeftStickY, rawRightStickX, rawRightStickY, rawLeftTrigger, rawRightTrigger);
+            return ProcessInputsCore(pressedButtons, pressedKeys, pressedMouse,
+                rawLeftStickX, rawLeftStickY, rawRightStickX, rawRightStickY, rawLeftTrigger, rawRightTrigger);
         }
+    }
+
+    private void ResetState()
+    {
+        _trackers.Clear();
+        _activations.Clear();
+        _latched.Clear();
+        _chordHeld.Clear();
+        _toggledLayers.Clear();
+        _pendingJump = null;
+        _currentLayer = null;
     }
 
     private RemappedState ProcessInputsCore(
         HashSet<ControllerButton> pressedButtons,
+        IReadOnlyCollection<string> pressedKeys,
+        IReadOnlyCollection<string> pressedMouse,
         double rawLeftStickX,
         double rawLeftStickY,
         double rawRightStickX,
@@ -94,6 +178,8 @@ public class MappingEngine
 
         if (!IsActive)
         {
+            ResetState();
+
             // Direct pass-through when remapping is not active
             foreach (var b in pressedButtons)
             {
@@ -108,82 +194,92 @@ public class MappingEngine
             return result;
         }
 
-        // 1. Determine active shift layer based on held modifier buttons
-        int effectiveLayer = 0;
-        foreach (var layer in CurrentProfile.ShiftLayers.Values)
-        {
-            if (layer.LayerIndex > 0 && layer.ModifierButton != ControllerButton.None)
-            {
-                if (pressedButtons.Contains(layer.ModifierButton))
-                {
-                    effectiveLayer = layer.LayerIndex;
-                    break;
-                }
-            }
-        }
-        ActiveShiftLayerIndex = effectiveLayer;
-
-        var activeLayer = CurrentProfile.ShiftLayers.TryGetValue(effectiveLayer, out var layerObj)
-            ? layerObj
-            : CurrentProfile.ShiftLayers[0];
-
-        // 2. Track press edges for Turbo timing and Toggle state
         long now = _clockMs();
-        foreach (var button in pressedButtons)
-        {
-            if (_previousPressed.Contains(button)) continue;
-            _pressStartMs[button] = now;
-            if (activeLayer.Mappings.TryGetValue(button, out var pressed) && pressed.Mode == MappingMode.Toggle)
-            {
-                _toggleStates[button] = !_toggleStates.GetValueOrDefault(button);
-            }
-        }
-        foreach (var button in _previousPressed)
-        {
-            if (!pressedButtons.Contains(button)) _pressStartMs.Remove(button);
-        }
-        _previousPressed = new HashSet<ControllerButton>(pressedButtons);
+        var timings = CurrentProfile.Timings ?? new ActivatorTimings();
 
-        // 3. Process Button Mappings
-        foreach (var button in pressedButtons)
+        // 1. Pick the active layer (and note which buttons were spent on switching it)
+        var consumed = new HashSet<ControllerButton>();
+        var layer = ResolveLayer(pressedButtons, consumed);
+        _currentLayer = layer;
+        ActiveShiftLayerIndex = layer.LayerIndex;
+
+        // 2. Gather every source that is down, plus trackers still waiting to resolve
+        var sources = new List<(string Key, SourceKind Kind, string Name, ControllerButton Pad, bool Down)>();
+        var seen = new HashSet<string>();
+
+        foreach (var b in pressedButtons)
         {
-            if (!activeLayer.Mappings.TryGetValue(button, out var mapping))
+            if (consumed.Contains(b)) continue;
+            string key = "pad:" + b;
+            sources.Add((key, SourceKind.Pad, b.ToString(), b, true));
+            seen.Add(key);
+        }
+        foreach (var k in pressedKeys)
+        {
+            string key = "key:" + k.ToLowerInvariant();
+            if (seen.Add(key)) sources.Add((key, SourceKind.Key, k, ControllerButton.None, true));
+        }
+        foreach (var m in pressedMouse)
+        {
+            string key = "mouse:" + m.ToLowerInvariant();
+            if (seen.Add(key)) sources.Add((key, SourceKind.Mouse, m, ControllerButton.None, true));
+        }
+        foreach (var (key, tracker) in _trackers)
+        {
+            if (!seen.Contains(key)) sources.Add((key, tracker.Kind, tracker.Name, tracker.Pad, false));
+        }
+
+        // 3. Run each source through the activator state machine
+        foreach (var (key, kind, name, pad, down) in sources)
+        {
+            var current = LookupSource(layer, kind, name, pad);
+
+            if (!_trackers.TryGetValue(key, out var tracker))
             {
-                // Fall back to 1:1 if not explicitly remapped
-                if (!IsAnalogSource(button)) result.ActiveVirtualButtons.Add(button);
+                if (!down) continue;
+                tracker = new Tracker { Kind = kind, Name = name, Pad = pad, LastRelease = long.MinValue / 2 };
+                _trackers[key] = tracker;
+            }
+
+            var mapping = (down && !tracker.Down) ? current : tracker.Mapping ?? current;
+
+            if (mapping == null)
+            {
+                // Unmapped: a pad button passes straight through, keys and mouse buttons are left to the OS
+                if (down && kind == SourceKind.Pad && !IsAnalogSource(pad)) result.ActiveVirtualButtons.Add(pad);
+                if (!down) _trackers.Remove(key);
+                else tracker.Down = true;
                 continue;
             }
 
             // 1:1 triggers and stick directions are carried by the analog values instead
-            if (IsAnalogSource(button) && IsIdentity(mapping, button)) continue;
-
-            switch (mapping.Mode)
+            if (kind == SourceKind.Pad && IsAnalogSource(pad) && mapping.Activators.Count == 0 && IsIdentity(mapping, pad))
             {
-                case MappingMode.Turbo:
-                    long rate = Math.Max(1, mapping.TurboRateMs);
-                    if (((now - _pressStartMs[button]) / rate) % 2 == 0) ApplyMapping(mapping, result);
-                    break;
-                case MappingMode.Toggle:
-                    break; // Output is driven by toggle state below, not by the physical hold
-                default:
-                    ApplyMapping(mapping, result);
-                    break;
+                _trackers.Remove(key);
+                continue;
             }
+
+            Tick(key, tracker, mapping, down, now, timings);
         }
 
-        // Toggled-on buttons stay active after release
-        foreach (var (button, isOn) in _toggleStates)
+        // 4. Produce output from activations and latched toggles
+        for (int i = _activations.Count - 1; i >= 0; i--)
         {
-            if (isOn && activeLayer.Mappings.TryGetValue(button, out var toggled) && toggled.Mode == MappingMode.Toggle)
-            {
-                ApplyMapping(toggled, result);
-            }
+            var a = _activations[i];
+            bool held = _trackers.TryGetValue(a.Source, out var t) && t.Down && t.PressStart == a.PressStart;
+            bool on = EvaluateActivation(a, held, now, timings.PulseMs, out bool expired);
+            if (on) ApplyBinding(a.Binding, result);
+            if (expired) _activations.RemoveAt(i);
         }
 
-        // 4. Process Analog Sticks with Deadzones & Curves.
+        foreach (var binding in _latched.Values) ApplyBinding(binding, result);
+
+        _pendingJump = result.RequestedLayer;
+
+        // 5. Process Analog Sticks with Deadzones & Curves.
         // A stick whose direction buttons were remapped elsewhere (e.g. to WASD) stops driving the virtual stick.
-        bool leftStickFree = !AnyRemappedAway(activeLayer, LeftStickDirections);
-        bool rightStickFree = !AnyRemappedAway(activeLayer, RightStickDirections);
+        bool leftStickFree = !AnyRemappedAway(layer, LeftStickDirections);
+        bool rightStickFree = !AnyRemappedAway(layer, RightStickDirections);
 
         if (leftStickFree)
         {
@@ -199,12 +295,213 @@ public class MappingEngine
             if (CurrentProfile.RightStick.InvertY) result.RightStickY = -result.RightStickY;
         }
 
-        // 5. Process Triggers: a remapped trigger no longer drives the analog value
-        result.LeftTrigger = IsRemappedAway(activeLayer, ControllerButton.LeftTrigger) ? 0.0 : rawLeftTrigger;
-        result.RightTrigger = IsRemappedAway(activeLayer, ControllerButton.RightTrigger) ? 0.0 : rawRightTrigger;
+        // 6. Process Triggers: a remapped trigger no longer drives the analog value
+        result.LeftTrigger = IsRemappedAway(layer, ControllerButton.LeftTrigger) ? 0.0 : rawLeftTrigger;
+        result.RightTrigger = IsRemappedAway(layer, ControllerButton.RightTrigger) ? 0.0 : rawRightTrigger;
 
         return result;
     }
+
+    // ---- Layers ------------------------------------------------------------------------------------------------
+
+    private ShiftLayer ResolveLayer(HashSet<ControllerButton> pad, HashSet<ControllerButton> consumed)
+    {
+        var layers = CurrentProfile.ShiftLayers;
+        int effective = 0;
+
+        foreach (var l in layers.Values)
+        {
+            if (l.LayerIndex <= 0 || l.ModifierButtons.Count == 0) continue;
+
+            bool held = l.ModifierButtons.All(pad.Contains);
+            bool wasHeld = _chordHeld.Contains(l.LayerIndex);
+
+            if (held)
+            {
+                _chordHeld.Add(l.LayerIndex);
+                foreach (var b in l.ModifierButtons) consumed.Add(b);
+            }
+            else
+            {
+                _chordHeld.Remove(l.LayerIndex);
+            }
+
+            bool active;
+            if (l.Type == ShiftType.Toggle)
+            {
+                if (held && !wasHeld && !_toggledLayers.Remove(l.LayerIndex)) _toggledLayers.Add(l.LayerIndex);
+                active = _toggledLayers.Contains(l.LayerIndex);
+            }
+            else
+            {
+                active = held;
+            }
+
+            if (active && l.LayerIndex > effective) effective = l.LayerIndex;
+        }
+
+        // A JumpToLayer mapping from the previous frame wins over the held chords
+        if (_pendingJump is int jump && layers.ContainsKey(jump)) effective = jump;
+
+        return layers.TryGetValue(effective, out var found) ? found : layers[0];
+    }
+
+    // A shift layer inherits everything it does not override from the Main layer
+    private ButtonMapping? LookupSource(ShiftLayer layer, SourceKind kind, string name, ControllerButton pad) => kind switch
+    {
+        SourceKind.Pad => LookupPad(layer, pad),
+        SourceKind.Key => LookupKey(layer, name),
+        _ => LookupMouse(layer, name)
+    };
+
+    private ButtonMapping? LookupPad(ShiftLayer layer, ControllerButton button)
+    {
+        if (layer.Mappings.TryGetValue(button, out var m)) return m;
+        if (layer.LayerIndex != 0 && CurrentProfile.ShiftLayers.TryGetValue(0, out var main) && main.Mappings.TryGetValue(button, out m)) return m;
+        return null;
+    }
+
+    private ButtonMapping? LookupKey(ShiftLayer layer, string name)
+    {
+        if (layer.KeyboardMappings.TryGetValue(name, out var m)) return m;
+        if (layer.LayerIndex != 0 && CurrentProfile.ShiftLayers.TryGetValue(0, out var main) && main.KeyboardMappings.TryGetValue(name, out m)) return m;
+        return null;
+    }
+
+    private ButtonMapping? LookupMouse(ShiftLayer layer, string name)
+    {
+        if (layer.MouseMappings.TryGetValue(name, out var m)) return m;
+        if (layer.LayerIndex != 0 && CurrentProfile.ShiftLayers.TryGetValue(0, out var main) && main.MouseMappings.TryGetValue(name, out m)) return m;
+        return null;
+    }
+
+    // ---- Activators --------------------------------------------------------------------------------------------
+
+    private void Tick(string key, Tracker t, ButtonMapping mapping, bool down, long now, ActivatorTimings timings)
+    {
+        var single = mapping.GetBinding(ActivatorType.Single);
+        var longB = mapping.GetBinding(ActivatorType.Long);
+        var doubleB = mapping.GetBinding(ActivatorType.Double);
+        var tripleB = mapping.GetBinding(ActivatorType.Triple);
+        var startB = mapping.GetBinding(ActivatorType.Start);
+        var releaseB = mapping.GetBinding(ActivatorType.Release);
+
+        int maxTap = tripleB != null ? 3 : doubleB != null ? 2 : 1;
+        bool hasLong = longB != null;
+
+        ActivatorBinding? ForTaps(int taps) => taps switch { 1 => single, 2 => doubleB, 3 => tripleB, _ => null };
+
+        // Press edge
+        if (down && !t.Down)
+        {
+            t.Down = true;
+            t.PressStart = now;
+            t.Mapping = mapping;
+            t.LongFired = false;
+
+            bool continuing = t.Taps > 0 && t.ResolveAt >= 0 && now - t.LastRelease <= timings.MultiPressWindowMs;
+            t.Taps = continuing ? t.Taps + 1 : 1;
+            if (t.Taps > maxTap) t.Taps = 1;
+            t.ResolveAt = -1;
+
+            if (startB != null) Fire(key, t, startB, now, holdWithSource: true);
+
+            // The final tap of a sequence fires on press so it can be held. A lone Single must wait if a Long exists.
+            if (t.Taps == maxTap && !(t.Taps == 1 && hasLong))
+            {
+                var b = ForTaps(t.Taps);
+                if (b != null) Fire(key, t, b, now, holdWithSource: true);
+            }
+        }
+
+        // Held long enough for the Long activator
+        if (down && t.Down && hasLong && !t.LongFired && t.Taps == 1 && now - t.PressStart >= timings.LongPressMs)
+        {
+            t.LongFired = true;
+            Fire(key, t, longB!, now, holdWithSource: true);
+        }
+
+        // Release edge
+        if (!down && t.Down)
+        {
+            t.Down = false;
+            t.LastRelease = now;
+
+            if (releaseB != null) Fire(key, t, releaseB, now, holdWithSource: false);
+
+            if (t.LongFired)
+            {
+                t.Taps = 0;
+                t.LongFired = false;
+            }
+            else if (t.Taps == maxTap)
+            {
+                // Already fired on press, except a lone Single that was waiting on the Long threshold
+                if (t.Taps == 1 && hasLong && single != null) Fire(key, t, single, now, holdWithSource: false);
+                t.Taps = 0;
+            }
+            else
+            {
+                t.ResolveAt = now + timings.MultiPressWindowMs; // wait to see whether another press follows
+            }
+        }
+
+        // Window expired with no further press: fire whatever the tap count reached
+        if (!down && t.ResolveAt >= 0 && now >= t.ResolveAt)
+        {
+            var b = ForTaps(t.Taps);
+            if (b != null) Fire(key, t, b, now, holdWithSource: false);
+            t.Taps = 0;
+            t.ResolveAt = -1;
+        }
+
+        if (!t.Down && t.ResolveAt < 0 && t.Taps == 0) _trackers.Remove(key);
+    }
+
+    private void Fire(string sourceKey, Tracker t, ActivatorBinding binding, long now, bool holdWithSource)
+    {
+        if (binding.Mode == MappingMode.Toggle)
+        {
+            string latchKey = sourceKey + "|" + binding.Type;
+            if (!_latched.Remove(latchKey)) _latched[latchKey] = binding;
+            return;
+        }
+
+        _activations.Add(new Activation
+        {
+            Source = sourceKey,
+            Binding = binding,
+            FireAt = now,
+            PressStart = t.PressStart,
+            HoldWithSource = holdWithSource
+        });
+    }
+
+    private static bool EvaluateActivation(Activation a, bool sourceHeld, long now, int pulseMs, out bool expired)
+    {
+        long age = now - a.FireAt;
+        bool inPulse = age < pulseMs;
+        bool holding = a.HoldWithSource && sourceHeld;
+
+        switch (a.Binding.Mode)
+        {
+            case MappingMode.OneTime:
+                expired = !inPulse;
+                return inPulse;
+
+            case MappingMode.Turbo:
+                expired = a.HoldWithSource ? !sourceHeld : !inPulse;
+                if (!holding) return !a.HoldWithSource && inPulse;
+                long rate = Math.Max(1, a.Binding.TurboRateMs);
+                return (age / rate) % 2 == 0;
+
+            default: // Normal: held for as long as the source is held, or a short pulse if it already let go
+                expired = a.HoldWithSource ? !sourceHeld : !inPulse;
+                return a.HoldWithSource ? sourceHeld : inPulse;
+        }
+    }
+
+    // ---- Helpers -----------------------------------------------------------------------------------------------
 
     private static bool IsAnalogSource(ControllerButton b) =>
         b is ControllerButton.LeftTrigger or ControllerButton.RightTrigger
@@ -212,53 +509,62 @@ public class MappingEngine
 
     private static bool IsIdentity(ButtonMapping mapping, ControllerButton source) =>
         mapping.Mode == MappingMode.Normal
+        && mapping.Activators.Count == 0
         && mapping.Target.Type == TargetType.VirtualControllerButton
         && mapping.Target.VirtualButton == source;
 
-    private static bool IsRemappedAway(ShiftLayer layer, ControllerButton button) =>
-        layer.Mappings.TryGetValue(button, out var m) && !IsIdentity(m, button);
+    private bool IsRemappedAway(ShiftLayer layer, ControllerButton button)
+    {
+        var m = LookupPad(layer, button);
+        return m != null && !IsIdentity(m, button);
+    }
 
-    private static bool AnyRemappedAway(ShiftLayer layer, IEnumerable<ControllerButton> buttons) =>
+    private bool AnyRemappedAway(ShiftLayer layer, IEnumerable<ControllerButton> buttons) =>
         buttons.Any(b => IsRemappedAway(layer, b));
 
-    private void ApplyMapping(ButtonMapping mapping, RemappedState state)
+    private static void ApplyBinding(ActivatorBinding binding, RemappedState state)
     {
-        switch (mapping.Target.Type)
+        var target = binding.Target;
+        switch (target.Type)
         {
             case TargetType.VirtualControllerButton:
-                if (mapping.Target.VirtualButton != ControllerButton.None)
+                if (target.VirtualButton != ControllerButton.None)
                 {
-                    state.ActiveVirtualButtons.Add(mapping.Target.VirtualButton);
+                    state.ActiveVirtualButtons.Add(target.VirtualButton);
                 }
                 break;
 
             case TargetType.KeyboardKey:
-                if (!string.IsNullOrEmpty(mapping.Target.KeyboardKey))
+                if (!string.IsNullOrEmpty(target.KeyboardKey))
                 {
-                    state.ActiveKeyboardKeys.Add(mapping.Target.KeyboardKey);
+                    state.ActiveKeyboardKeys.Add(target.KeyboardKey);
                 }
                 break;
 
             case TargetType.MouseButton:
-                if (!string.IsNullOrEmpty(mapping.Target.MouseButton))
+                if (!string.IsNullOrEmpty(target.MouseButton))
                 {
-                    state.ActiveMouseButtons.Add(mapping.Target.MouseButton);
+                    state.ActiveMouseButtons.Add(target.MouseButton);
                 }
                 break;
 
             case TargetType.MouseScroll:
                 // Scrolling is expressed as a wheel "button" so the injector fires one notch per press edge (and Turbo repeats it)
-                if (mapping.Target.ScrollDelta != 0)
+                if (target.ScrollDelta != 0)
                 {
-                    state.ActiveMouseButtons.Add(mapping.Target.ScrollDelta > 0 ? "Wheel Up" : "Wheel Down");
+                    state.ActiveMouseButtons.Add(target.ScrollDelta > 0 ? "Wheel Up" : "Wheel Down");
                 }
                 break;
 
             case TargetType.Macro:
-                if (mapping.Target.Macro is { Steps.Count: > 0 } macro)
+                if (target.Macro is { Steps.Count: > 0 } macro)
                 {
                     state.ActiveMacros.Add(macro);
                 }
+                break;
+
+            case TargetType.JumpToLayer:
+                state.RequestedLayer = target.Layer;
                 break;
         }
     }

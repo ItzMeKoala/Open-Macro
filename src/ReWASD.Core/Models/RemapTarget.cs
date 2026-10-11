@@ -20,6 +20,9 @@ public class RemapTarget
     // For Macro
     public MacroDefinition? Macro { get; set; }
 
+    // For JumpToLayer: the layer index to switch to while the mapping is active
+    public int Layer { get; set; }
+
     public RemapTarget Clone() => new()
     {
         Type = Type,
@@ -27,7 +30,8 @@ public class RemapTarget
         KeyboardKey = KeyboardKey,
         MouseButton = MouseButton,
         ScrollDelta = ScrollDelta,
-        Macro = Macro?.Clone()
+        Macro = Macro?.Clone(),
+        Layer = Layer
     };
 
     // Display string helper
@@ -38,6 +42,7 @@ public class RemapTarget
         TargetType.MouseButton => !string.IsNullOrEmpty(MouseButton) ? $"Mouse: {MouseButton}" : "Unassigned",
         TargetType.MouseScroll => ScrollDelta >= 0 ? "Scroll Up" : "Scroll Down",
         TargetType.Macro => Macro is { Steps.Count: > 0 } ? $"Macro ({Macro.Steps.Count} steps)" : "Unassigned",
+        TargetType.JumpToLayer => Layer == 0 ? "Layer: Main" : $"Layer: Shift {Layer}",
         _ => "Unassigned"
     };
 
