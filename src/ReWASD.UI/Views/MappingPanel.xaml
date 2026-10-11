@@ -40,24 +40,59 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Activator: when the mapping fires -->
+                <TextBlock Text="WHEN"
+                           Foreground="{StaticResource BrushTextMuted}"
+                           FontSize="11"
+                           FontWeight="Bold"
+                           Margin="0,12,0,0" />
+                <UniformGrid Columns="3" Margin="0,4">
+                    <RadioButton Content="Single" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,4"
+                                 ToolTip="One press"
+                                 IsChecked="{Binding SelectedActivator, Converter={StaticResource EnumToBool}, ConverterParameter=Single}" />
+                    <RadioButton Content="Long" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,4"
+                                 ToolTip="Held past the long-press time"
+                                 IsChecked="{Binding SelectedActivator, Converter={StaticResource EnumToBool}, ConverterParameter=Long}" />
+                    <RadioButton Content="Double" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,0,4"
+                                 ToolTip="Two quick presses"
+                                 IsChecked="{Binding SelectedActivator, Converter={StaticResource EnumToBool}, ConverterParameter=Double}" />
+                    <RadioButton Content="Triple" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0"
+                                 ToolTip="Three quick presses"
+                                 IsChecked="{Binding SelectedActivator, Converter={StaticResource EnumToBool}, ConverterParameter=Triple}" />
+                    <RadioButton Content="Start" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0"
+                                 ToolTip="The moment the button goes down, before anything else is decided"
+                                 IsChecked="{Binding SelectedActivator, Converter={StaticResource EnumToBool}, ConverterParameter=Start}" />
+                    <RadioButton Content="Release" Style="{StaticResource ShiftTabButtonStyle}"
+                                 ToolTip="When the button is let go"
+                                 IsChecked="{Binding SelectedActivator, Converter={StaticResource EnumToBool}, ConverterParameter=Release}" />
+                </UniformGrid>
+                <TextBlock Text="Long, Double and Triple make Single wait to see what follows."
+                           Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,6" />
+
                 <!-- Remap Category Selector -->
-                <TextBlock Text="REMAP TARGET" 
+                <TextBlock Text="REMAP TARGET"
                            Foreground="{StaticResource BrushTextMuted}" 
                            FontSize="11" 
                            FontWeight="Bold" />
 
                 <!-- Controller / Keyboard / Mouse Category Tabs -->
-                <UniformGrid Columns="3" Margin="0,4">
-                    <RadioButton Content="Pad" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0"
+                <UniformGrid Columns="4" Margin="0,4">
+                    <RadioButton Content="None" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,4"
+                                 ToolTip="Single: swallow the input. Other activators: no outcome."
+                                 IsChecked="{Binding SelectedTargetType, Converter={StaticResource EnumToBool}, ConverterParameter=None}" />
+                    <RadioButton Content="Pad" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,4"
                                  IsChecked="{Binding SelectedTargetType, Converter={StaticResource EnumToBool}, ConverterParameter=VirtualControllerButton}" />
-                    <RadioButton Content="Key" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0"
+                    <RadioButton Content="Key" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,4"
                                  IsChecked="{Binding SelectedTargetType, Converter={StaticResource EnumToBool}, ConverterParameter=KeyboardKey}" />
-                    <RadioButton Content="Mouse" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0"
+                    <RadioButton Content="Mouse" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,0,4"
                                  IsChecked="{Binding SelectedTargetType, Converter={StaticResource EnumToBool}, ConverterParameter=MouseButton}" />
                     <RadioButton Content="Scroll" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0"
                                  IsChecked="{Binding SelectedTargetType, Converter={StaticResource EnumToBool}, ConverterParameter=MouseScroll}" />
-                    <RadioButton Content="Macro" Style="{StaticResource ShiftTabButtonStyle}"
+                    <RadioButton Content="Macro" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0"
                                  IsChecked="{Binding SelectedTargetType, Converter={StaticResource EnumToBool}, ConverterParameter=Macro}" />
+                    <RadioButton Content="Layer" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0"
+                                 ToolTip="Switch to a layer while this fires"
+                                 IsChecked="{Binding SelectedTargetType, Converter={StaticResource EnumToBool}, ConverterParameter=JumpToLayer}" />
                 </UniformGrid>
 
                 <!-- Virtual Controller Target Selection -->
@@ -116,6 +151,20 @@
                               Padding="8,6" />
                 </StackPanel>
 
+                <!-- Jump to layer -->
+                <StackPanel Margin="0,4">
+                    <TextBlock Text="Or Jump to Layer"
+                               Foreground="{StaticResource BrushTextSecondary}"
+                               FontSize="12"
+                               Margin="0,0,0,4" />
+                    <ComboBox ItemsSource="{Binding LayerNames}"
+                              SelectedIndex="{Binding SelectedJumpLayer, Mode=TwoWay}"
+                              Background="{StaticResource BrushBgCard}"
+                              Foreground="{StaticResource BrushTextPrimary}"
+                              BorderBrush="{StaticResource BrushBorder}"
+                              Padding="8,6" />
+                </StackPanel>
+
                 <!-- Macro Editor -->
                 <StackPanel Margin="0,4">
                     <TextBlock Text="Or Macro (Action:Value; ...)"
@@ -135,8 +184,13 @@
                               BorderBrush="{StaticResource BrushBorder}"
                               Padding="8,6" Margin="0,6,0,0" />
                     <TextBlock Text="{Binding MacroError}" Foreground="#FF6B6B" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0" />
-                    <TextBlock Text="Actions: KeyDown, KeyUp, KeyTap, MouseDown, MouseUp, MouseClick, Wheel, Delay"
-                               Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" Margin="0,2,0,0" />
+                    <TextBlock Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" Margin="0,2,0,0">
+                        <Run Text="Keys and mouse: KeyDown:W  KeyUp:W  KeyTap:E  MouseDown:Left Click  MouseUp:…  MouseClick:…  Wheel:-2  MouseMove:right:40" />
+                        <LineBreak />
+                        <Run Text="Pad: PadDown:A  PadUp:A  PadTap:B  PadAxis:LeftStickX:80 (-100..100)  Rumble:80,60:200 (left,right % : ms)" />
+                        <LineBreak />
+                        <Run Text="Flow: Delay:50  Break (ends the macro)" />
+                    </TextBlock>
                 </StackPanel>
 
                 <!-- Mapping Behavior (Mode) -->

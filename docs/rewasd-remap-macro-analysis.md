@@ -113,15 +113,21 @@ macro keeps the machine awake.
 
 ## 8. How this project mirrors it
 
-| Observed concept | This project |
-|---|---|
-| Activators `single/long/double/triple/start/release` | `ActivatorType`, `ActivatorBinding`, engine tap/hold state machine |
-| Modes `onetime/repeat/toggle/hold_until_release` | `MappingMode` `OneTime`, `Turbo` (repeat), `Toggle`, `Normal` (hold) |
-| Configurable wait times | `ActivatorTimings` on the profile |
-| Keyboard, mouse and gamepad share one source model | gamepad, keyboard and mouse sources through the same engine |
-| `unmap` | keyboard/mouse sources are suppressed whenever they are mapped |
-| Chord shifts, `toggle` shift | `ShiftLayer.ModifierButtons` (up to 4) and `ShiftType` |
-| `jumpToLayer` | `TargetType.JumpToLayer` |
-| Macro steps: keyboard, mouse (button/move/wheel), gamepad, rumble, pause, break | the expanded macro script and `MacroRunner` |
-| Per-app auto remap | not implemented yet (`Profile.ProcessExecutable` exists) |
-| Masks (button chords as a source), zones, stick-to-mouse, radial menu | not implemented yet |
+| Observed concept | This project | Status |
+|---|---|---|
+| Activators `single/long/double/triple/start/release` | `ActivatorType`, `ActivatorBinding`, per-source tap/hold state machine in `MappingEngine` | done, unit-tested |
+| Modes `onetime/repeat/toggle/hold_until_release` | `MappingMode` `OneTime`, `Turbo` (repeat), `Toggle`, `Normal` (hold) | done, unit-tested |
+| Configurable wait times | `ActivatorTimings` on the profile (sliders in Preferences) | done; the defaults are our own choice |
+| Keyboard, mouse and gamepad share one mapping model | pad, key and mouse sources go through the same engine | done |
+| Capturing the real keyboard/mouse and `unmap` | `LowLevelInputHook`: a mapped key or button is swallowed, everything else passes through | done; hook tested with an injected F13 |
+| Chord shifts (1–4 buttons), `toggle` shift | `ShiftLayer.ModifierButtons`, `ShiftType` | done, unit-tested; the buttons used for a chord are consumed |
+| Shifts inherit from the base layer (`unheritableMasks` implies it) | a shift layer falls back to Main for anything it does not override | done; `unheritableMasks` itself is not modelled |
+| `jumpToLayer` | `TargetType.JumpToLayer` (no `delay`/`postpone`) | partial |
+| Macro steps: keyboard, mouse (button/move/wheel), gamepad button/axis, rumble, pause, break | `MacroActionType` + `MacroRunner`, `MacroPadState`, `XInputRumbleOutput` | done except `pulsation`, `flick`, `compensation`, `command` |
+| `mouseRegion` | not implemented | open |
+| Per-app auto remap (`processNames`) | `Profile.ProcessExecutable` is stored but not acted on | open |
+| Masks (button chords as a source), analog zone activators, stick-to-mouse, radial menu | not implemented | open |
+| Virtual gamepad types other than 360 | not implemented | open |
+
+Safety rails added for the hook (not from reWASD): only mapped inputs are swallowed, events this process injects are
+ignored, a swallowed key's release is swallowed with it, and Ctrl+Alt+Shift+F12 always stops remapping.

@@ -34,7 +34,8 @@ public class RemapTarget
         Layer = Layer
     };
 
-    // Display string helper
+    // Display string helper (computed, so it is not saved with the profile)
+    [System.Text.Json.Serialization.JsonIgnore]
     public string DisplayText => Type switch
     {
         TargetType.VirtualControllerButton => VirtualButton != ControllerButton.None ? VirtualButton.ToString() : "Unassigned",

@@ -17,6 +17,14 @@ public enum AppPage
     Preferences
 }
 
+/// <summary>Which kind of input is being mapped: the controller, the keyboard or the mouse.</summary>
+public enum InputTab
+{
+    Gamepad,
+    Keyboard,
+    Mouse
+}
+
 /// <summary>Tabs of the binding frame. Only tabs whose feature exists are enabled; the rest are placeholders.</summary>
 public enum BindingTab
 {
@@ -43,6 +51,7 @@ public partial class MainViewModel : ObservableObject
     private readonly MacroPadState _macroPad;
     private readonly LowLevelInputHook _hook;
     private readonly InputPipeline _pipeline;
+    private bool _loadingLayerOptions;
 
     [ObservableProperty]
     private ObservableCollection<Profile> _profiles = new();
@@ -53,6 +62,14 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsPreferencesPage))]
     private AppPage _currentPage = AppPage.Remap;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsGamepadTab))]
+    [NotifyPropertyChangedFor(nameof(IsSourcePickerTab))]
+    private InputTab _selectedInputTab = InputTab.Gamepad;
+
+    [ObservableProperty]
+    private ObservableCollection<ButtonViewModel> _currentSources = new();
 
     [ObservableProperty]
     private BindingTab _selectedBindingTab = BindingTab.Main;
@@ -69,6 +86,9 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isConfigMenuOpen;
+
+    [ObservableProperty]
+    private bool _isLayerMenuOpen;
 
     // Both options hide the physical pad through HidHide; hiding is per device, not per button
     [ObservableProperty]
@@ -87,6 +107,8 @@ public partial class MainViewModel : ObservableObject
     public IReadOnlyList<string> LayerNames { get; } = new[] { "Main Layer", "Shift 1", "Shift 2", "Shift 3", "Shift 4" };
 
     public bool IsPreferencesPage => CurrentPage == AppPage.Preferences;
+    public bool IsGamepadTab => SelectedInputTab == InputTab.Gamepad;
+    public bool IsSourcePickerTab => SelectedInputTab != InputTab.Gamepad;
 
     public bool IsDriverAvailable => _virtualService.IsDriverAvailable;
     public bool IsHidHideAvailable => _hidHide.IsAvailable;
@@ -97,6 +119,7 @@ public partial class MainViewModel : ObservableObject
     private int _activeSlot = 1;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsLayerEditable))]
     private int _activeShiftLayer = 0;
 
     [ObservableProperty]
@@ -109,6 +132,9 @@ public partial class MainViewModel : ObservableObject
     private ButtonViewModel? _selectedButton;
 
     // Mapping Inspector Properties
+    [ObservableProperty]
+    private ActivatorType _selectedActivator = ActivatorType.Single;
+
     [ObservableProperty]
     private TargetType _selectedTargetType = TargetType.VirtualControllerButton;
 
@@ -123,6 +149,9 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private string _selectedScrollDirection = ScrollUpLabel;
+
+    [ObservableProperty]
+    private int _selectedJumpLayer = 1;
 
     [ObservableProperty]
     private string _macroScript = string.Empty;
@@ -142,6 +171,24 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _isMuted = false;
 
+    // Activator timing (stored on the profile)
+    [ObservableProperty]
+    private int _longPressMs = new ActivatorTimings().LongPressMs;
+
+    [ObservableProperty]
+    private int _multiPressWindowMs = new ActivatorTimings().MultiPressWindowMs;
+
+    [ObservableProperty]
+    private int _pulseMs = new ActivatorTimings().PulseMs;
+
+    // Shift layer activation (stored on the active layer)
+    [ObservableProperty]
+    private ShiftType _selectedLayerType = ShiftType.Hold;
+
+    public bool IsLayerEditable => ActiveShiftLayer > 0;
+    public IReadOnlyList<ShiftType> AvailableLayerTypes { get; } = Enum.GetValues<ShiftType>();
+    public ObservableCollection<ModifierOption> LayerModifierOptions { get; } = new();
+
     // Collections for Inspector choices
     public ObservableCollection<ControllerButton> AvailableVirtualButtons { get; } = new();
     public ObservableCollection<string> AvailableKeyboardKeys { get; } = new();
@@ -150,6 +197,8 @@ public partial class MainViewModel : ObservableObject
     public IReadOnlyList<MappingMode> AvailableModes { get; } = Enum.GetValues<MappingMode>();
     public IReadOnlyList<MacroRepeatMode> AvailableMacroRepeatModes { get; } = Enum.GetValues<MacroRepeatMode>();
     public ObservableCollection<ButtonViewModel> ControllerButtons { get; } = new();
+    public ObservableCollection<ButtonViewModel> KeyboardSources { get; } = new();
+    public ObservableCollection<ButtonViewModel> MouseSources { get; } = new();
     public ObservableCollection<string> ConnectedDevices { get; } = new();
 
     public MainViewModel()
@@ -172,6 +221,9 @@ public partial class MainViewModel : ObservableObject
         PopulateInspectorOptions();
         PopulateConnectedDevices();
         InitializeControllerButtons();
+        InitializeSourcePickers();
+        BuildLayerModifierOptions();
+        LoadProfileSettings(_selectedProfile);
 
         // Select first button by default
         if (ControllerButtons.Count > 0)
@@ -184,16 +236,31 @@ public partial class MainViewModel : ObservableObject
     {
         // Keep the engine on the profile being edited
         _mappingEngine.CurrentProfile = value;
-        SelectedProcessExecutable = value.ProcessExecutable ?? string.Empty;
         if (!value.ShiftLayers.ContainsKey(ActiveShiftLayer)) ActiveShiftLayer = 0;
         _mappingEngine.SetShiftLayer(ActiveShiftLayer);
+        LoadProfileSettings(value);
+        RefreshLayerOptions();
         UpdateAllButtonDisplays();
+        if (SelectedButton != null) SelectButton(SelectedButton);
+    }
+
+    private void LoadProfileSettings(Profile profile)
+    {
+        SelectedProcessExecutable = profile.ProcessExecutable ?? string.Empty;
+        profile.Timings ??= new ActivatorTimings();
+        LongPressMs = profile.Timings.LongPressMs;
+        MultiPressWindowMs = profile.Timings.MultiPressWindowMs;
+        PulseMs = profile.Timings.PulseMs;
     }
 
     partial void OnSelectedProcessExecutableChanged(string value)
     {
         SelectedProfile.ProcessExecutable = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
+
+    partial void OnLongPressMsChanged(int value) => SelectedProfile.Timings.LongPressMs = value;
+    partial void OnMultiPressWindowMsChanged(int value) => SelectedProfile.Timings.MultiPressWindowMs = value;
+    partial void OnPulseMsChanged(int value) => SelectedProfile.Timings.PulseMs = value;
 
     [RelayCommand]
     private void ShowPage(string page)
@@ -243,11 +310,16 @@ public partial class MainViewModel : ObservableObject
                 AvailableVirtualButtons.Add(btn);
         }
 
-        string[] commonKeys = { "Space", "W", "A", "S", "D", "E", "R", "F", "ShiftKey", "ControlKey", "Tab", "Escape", "Q", "C", "V", "1", "2", "3", "4" };
-        foreach (var k in commonKeys) AvailableKeyboardKeys.Add(k);
+        foreach (var k in KeyOptions()) AvailableKeyboardKeys.Add(k);
+        foreach (var m in LowLevelInputHook.MouseNames) AvailableMouseButtons.Add(m);
+    }
 
-        string[] mouseButtons = { "Left Click", "Right Click", "Middle Click", "Wheel Up", "Wheel Down", "Mouse Button 4", "Mouse Button 5" };
-        foreach (var m in mouseButtons) AvailableMouseButtons.Add(m);
+    private static IEnumerable<string> KeyOptions()
+    {
+        for (char c = 'A'; c <= 'Z'; c++) yield return c.ToString();
+        for (char c = '0'; c <= '9'; c++) yield return c.ToString();
+        for (int f = 1; f <= 12; f++) yield return "F" + f;
+        foreach (var n in KeyMap.NamedKeys) yield return n;
     }
 
     private void PopulateConnectedDevices()
@@ -293,73 +365,187 @@ public partial class MainViewModel : ObservableObject
 
     private void AddButton(ControllerButton btn, string label, double x, double y, double w, double h)
     {
-        var vm = new ButtonViewModel
+        ControllerButtons.Add(new ButtonViewModel
         {
+            Kind = SourceKind.Pad,
             Button = btn,
+            SourceName = btn.ToString(),
             DisplayName = label,
             X = x,
             Y = y,
             Width = w,
             Height = h,
             OnSelected = SelectButton
-        };
-        ControllerButtons.Add(vm);
+        });
     }
+
+    private void InitializeSourcePickers()
+    {
+        foreach (var key in KeyOptions())
+        {
+            KeyboardSources.Add(new ButtonViewModel
+            {
+                Kind = SourceKind.Key,
+                SourceName = key,
+                DisplayName = key,
+                Width = key.Length > 2 ? 88 : 44,
+                Height = 38,
+                OnSelected = SelectButton
+            });
+        }
+
+        foreach (var name in LowLevelInputHook.MouseNames)
+        {
+            MouseSources.Add(new ButtonViewModel
+            {
+                Kind = SourceKind.Mouse,
+                SourceName = name,
+                DisplayName = name,
+                Width = 130,
+                Height = 38,
+                OnSelected = SelectButton
+            });
+        }
+
+        UpdateAllButtonDisplays();
+    }
+
+    partial void OnSelectedInputTabChanged(InputTab value)
+    {
+        CurrentSources = value switch
+        {
+            InputTab.Keyboard => KeyboardSources,
+            InputTab.Mouse => MouseSources,
+            _ => new ObservableCollection<ButtonViewModel>()
+        };
+
+        var first = value switch
+        {
+            InputTab.Keyboard => KeyboardSources.FirstOrDefault(),
+            InputTab.Mouse => MouseSources.FirstOrDefault(),
+            _ => ControllerButtons.FirstOrDefault()
+        };
+        if (first != null) SelectButton(first);
+    }
+
+    // ---- Mapping access ------------------------------------------------------------------------------------------
+    // A source is a pad button, a key or a mouse button. Shift layers inherit from Main unless they override.
+
+    private ShiftLayer CurrentLayer => SelectedProfile.ShiftLayers.TryGetValue(ActiveShiftLayer, out var l) ? l : SelectedProfile.ShiftLayers[0];
+
+    private static ButtonMapping? Lookup(ShiftLayer layer, ButtonViewModel src) => src.Kind switch
+    {
+        SourceKind.Pad => layer.Mappings.GetValueOrDefault(src.Button),
+        SourceKind.Key => layer.KeyboardMappings.GetValueOrDefault(src.SourceName),
+        _ => layer.MouseMappings.GetValueOrDefault(src.SourceName)
+    };
+
+    private ButtonMapping? FindMapping(ShiftLayer layer, ButtonViewModel src, bool inherit)
+    {
+        var m = Lookup(layer, src);
+        if (m == null && inherit && layer.LayerIndex != 0 && SelectedProfile.ShiftLayers.TryGetValue(0, out var main)) m = Lookup(main, src);
+        return m;
+    }
+
+    private static void Store(ShiftLayer layer, ButtonViewModel src, ButtonMapping mapping)
+    {
+        switch (src.Kind)
+        {
+            case SourceKind.Pad: layer.Mappings[src.Button] = mapping; break;
+            case SourceKind.Key: layer.KeyboardMappings[src.SourceName] = mapping; break;
+            default: layer.MouseMappings[src.SourceName] = mapping; break;
+        }
+    }
+
+    private static void Remove(ShiftLayer layer, ButtonViewModel src)
+    {
+        switch (src.Kind)
+        {
+            case SourceKind.Pad: layer.Mappings.Remove(src.Button); break;
+            case SourceKind.Key: layer.KeyboardMappings.Remove(src.SourceName); break;
+            default: layer.MouseMappings.Remove(src.SourceName); break;
+        }
+    }
+
+    /// <summary>What a source does when nothing is configured: pass itself through.</summary>
+    private static RemapTarget DefaultTarget(ButtonViewModel src) => src.Kind switch
+    {
+        SourceKind.Pad => RemapTarget.Default(src.Button),
+        SourceKind.Key => new RemapTarget { Type = TargetType.KeyboardKey, KeyboardKey = src.SourceName },
+        _ => src.SourceName switch
+        {
+            "Wheel Up" => new RemapTarget { Type = TargetType.MouseScroll, ScrollDelta = 1 },
+            "Wheel Down" => new RemapTarget { Type = TargetType.MouseScroll, ScrollDelta = -1 },
+            _ => new RemapTarget { Type = TargetType.MouseButton, MouseButton = src.SourceName }
+        }
+    };
+
+    private static bool IsDefaultMapping(ButtonMapping m, ButtonViewModel src)
+    {
+        if (m.Activators.Count > 0 || m.Mode != MappingMode.Normal) return false;
+        var d = DefaultTarget(src);
+        var t = m.Target;
+        return t.Type == d.Type
+            && t.VirtualButton == d.VirtualButton
+            && string.Equals(t.KeyboardKey, d.KeyboardKey, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(t.MouseButton, d.MouseButton, StringComparison.OrdinalIgnoreCase)
+            && (t.Type != TargetType.MouseScroll || t.ScrollDelta == d.ScrollDelta);
+    }
+
+    private IEnumerable<ButtonViewModel> AllSources => ControllerButtons.Concat(KeyboardSources).Concat(MouseSources);
 
     public void SelectButton(ButtonViewModel button)
     {
-        foreach (var b in ControllerButtons) b.IsSelected = false;
+        foreach (var b in AllSources) b.IsSelected = false;
         button.IsSelected = true;
         SelectedButton = button;
 
-        // Load existing mapping from active ShiftLayer
-        var layer = SelectedProfile.ShiftLayers[ActiveShiftLayer];
-        if (layer.Mappings.TryGetValue(button.Button, out var mapping))
+        var mapping = FindMapping(CurrentLayer, button, inherit: true);
+        var binding = mapping?.GetBinding(SelectedActivator);
+
+        // Unconfigured Single shows the pass-through; an unconfigured other activator starts out empty
+        if (binding == null && SelectedActivator == ActivatorType.Single)
         {
-            SelectedTargetType = mapping.Target.Type;
-            SelectedVirtualButton = mapping.Target.VirtualButton != ControllerButton.None ? mapping.Target.VirtualButton : ControllerButton.A;
-            SelectedKeyboardKey = !string.IsNullOrEmpty(mapping.Target.KeyboardKey) ? mapping.Target.KeyboardKey : "Space";
-            SelectedMouseButton = !string.IsNullOrEmpty(mapping.Target.MouseButton) ? mapping.Target.MouseButton : "Left Click";
-            SelectedScrollDirection = mapping.Target.ScrollDelta < 0 ? ScrollDownLabel : ScrollUpLabel;
-            MacroScript = mapping.Target.Macro?.ToScript() ?? string.Empty;
-            SelectedMacroRepeat = mapping.Target.Macro?.RepeatMode ?? MacroRepeatMode.Once;
-            MacroError = string.Empty;
-            SelectedMode = mapping.Mode;
-            TurboRateMs = mapping.TurboRateMs;
-            IsMuted = mapping.IsMuted;
+            binding = new ActivatorBinding { Target = DefaultTarget(button) };
         }
-        else
-        {
-            SelectedTargetType = TargetType.VirtualControllerButton;
-            SelectedVirtualButton = button.Button;
-            SelectedScrollDirection = ScrollUpLabel;
-            MacroScript = string.Empty;
-            SelectedMacroRepeat = MacroRepeatMode.Once;
-            MacroError = string.Empty;
-            SelectedMode = MappingMode.Normal;
-            TurboRateMs = 50;
-            IsMuted = false;
-        }
+
+        var target = binding?.Target ?? new RemapTarget { Type = TargetType.None };
+        SelectedTargetType = target.Type;
+        SelectedVirtualButton = target.VirtualButton != ControllerButton.None ? target.VirtualButton : (button.Kind == SourceKind.Pad ? button.Button : ControllerButton.A);
+        SelectedKeyboardKey = !string.IsNullOrEmpty(target.KeyboardKey) ? target.KeyboardKey : "Space";
+        SelectedMouseButton = !string.IsNullOrEmpty(target.MouseButton) ? target.MouseButton : "Left Click";
+        SelectedScrollDirection = target.ScrollDelta < 0 ? ScrollDownLabel : ScrollUpLabel;
+        SelectedJumpLayer = target.Layer;
+        MacroScript = target.Macro?.ToScript() ?? string.Empty;
+        SelectedMacroRepeat = target.Macro?.RepeatMode ?? MacroRepeatMode.Once;
+        MacroError = string.Empty;
+        SelectedMode = binding?.Mode ?? MappingMode.Normal;
+        TurboRateMs = binding?.TurboRateMs ?? 50;
+        IsMuted = mapping?.IsMuted ?? false;
+    }
+
+    partial void OnSelectedActivatorChanged(ActivatorType value)
+    {
+        if (SelectedButton != null) SelectButton(SelectedButton);
     }
 
     public void UpdateAllButtonDisplays()
     {
-        var layer = SelectedProfile.ShiftLayers.TryGetValue(ActiveShiftLayer, out var l)
-            ? l
-            : SelectedProfile.ShiftLayers[0];
+        var layer = CurrentLayer;
 
-        foreach (var btn in ControllerButtons)
+        foreach (var src in AllSources)
         {
-            if (layer.Mappings.TryGetValue(btn.Button, out var mapping) && mapping.Target.Type != TargetType.None)
+            var mapping = FindMapping(layer, src, inherit: true);
+            if (mapping == null)
             {
-                btn.IsRemapped = mapping.Target.Type != TargetType.VirtualControllerButton || mapping.Target.VirtualButton != btn.Button;
-                btn.TargetText = mapping.Target.DisplayText;
+                src.IsRemapped = false;
+                src.TargetText = src.DisplayName;
+                continue;
             }
-            else
-            {
-                btn.IsRemapped = false;
-                btn.TargetText = btn.DisplayName;
-            }
+
+            src.IsRemapped = !IsDefaultMapping(mapping, src);
+            string extra = mapping.Activators.Count > 0 ? $" +{mapping.Activators.Count}" : "";
+            src.TargetText = mapping.Target.DisplayText + extra;
         }
     }
 
@@ -367,6 +553,7 @@ public partial class MainViewModel : ObservableObject
     private void SaveCurrentMapping()
     {
         if (SelectedButton == null) return;
+        var source = SelectedButton;
 
         MacroDefinition? macro = null;
         if (SelectedTargetType == TargetType.Macro)
@@ -388,45 +575,70 @@ public partial class MainViewModel : ObservableObject
             KeyboardKey = SelectedTargetType == TargetType.KeyboardKey ? SelectedKeyboardKey : string.Empty,
             MouseButton = SelectedTargetType == TargetType.MouseButton ? SelectedMouseButton : string.Empty,
             ScrollDelta = SelectedScrollDirection == ScrollDownLabel ? -1 : 1,
+            Layer = SelectedTargetType == TargetType.JumpToLayer ? SelectedJumpLayer : 0,
             Macro = macro
         };
+
+        var binding = new ActivatorBinding { Type = SelectedActivator, Target = target, Mode = SelectedMode, TurboRateMs = TurboRateMs };
 
         // The pipeline thread reads these mappings, so edit under the engine's lock
         lock (_mappingEngine.SyncRoot)
         {
-            SelectedProfile.ShiftLayers[ActiveShiftLayer].Mappings[SelectedButton.Button] = new ButtonMapping
+            var layer = CurrentLayer;
+            var mapping = Lookup(layer, source);
+            if (mapping == null)
             {
-                SourceButton = SelectedButton.Button,
-                Target = target,
-                Mode = SelectedMode,
-                TurboRateMs = TurboRateMs,
-                IsMuted = IsMuted
-            };
+                // First edit in this layer: start from what it inherits so other activators are not lost
+                mapping = FindMapping(layer, source, inherit: true)?.Clone()
+                          ?? new ButtonMapping { SourceButton = source.Button, Target = DefaultTarget(source) };
+                Store(layer, source, mapping);
+            }
+
+            mapping.IsMuted = IsMuted;
+
+            if (SelectedTargetType == TargetType.None && SelectedActivator != ActivatorType.Single)
+                mapping.SetBinding(SelectedActivator, null); // an empty extra activator just means "no outcome"
+            else
+                mapping.SetBinding(SelectedActivator, binding);
         }
 
         UpdateAllButtonDisplays();
-        StatusMessage = $"Mapped {SelectedButton.Button} -> {target.DisplayText}";
+        StatusMessage = SelectedTargetType == TargetType.None && SelectedActivator != ActivatorType.Single
+            ? $"Cleared {SelectedActivator} on {source.DisplayName}"
+            : $"Mapped {source.DisplayName} ({SelectedActivator}) -> {target.DisplayText}";
     }
 
     [RelayCommand]
     private void ResetCurrentMapping()
     {
         if (SelectedButton == null) return;
+        var source = SelectedButton;
 
         lock (_mappingEngine.SyncRoot)
         {
-            SelectedProfile.ShiftLayers[ActiveShiftLayer].Mappings[SelectedButton.Button] = new ButtonMapping
+            var layer = CurrentLayer;
+            if (layer.LayerIndex == 0 && source.Kind == SourceKind.Pad)
             {
-                SourceButton = SelectedButton.Button,
-                Target = RemapTarget.Default(SelectedButton.Button),
-                Mode = MappingMode.Normal
-            };
+                // The Main layer always carries an explicit pass-through for pad buttons
+                layer.Mappings[source.Button] = new ButtonMapping
+                {
+                    SourceButton = source.Button,
+                    Target = RemapTarget.Default(source.Button),
+                    Mode = MappingMode.Normal
+                };
+            }
+            else
+            {
+                Remove(layer, source); // keys and mouse buttons fall back to the real input; shift layers fall back to Main
+            }
         }
 
-        SelectButton(SelectedButton);
+        SelectButton(source);
         UpdateAllButtonDisplays();
-        StatusMessage = $"Reset {SelectedButton.Button} to default";
+        StatusMessage = $"Reset {source.DisplayName} to default";
     }
+
+    // ---- Layers --------------------------------------------------------------------------------------------------
 
     partial void OnActiveShiftLayerChanged(int value)
     {
@@ -434,9 +646,67 @@ public partial class MainViewModel : ObservableObject
         if (!SelectedProfile.ShiftLayers.TryGetValue(value, out var layer)) return;
 
         _mappingEngine.SetShiftLayer(value);
+        RefreshLayerOptions();
         UpdateAllButtonDisplays();
         if (SelectedButton != null) SelectButton(SelectedButton);
         StatusMessage = $"Switched to {layer.Name}";
+    }
+
+    private void BuildLayerModifierOptions()
+    {
+        LayerModifierOptions.Clear();
+        foreach (var b in ControllerButtons)
+        {
+            var option = new ModifierOption(b.Button, b.Button.ToString()) { Changed = OnModifierOptionChanged };
+            LayerModifierOptions.Add(option);
+        }
+    }
+
+    private void RefreshLayerOptions()
+    {
+        _loadingLayerOptions = true;
+        try
+        {
+            var layer = CurrentLayer;
+            foreach (var option in LayerModifierOptions) option.IsChecked = layer.ModifierButtons.Contains(option.Button);
+            SelectedLayerType = layer.Type;
+        }
+        finally
+        {
+            _loadingLayerOptions = false;
+        }
+    }
+
+    private void OnModifierOptionChanged(ModifierOption changed)
+    {
+        if (_loadingLayerOptions || ActiveShiftLayer == 0) return;
+
+        var chosen = LayerModifierOptions.Where(o => o.IsChecked).Select(o => o.Button).ToList();
+        if (chosen.Count > ShiftLayer.MaxModifierButtons)
+        {
+            _loadingLayerOptions = true;
+            changed.IsChecked = false;
+            _loadingLayerOptions = false;
+            StatusMessage = $"A layer can use at most {ShiftLayer.MaxModifierButtons} buttons";
+            return;
+        }
+
+        lock (_mappingEngine.SyncRoot)
+        {
+            CurrentLayer.ModifierButtons = chosen;
+        }
+        StatusMessage = chosen.Count == 0
+            ? $"{CurrentLayer.Name} has no activation buttons, so it can only be reached by a jump or the dropdown"
+            : $"{CurrentLayer.Name} activates with {string.Join(" + ", chosen)}";
+    }
+
+    partial void OnSelectedLayerTypeChanged(ShiftType value)
+    {
+        if (_loadingLayerOptions || ActiveShiftLayer == 0) return;
+        lock (_mappingEngine.SyncRoot)
+        {
+            CurrentLayer.Type = value;
+        }
     }
 
     [RelayCommand]
@@ -450,6 +720,14 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    // ---- Apply / stop --------------------------------------------------------------------------------------------
+
+    private bool AnyMappingMuted() =>
+        SelectedProfile.ShiftLayers.Values.Any(l =>
+            l.Mappings.Values.Any(m => m.IsMuted)
+            || l.KeyboardMappings.Values.Any(m => m.IsMuted)
+            || l.MouseMappings.Values.Any(m => m.IsMuted));
+
     [RelayCommand]
     private async Task ToggleApply()
     {
@@ -462,8 +740,7 @@ public partial class MainViewModel : ObservableObject
             var before = XInputReader.GetConnectedSlots();
 
             // "Mute" hides the physical pad from games. Capture it before the virtual pad exists so only real devices are hidden.
-            bool wantMute = MuteAll || HideInputDevice
-                || SelectedProfile.ShiftLayers.Values.Any(l => l.Mappings.Values.Any(m => m.IsMuted));
+            bool wantMute = MuteAll || HideInputDevice || AnyMappingMuted();
             var devicesToHide = wantMute && _hidHide.IsAvailable ? _hidHide.GetPresentGamingDevices() : Array.Empty<string>();
 
             bool ok = _virtualService.ConnectVirtualXbox();

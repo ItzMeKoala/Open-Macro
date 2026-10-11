@@ -136,26 +136,61 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <ComboBox ItemsSource="{Binding LayerNames}" SelectedIndex="{Binding ActiveShiftLayer, Mode=TwoWay}"
                           Width="150" Background="Transparent" BorderThickness="0" FontSize="14" />
-                <Button Style="{StaticResource IconButton}" Content="&#xE710;" Width="30" Height="30" IsEnabled="False" ToolTip="Adding layers is not implemented yet" />
+                <!-- How this layer is reached: which buttons, and hold vs toggle -->
+                <ToggleButton x:Name="LayerToggle" Style="{StaticResource IconToggle}" Content="&#xE713;" Width="34" Height="34" FontSize="15" Margin="4,0,0,0"
+                              ToolTip="Layer activation (buttons and hold/toggle)"
+                              IsEnabled="{Binding IsLayerEditable}"
+                              IsChecked="{Binding IsLayerMenuOpen, Mode=TwoWay}"
+                              IsHitTestVisible="{Binding IsOpen, ElementName=LayerPopup, Converter={StaticResource InverseBool}}" />
+                <Popup x:Name="LayerPopup" IsOpen="{Binding IsLayerMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=LayerToggle}"
+                       Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                    <Border Width="300" Margin="0,4,0,0" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorderLight}" BorderThickness="1" CornerRadius="8" Padding="12">
+                        <StackPanel>
+                            <TextBlock Text="ACTIVATE THIS LAYER WITH" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,6" />
+                            <TextBlock Text="Pick up to 4 buttons; all must be held together." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8" />
+                            <ItemsControl ItemsSource="{Binding LayerModifierOptions}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox Content="{Binding Label}" IsChecked="{Binding IsChecked}" Width="136" Margin="0,0,0,6"
+                                                  Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="BEHAVIOUR" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,10,0,6" />
+                            <ComboBox ItemsSource="{Binding AvailableLayerTypes}" SelectedItem="{Binding SelectedLayerType}" />
+                            <TextBlock Text="Hold: active while held. Toggle: each press switches it on or off." Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </Border>
+                </Popup>
             </StackPanel>
         </Border>
 
         <!-- 3. INPUT-TYPE TABS -->
         <Border Grid.Row="2" Background="{StaticResource BrushBgPanel}" Padding="14,0">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <RadioButton Style="{StaticResource ShiftTabButtonStyle}" IsChecked="True" Margin="0,0,10,0">
+                <RadioButton Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,10,0"
+                             IsChecked="{Binding SelectedInputTab, Converter={StaticResource EnumToBool}, ConverterParameter=Gamepad}">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE7FC;" FontFamily="{StaticResource IconFont}" Margin="0,0,8,0" VerticalAlignment="Center" />
                         <TextBlock Text="Gamepad" VerticalAlignment="Center" />
                     </StackPanel>
                 </RadioButton>
-                <RadioButton Style="{StaticResource ShiftTabButtonStyle}" IsEnabled="False" Opacity="0.4" ToolTip="Keyboard remapping is not implemented yet" Margin="0,0,10,0">
+                <RadioButton Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,10,0"
+                             ToolTip="Remap keyboard keys (the original key is swallowed while remapping is on)"
+                             IsChecked="{Binding SelectedInputTab, Converter={StaticResource EnumToBool}, ConverterParameter=Keyboard}">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE765;" FontFamily="{StaticResource IconFont}" Margin="0,0,8,0" VerticalAlignment="Center" />
                         <TextBlock Text="Keyboard" VerticalAlignment="Center" />
                     </StackPanel>
                 </RadioButton>
-                <RadioButton Style="{StaticResource ShiftTabButtonStyle}" IsEnabled="False" Opacity="0.4" ToolTip="Mouse remapping is not implemented yet">
+                <RadioButton Style="{StaticResource ShiftTabButtonStyle}"
+                             ToolTip="Remap mouse buttons and the wheel (the original is swallowed while remapping is on)"
+                             IsChecked="{Binding SelectedInputTab, Converter={StaticResource EnumToBool}, ConverterParameter=Mouse}">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE962;" FontFamily="{StaticResource IconFont}" Margin="0,0,8,0" VerticalAlignment="Center" />
                         <TextBlock Text="Mouse" VerticalAlignment="Center" />
@@ -173,7 +208,60 @@
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0" Background="{StaticResource BrushBgDeep}">
-                <views:ControllerVisualizer />
+                <Grid>
+                    <views:ControllerVisualizer Visibility="{Binding IsGamepadTab, Converter={StaticResource BoolToVisibility}}" />
+
+                    <!-- Key / mouse button picker: choose the input to remap -->
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24"
+                                  Visibility="{Binding IsSourcePickerTab, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel>
+                            <TextBlock Text="Pick the input to remap" Foreground="{StaticResource BrushTextSecondary}" FontSize="13" Margin="0,0,0,12" />
+                            <ItemsControl ItemsSource="{Binding CurrentSources}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Command="{Binding SelectCommand}" Width="{Binding Width}" Height="{Binding Height}"
+                                                Margin="0,0,8,8" Cursor="Hand" ToolTip="{Binding TargetText}">
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border x:Name="Bd" Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}"
+                                                                        BorderThickness="1" CornerRadius="6">
+                                                                    <TextBlock Text="{Binding DisplayName}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"
+                                                                               Foreground="{TemplateBinding Foreground}" />
+                                                                </Border>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter TargetName="Bd" Property="Background" Value="{StaticResource BrushBgCardHover}" />
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsRemapped}" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource BrushOrange}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource BrushCyan}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
             </Border>
 
             <!-- Inspector (binding frame) -->
@@ -216,6 +304,7 @@
             <!-- Preferences page: covers the visualizer and inspector -->
             <Border Grid.Column="0" Grid.ColumnSpan="2" Background="{StaticResource BrushBgDeep}" Padding="32"
                     Visibility="{Binding IsPreferencesPage, Converter={StaticResource BoolToVisibility}}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel MaxWidth="520" HorizontalAlignment="Left">
                     <TextBlock Text="Preferences" Foreground="{StaticResource BrushTextPrimary}" FontSize="22" FontWeight="Bold" Margin="0,0,0,20" />
 
@@ -229,6 +318,37 @@
                         </StackPanel>
                     </Border>
 
+                    <TextBlock Text="ACTIVATOR TIMING (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                        <StackPanel>
+                            <DockPanel>
+                                <TextBlock Text="Long press after" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                <TextBlock Text="{Binding LongPressMs, StringFormat='{}{0} ms'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                            </DockPanel>
+                            <Slider Minimum="150" Maximum="1500" SmallChange="10" LargeChange="50" Value="{Binding LongPressMs}" Margin="0,4,0,12" />
+
+                            <DockPanel>
+                                <TextBlock Text="Double / triple press window" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                <TextBlock Text="{Binding MultiPressWindowMs, StringFormat='{}{0} ms'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                            </DockPanel>
+                            <Slider Minimum="80" Maximum="800" SmallChange="10" LargeChange="50" Value="{Binding MultiPressWindowMs}" Margin="0,4,0,12" />
+
+                            <DockPanel>
+                                <TextBlock Text="One-time pulse length" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                <TextBlock Text="{Binding PulseMs, StringFormat='{}{0} ms'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                            </DockPanel>
+                            <Slider Minimum="10" Maximum="300" SmallChange="5" LargeChange="20" Value="{Binding PulseMs}" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="SAFETY" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="Panic key: Ctrl + Alt + Shift + F12" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                            <TextBlock Text="Stops remapping immediately and gives every key and mouse button back, even if a mapping has taken over something you need." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0" />
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Text="OUTPUT" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
                     <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
                         <StackPanel>
@@ -237,6 +357,7 @@
                         </StackPanel>
                     </Border>
                 </StackPanel>
+                </ScrollViewer>
             </Border>
         </Grid>
 
