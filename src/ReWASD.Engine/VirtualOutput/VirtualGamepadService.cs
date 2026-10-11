@@ -1,19 +1,30 @@
 using Nefarius.ViGEm.Client;
 using Nefarius.ViGEm.Client.Targets;
+using Nefarius.ViGEm.Client.Targets.DualShock4;
 using Nefarius.ViGEm.Client.Targets.Xbox360;
 using ReWASD.Core.Models;
 using ReWASD.Engine.Remapper;
 
 namespace ReWASD.Engine.VirtualOutput;
 
+/// <summary>Presents a virtual Xbox 360 or DualShock 4 controller to the system through the ViGEmBus driver.</summary>
 public class VirtualGamepadService : IDisposable
 {
+    /// <summary>The pad types ViGEm can emulate. Xbox One, DualSense and Switch Pro pads are not available through it.</summary>
+    public static readonly IReadOnlyList<ControllerType> SupportedTypes = new[] { ControllerType.Xbox360, ControllerType.DualShock4 };
+
     private ViGEmClient? _client;
-    private IXbox360Controller? _virtualXbox;
+    private IXbox360Controller? _xbox;
+    private IDualShock4Controller? _ds4;
     private bool _isViGEmAvailable = false;
 
     public bool IsDriverAvailable => _isViGEmAvailable;
-    public bool IsConnected => _virtualXbox != null;
+    public bool IsConnected => _xbox != null || _ds4 != null;
+
+    /// <summary>The type currently connected, or null.</summary>
+    public ControllerType? ConnectedType => _xbox != null ? ControllerType.Xbox360 : _ds4 != null ? ControllerType.DualShock4 : null;
+
+    public static bool IsSupported(ControllerType type) => SupportedTypes.Contains(type);
 
     public void Initialize()
     {
@@ -29,27 +40,42 @@ public class VirtualGamepadService : IDisposable
         }
     }
 
-    public bool ConnectVirtualXbox()
+    /// <summary>Connects a virtual pad of the given type, replacing any that is connected. Returns false if it could not.</summary>
+    public bool Connect(ControllerType type)
     {
-        if (!_isViGEmAvailable || _client == null) return false;
+        DisconnectVirtual();
+        if (!_isViGEmAvailable || _client == null || !IsSupported(type)) return false;
 
         try
         {
-            _virtualXbox = _client.CreateXbox360Controller();
-            _virtualXbox.Connect();
+            if (type == ControllerType.DualShock4)
+            {
+                _ds4 = _client.CreateDualShock4Controller();
+                _ds4.Connect();
+            }
+            else
+            {
+                _xbox = _client.CreateXbox360Controller();
+                _xbox.Connect();
+            }
             return true;
         }
         catch (Exception)
         {
+            _xbox = null;
+            _ds4 = null;
             return false;
         }
     }
 
-    public void DisconnectVirtualXbox()
+    public bool ConnectVirtualXbox() => Connect(ControllerType.Xbox360);
+
+    public void DisconnectVirtual()
     {
         try
         {
-            _virtualXbox?.Disconnect();
+            _xbox?.Disconnect();
+            _ds4?.Disconnect();
         }
         catch (Exception)
         {
@@ -57,58 +83,19 @@ public class VirtualGamepadService : IDisposable
         }
         finally
         {
-            _virtualXbox = null;
+            _xbox = null;
+            _ds4 = null;
         }
     }
 
+    public void DisconnectVirtualXbox() => DisconnectVirtual();
+
     public void SendReport(RemappedState state)
     {
-        if (_virtualXbox == null) return;
-
         try
         {
-            // Reset buttons
-            _virtualXbox.SetButtonState(Xbox360Button.A, state.ActiveVirtualButtons.Contains(ControllerButton.A));
-            _virtualXbox.SetButtonState(Xbox360Button.B, state.ActiveVirtualButtons.Contains(ControllerButton.B));
-            _virtualXbox.SetButtonState(Xbox360Button.X, state.ActiveVirtualButtons.Contains(ControllerButton.X));
-            _virtualXbox.SetButtonState(Xbox360Button.Y, state.ActiveVirtualButtons.Contains(ControllerButton.Y));
-
-            _virtualXbox.SetButtonState(Xbox360Button.LeftShoulder, state.ActiveVirtualButtons.Contains(ControllerButton.LeftBumper));
-            _virtualXbox.SetButtonState(Xbox360Button.RightShoulder, state.ActiveVirtualButtons.Contains(ControllerButton.RightBumper));
-
-            _virtualXbox.SetButtonState(Xbox360Button.LeftThumb, state.ActiveVirtualButtons.Contains(ControllerButton.LeftStickClick));
-            _virtualXbox.SetButtonState(Xbox360Button.RightThumb, state.ActiveVirtualButtons.Contains(ControllerButton.RightStickClick));
-
-            _virtualXbox.SetButtonState(Xbox360Button.Start, state.ActiveVirtualButtons.Contains(ControllerButton.Menu));
-            _virtualXbox.SetButtonState(Xbox360Button.Back, state.ActiveVirtualButtons.Contains(ControllerButton.View));
-            _virtualXbox.SetButtonState(Xbox360Button.Guide, state.ActiveVirtualButtons.Contains(ControllerButton.Guide));
-
-            _virtualXbox.SetButtonState(Xbox360Button.Up, state.ActiveVirtualButtons.Contains(ControllerButton.DpadUp));
-            _virtualXbox.SetButtonState(Xbox360Button.Down, state.ActiveVirtualButtons.Contains(ControllerButton.DpadDown));
-            _virtualXbox.SetButtonState(Xbox360Button.Left, state.ActiveVirtualButtons.Contains(ControllerButton.DpadLeft));
-            _virtualXbox.SetButtonState(Xbox360Button.Right, state.ActiveVirtualButtons.Contains(ControllerButton.DpadRight));
-
-            // Set Triggers (byte 0..255)
-            // A button remapped onto a trigger counts as a full pull
-            double lt = state.ActiveVirtualButtons.Contains(ControllerButton.LeftTrigger) ? 1.0 : state.LeftTrigger;
-            double rt = state.ActiveVirtualButtons.Contains(ControllerButton.RightTrigger) ? 1.0 : state.RightTrigger;
-            _virtualXbox.SetSliderValue(Xbox360Slider.LeftTrigger, (byte)Math.Clamp((int)Math.Round(lt * 255), 0, 255));
-            _virtualXbox.SetSliderValue(Xbox360Slider.RightTrigger, (byte)Math.Clamp((int)Math.Round(rt * 255), 0, 255));
-
-            // Set Sticks (short -32768..32767)
-            // A stick-direction button remapped onto the virtual stick pushes it fully that way
-            var pressed = state.ActiveVirtualButtons;
-            double lx = DirectionOverride(pressed, ControllerButton.LeftStickLeft, ControllerButton.LeftStickRight, state.LeftStickX);
-            double ly = DirectionOverride(pressed, ControllerButton.LeftStickDown, ControllerButton.LeftStickUp, state.LeftStickY);
-            double rx = DirectionOverride(pressed, ControllerButton.RightStickLeft, ControllerButton.RightStickRight, state.RightStickX);
-            double ry = DirectionOverride(pressed, ControllerButton.RightStickDown, ControllerButton.RightStickUp, state.RightStickY);
-
-            _virtualXbox.SetAxisValue(Xbox360Axis.LeftThumbX, ToAxis(lx));
-            _virtualXbox.SetAxisValue(Xbox360Axis.LeftThumbY, ToAxis(ly));
-            _virtualXbox.SetAxisValue(Xbox360Axis.RightThumbX, ToAxis(rx));
-            _virtualXbox.SetAxisValue(Xbox360Axis.RightThumbY, ToAxis(ry));
-
-            _virtualXbox.SubmitReport();
+            if (_xbox != null) SendXbox(_xbox, state);
+            else if (_ds4 != null) SendDs4(_ds4, state);
         }
         catch (Exception)
         {
@@ -116,19 +103,72 @@ public class VirtualGamepadService : IDisposable
         }
     }
 
-    private static double DirectionOverride(HashSet<ControllerButton> pressed, ControllerButton negative, ControllerButton positive, double analog)
+    private static void SendXbox(IXbox360Controller pad, RemappedState state)
     {
-        bool neg = pressed.Contains(negative), pos = pressed.Contains(positive);
-        if (neg == pos) return analog; // neither, or both cancelling out
-        return pos ? 1.0 : -1.0;
+        var p = state.ActiveVirtualButtons;
+
+        pad.SetButtonState(Xbox360Button.A, p.Contains(ControllerButton.A));
+        pad.SetButtonState(Xbox360Button.B, p.Contains(ControllerButton.B));
+        pad.SetButtonState(Xbox360Button.X, p.Contains(ControllerButton.X));
+        pad.SetButtonState(Xbox360Button.Y, p.Contains(ControllerButton.Y));
+
+        pad.SetButtonState(Xbox360Button.LeftShoulder, p.Contains(ControllerButton.LeftBumper));
+        pad.SetButtonState(Xbox360Button.RightShoulder, p.Contains(ControllerButton.RightBumper));
+
+        pad.SetButtonState(Xbox360Button.LeftThumb, p.Contains(ControllerButton.LeftStickClick));
+        pad.SetButtonState(Xbox360Button.RightThumb, p.Contains(ControllerButton.RightStickClick));
+
+        pad.SetButtonState(Xbox360Button.Start, p.Contains(ControllerButton.Menu));
+        pad.SetButtonState(Xbox360Button.Back, p.Contains(ControllerButton.View));
+        pad.SetButtonState(Xbox360Button.Guide, p.Contains(ControllerButton.Guide));
+
+        pad.SetButtonState(Xbox360Button.Up, p.Contains(ControllerButton.DpadUp));
+        pad.SetButtonState(Xbox360Button.Down, p.Contains(ControllerButton.DpadDown));
+        pad.SetButtonState(Xbox360Button.Left, p.Contains(ControllerButton.DpadLeft));
+        pad.SetButtonState(Xbox360Button.Right, p.Contains(ControllerButton.DpadRight));
+
+        var axes = VirtualPadMath.ResolveAxes(state);
+        pad.SetSliderValue(Xbox360Slider.LeftTrigger, VirtualPadMath.ToByte(axes.LeftTrigger));
+        pad.SetSliderValue(Xbox360Slider.RightTrigger, VirtualPadMath.ToByte(axes.RightTrigger));
+
+        pad.SetAxisValue(Xbox360Axis.LeftThumbX, VirtualPadMath.ToXboxAxis(axes.LeftX));
+        pad.SetAxisValue(Xbox360Axis.LeftThumbY, VirtualPadMath.ToXboxAxis(axes.LeftY));
+        pad.SetAxisValue(Xbox360Axis.RightThumbX, VirtualPadMath.ToXboxAxis(axes.RightX));
+        pad.SetAxisValue(Xbox360Axis.RightThumbY, VirtualPadMath.ToXboxAxis(axes.RightY));
+
+        pad.SubmitReport();
     }
 
-    private static short ToAxis(double value) =>
-        (short)Math.Clamp((int)Math.Round(value * 32767), -32768, 32767);
+    private static readonly DualShock4Button[] AllDs4Buttons =
+    {
+        DualShock4Button.Cross, DualShock4Button.Circle, DualShock4Button.Square, DualShock4Button.Triangle,
+        DualShock4Button.ShoulderLeft, DualShock4Button.ShoulderRight,
+        DualShock4Button.ThumbLeft, DualShock4Button.ThumbRight,
+        DualShock4Button.Share, DualShock4Button.Options,
+        DualShock4Button.TriggerLeft, DualShock4Button.TriggerRight
+    };
+
+    private static void SendDs4(IDualShock4Controller pad, RemappedState state)
+    {
+        var frame = VirtualPadMath.ToDs4(state);
+
+        foreach (var button in AllDs4Buttons) pad.SetButtonState(button, frame.Buttons.Contains(button));
+        pad.SetButtonState(DualShock4SpecialButton.Ps, frame.Ps);
+        pad.SetDPadDirection(frame.DPad);
+
+        pad.SetAxisValue(DualShock4Axis.LeftThumbX, frame.LeftX);
+        pad.SetAxisValue(DualShock4Axis.LeftThumbY, frame.LeftY);
+        pad.SetAxisValue(DualShock4Axis.RightThumbX, frame.RightX);
+        pad.SetAxisValue(DualShock4Axis.RightThumbY, frame.RightY);
+        pad.SetSliderValue(DualShock4Slider.LeftTrigger, frame.LeftTrigger);
+        pad.SetSliderValue(DualShock4Slider.RightTrigger, frame.RightTrigger);
+
+        pad.SubmitReport();
+    }
 
     public void Dispose()
     {
-        DisconnectVirtualXbox();
+        DisconnectVirtual();
         _client?.Dispose();
     }
 }

@@ -38,7 +38,9 @@ public class RemapTarget
     [System.Text.Json.Serialization.JsonIgnore]
     public string DisplayText => Type switch
     {
-        TargetType.VirtualControllerButton => VirtualButton != ControllerButton.None ? VirtualButton.ToString() : "Unassigned",
+        TargetType.VirtualControllerButton => VirtualButton != ControllerButton.None
+            ? System.Text.RegularExpressions.Regex.Replace(VirtualButton.ToString(), "(?<=[a-z])(?=[A-Z])", " ") // "LeftStickClick" -> "Left Stick Click"
+            : "Unassigned",
         TargetType.KeyboardKey => !string.IsNullOrEmpty(KeyboardKey) ? $"Key: {KeyboardKey}" : "Unassigned",
         TargetType.MouseButton => !string.IsNullOrEmpty(MouseButton) ? $"Mouse: {MouseButton}" : "Unassigned",
         TargetType.MouseScroll => ScrollDelta >= 0 ? "Scroll Up" : "Scroll Down",

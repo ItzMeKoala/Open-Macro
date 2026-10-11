@@ -5,7 +5,7 @@ public class Profile
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = "Default Profile";
     public string? ProcessExecutable { get; set; }
-    public ControllerType TargetControllerType { get; set; } = ControllerType.XboxOne;
+    public ControllerType TargetControllerType { get; set; } = ControllerType.Xbox360;
 
     public int ActiveSlot { get; set; } = 1; // 1 to 4
     public Dictionary<int, ShiftLayer> ShiftLayers { get; set; } = new();

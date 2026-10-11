@@ -9,6 +9,7 @@ using ReWASD.Engine.HidHide;
 using ReWASD.Engine.Input;
 using ReWASD.Engine.Remapper;
 using ReWASD.Engine.VirtualOutput;
+using ReWASD.UI.Skins;
 
 namespace ReWASD.UI.ViewModels;
 
@@ -18,23 +19,19 @@ public enum AppPage
     Preferences
 }
 
+/// <summary>Whether the selected input is remapped to something else, or runs a macro.</summary>
+public enum TargetMode
+{
+    Remap,
+    Macro
+}
+
 /// <summary>Which kind of input is being mapped: the controller, the keyboard or the mouse.</summary>
 public enum InputTab
 {
     Gamepad,
     Keyboard,
     Mouse
-}
-
-/// <summary>Tabs of the binding frame. Only tabs whose feature exists are enabled; the rest are placeholders.</summary>
-public enum BindingTab
-{
-    Main,
-    Shift,
-    Advanced,
-    Keyboard,
-    Rumble,
-    Mask
 }
 
 public partial class MainViewModel : ObservableObject
@@ -72,21 +69,14 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsGamepadTab))]
-    [NotifyPropertyChangedFor(nameof(IsSourcePickerTab))]
     private InputTab _selectedInputTab = InputTab.Gamepad;
 
     [ObservableProperty]
     private ObservableCollection<ButtonViewModel> _currentSources = new();
 
-    [ObservableProperty]
-    private BindingTab _selectedBindingTab = BindingTab.Main;
-
     // Target process for the selected profile (empty = applies to everything)
     [ObservableProperty]
     private string _selectedProcessExecutable = string.Empty;
-
-    [ObservableProperty]
-    private bool _isInspectorOpen = true;
 
     [ObservableProperty]
     private bool _isOutputMenuOpen;
@@ -97,12 +87,22 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _isLayerMenuOpen;
 
-    // Both options hide the physical pad through HidHide; hiding is per device, not per button
-    [ObservableProperty]
-    private bool _muteAll;
-
+    // Hides the physical pad through HidHide; hiding is per device, not per button
     [ObservableProperty]
     private bool _hideInputDevice;
+
+    /// <summary>The kind of virtual controller games will see (stored per config).</summary>
+    [ObservableProperty]
+    private ControllerType _selectedVirtualController = ControllerType.Xbox360;
+
+    public IReadOnlyList<VirtualControllerOption> VirtualControllerOptions { get; } = new[]
+    {
+        new VirtualControllerOption(ControllerType.Xbox360, "Xbox 360", true, "Works with every game that supports an Xbox controller"),
+        new VirtualControllerOption(ControllerType.DualShock4, "DualShock 4", true, "For games and emulators that expect a PlayStation 4 controller"),
+        new VirtualControllerOption(ControllerType.XboxOne, "Xbox One", false, "Not available: the ViGEm driver cannot emulate an Xbox One controller"),
+        new VirtualControllerOption(ControllerType.DualSense, "DualSense (PS5)", false, "Not available: the ViGEm driver cannot emulate a DualSense controller"),
+        new VirtualControllerOption(ControllerType.SwitchPro, "Switch Pro", false, "Not available: the ViGEm driver cannot emulate a Switch Pro controller")
+    };
 
     // What hiding the physical controller actually did, so a failure is never silent
     [ObservableProperty]
@@ -114,8 +114,36 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _recordingHint = string.Empty;
 
-    partial void OnMuteAllChanged(bool value) => ApplyHidingNow();
     partial void OnHideInputDeviceChanged(bool value) => ApplyHidingNow();
+
+    partial void OnSelectedVirtualControllerChanged(ControllerType value)
+    {
+        SelectedProfile.TargetControllerType = value;
+        IsOutputMenuOpen = false;
+
+        // The drawing follows the emulated controller (it can still be changed by hand afterwards)
+        SelectedSkin = value == ControllerType.DualShock4 ? SkinKind.PlayStation4 : SkinKind.Xbox;
+
+        var name = VirtualControllerOptions.FirstOrDefault(o => o.Type == value)?.Name ?? value.ToString();
+        StatusMessage = $"Virtual controller: {name}";
+
+        if (IsRemappingActive) ReconnectVirtualController();
+    }
+
+    /// <summary>Swaps the virtual pad for a different type while remapping is running.</summary>
+    private void ReconnectVirtualController()
+    {
+        // The old pad stays excluded from input until its replacement is known, so it can't be read back in
+        _virtualService.DisconnectVirtual();
+        Thread.Sleep(300); // the driver removes the old pad asynchronously
+
+        var before = XInputReader.GetConnectedSlots();
+        bool ok = _virtualService.Connect(SelectedVirtualController);
+        _reader.ExcludedUserIndex = ok && SelectedVirtualController == ControllerType.Xbox360 ? FindNewSlot(before) : -1;
+
+        StatusMessage = ok ? $"🟢 REMAPPING ACTIVE — Virtual {SelectedVirtualController} connected" : "Could not connect the virtual controller";
+        PopulateConnectedDevices();
+    }
 
     public IReadOnlyList<int> SlotNumbers { get; } = new[] { 1, 2, 3, 4 };
 
@@ -128,7 +156,6 @@ public partial class MainViewModel : ObservableObject
 
     public bool IsPreferencesPage => CurrentPage == AppPage.Preferences;
     public bool IsGamepadTab => SelectedInputTab == InputTab.Gamepad;
-    public bool IsSourcePickerTab => SelectedInputTab != InputTab.Gamepad;
 
     public bool IsDriverAvailable => _virtualService.IsDriverAvailable;
     public bool IsHidHideAvailable => _hidHide.IsAvailable;
@@ -183,7 +210,11 @@ public partial class MainViewModel : ObservableObject
     private string _macroError = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsTurboMode))]
     private MappingMode _selectedMode = MappingMode.Normal;
+
+    /// <summary>The repeat-speed slider only matters in Turbo mode.</summary>
+    public bool IsTurboMode => SelectedMode == MappingMode.Turbo;
 
     [ObservableProperty]
     private int _turboRateMs = 50;
@@ -210,10 +241,6 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<ModifierOption> LayerModifierOptions { get; } = new();
 
     // Collections for Inspector choices
-    public ObservableCollection<ControllerButton> AvailableVirtualButtons { get; } = new();
-    public ObservableCollection<string> AvailableKeyboardKeys { get; } = new();
-    public ObservableCollection<string> AvailableMouseButtons { get; } = new();
-    public IReadOnlyList<string> AvailableScrollDirections { get; } = new[] { ScrollUpLabel, ScrollDownLabel };
     public IReadOnlyList<MappingMode> AvailableModes { get; } = Enum.GetValues<MappingMode>();
     public IReadOnlyList<MacroRepeatMode> AvailableMacroRepeatModes { get; } = Enum.GetValues<MacroRepeatMode>();
     public ObservableCollection<ButtonViewModel> ControllerButtons { get; } = new();
@@ -224,9 +251,8 @@ public partial class MainViewModel : ObservableObject
     public MainViewModel()
     {
         _selectedProfile = Profile.CreateDefault("Default Controller Profile");
-        _profiles.Add(_selectedProfile);
-        _profiles.Add(Profile.CreateDefault("Apex Legends (High Sensitivity)"));
-        _profiles.Add(Profile.CreateDefault("Call of Duty (Tactical Flipped)"));
+        Profiles.Add(_selectedProfile);
+        LoadSavedProfiles();
 
         _mappingEngine = new MappingEngine(_selectedProfile);
         _virtualService = new VirtualGamepadService();
@@ -252,10 +278,51 @@ public partial class MainViewModel : ObservableObject
         BuildLayerModifierOptions();
         LoadProfileSettings(_selectedProfile);
 
-        // Select first button by default
-        if (ControllerButtons.Count > 0)
+        // Start with the A button selected
+        var start = ControllerButtons.FirstOrDefault(b => b.Button == ControllerButton.A) ?? ControllerButtons.FirstOrDefault();
+        if (start != null) SelectButton(start);
+    }
+
+    private static string ProfilesDirectory =>
+        System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ReWASD-OpenSource", "profiles");
+
+    /// <summary>Brings back configs saved with the save button. A saved config replaces the starter one of the same name.</summary>
+    private void LoadSavedProfiles()
+    {
+        try
         {
-            SelectButton(ControllerButtons[0]);
+            if (!System.IO.Directory.Exists(ProfilesDirectory)) return;
+
+            foreach (var file in System.IO.Directory.EnumerateFiles(ProfilesDirectory, "*.json").OrderBy(f => f))
+            {
+                try
+                {
+                    var saved = ProfileSerializer.LoadFromFile(file);
+                    if (string.IsNullOrWhiteSpace(saved.Name)) continue;
+
+                    var existing = Profiles.FirstOrDefault(p => p.Name == saved.Name);
+                    if (existing == null)
+                    {
+                        Profiles.Add(saved);
+                        continue;
+                    }
+
+                    Profiles[Profiles.IndexOf(existing)] = saved;
+
+                    // Assigned through the field on purpose: this runs in the constructor, before the engine exists
+#pragma warning disable MVVMTK0034
+                    if (ReferenceEquals(existing, _selectedProfile)) _selectedProfile = saved;
+#pragma warning restore MVVMTK0034
+                }
+                catch (Exception)
+                {
+                    // A damaged or old-format file must not stop the app starting; it is simply skipped
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // No profiles folder, or no access to it: start with just the starter config
         }
     }
 
@@ -274,6 +341,10 @@ public partial class MainViewModel : ObservableObject
     private void LoadProfileSettings(Profile profile)
     {
         SelectedProcessExecutable = profile.ProcessExecutable ?? string.Empty;
+
+        // A config saved with a type this build cannot emulate falls back to Xbox 360
+        SelectedVirtualController = VirtualGamepadService.IsSupported(profile.TargetControllerType) ? profile.TargetControllerType : ControllerType.Xbox360;
+        profile.TargetControllerType = SelectedVirtualController; // write the fallback back so it is saved correctly
         profile.Timings ??= new ActivatorTimings();
         LongPressMs = profile.Timings.LongPressMs;
         MultiPressWindowMs = profile.Timings.MultiPressWindowMs;
@@ -288,12 +359,6 @@ public partial class MainViewModel : ObservableObject
     partial void OnLongPressMsChanged(int value) => SelectedProfile.Timings.LongPressMs = value;
     partial void OnMultiPressWindowMsChanged(int value) => SelectedProfile.Timings.MultiPressWindowMs = value;
     partial void OnPulseMsChanged(int value) => SelectedProfile.Timings.PulseMs = value;
-
-    [RelayCommand]
-    private void ShowPage(string page)
-    {
-        if (Enum.TryParse<AppPage>(page, out var parsed)) CurrentPage = parsed;
-    }
 
     [RelayCommand]
     private void ToggleSettings()
@@ -312,10 +377,9 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            var dir = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ReWASD-OpenSource", "profiles");
             var invalid = System.IO.Path.GetInvalidFileNameChars();
             var fileName = string.Concat(SelectedProfile.Name.Select(c => invalid.Contains(c) ? '_' : c)) + ".json";
-            var path = System.IO.Path.Combine(dir, fileName);
+            var path = System.IO.Path.Combine(ProfilesDirectory, fileName);
 
             lock (_mappingEngine.SyncRoot)
             {
@@ -329,25 +393,7 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    private void PopulateInspectorOptions()
-    {
-        foreach (ControllerButton btn in Enum.GetValues<ControllerButton>())
-        {
-            if (btn != ControllerButton.None)
-                AvailableVirtualButtons.Add(btn);
-        }
-
-        foreach (var k in KeyOptions()) AvailableKeyboardKeys.Add(k);
-        foreach (var m in LowLevelInputHook.MouseNames) AvailableMouseButtons.Add(m);
-    }
-
-    private static IEnumerable<string> KeyOptions()
-    {
-        for (char c = 'A'; c <= 'Z'; c++) yield return c.ToString();
-        for (char c = '0'; c <= '9'; c++) yield return c.ToString();
-        for (int f = 1; f <= 12; f++) yield return "F" + f;
-        foreach (var n in KeyMap.NamedKeys) yield return n;
-    }
+    private void PopulateInspectorOptions() => BuildRemapOptions();
 
     private void PopulateConnectedDevices()
     {
@@ -361,80 +407,93 @@ public partial class MainViewModel : ObservableObject
         if (slots.Count == 0) ConnectedDevices.Add("No XInput controller detected");
     }
 
+    // ---- Surface: controller picture, keyboard and mouse ---------------------------------------------------------
+
+    [ObservableProperty]
+    private SkinKind _selectedSkin = SkinKind.Xbox;
+
+    [ObservableProperty]
+    private ObservableCollection<DecorShape> _surfaceDecor = new();
+
+    public IReadOnlyList<SkinOption> SkinOptions => ControllerSkins.Options;
+
+    partial void OnSelectedSkinChanged(SkinKind value) => ApplySkin(value);
+
+    private static string FriendlyPadName(ControllerButton b) =>
+        System.Text.RegularExpressions.Regex.Replace(b.ToString(), "(?<=[a-z])(?=[A-Z])", " ");
+
     private void InitializeControllerButtons()
     {
         ControllerButtons.Clear();
 
-        // Coordinates based on center canvas layout (650x420)
-        AddButton(ControllerButton.LeftStickClick, "LS", 185, 140, 48, 48);
-        AddButton(ControllerButton.DpadUp, "▲", 245, 205, 34, 34);
-        AddButton(ControllerButton.DpadDown, "▼", 245, 275, 34, 34);
-        AddButton(ControllerButton.DpadLeft, "◀", 210, 240, 34, 34);
-        AddButton(ControllerButton.DpadRight, "▶", 280, 240, 34, 34);
+        foreach (var button in ControllerSkins.Get(SkinKind.Xbox).Layout.Keys)
+        {
+            ControllerButtons.Add(new ButtonViewModel
+            {
+                Kind = SourceKind.Pad,
+                Button = button,
+                SourceName = button.ToString(),
+                FriendlyName = FriendlyPadName(button),
+                HasStick = button is ControllerButton.LeftStickClick or ControllerButton.RightStickClick,
+                OnSelected = SelectButton
+            });
+        }
 
-        AddButton(ControllerButton.View, "⧉", 275, 145, 34, 28);
-        AddButton(ControllerButton.Guide, "🗲", 325, 125, 42, 42);
-        AddButton(ControllerButton.Menu, "☰", 385, 145, 34, 28);
+        CurrentSources = ControllerButtons;
+        ApplySkin(SelectedSkin);
+    }
 
-        AddButton(ControllerButton.RightStickClick, "RS", 370, 225, 48, 48);
-        AddButton(ControllerButton.Y, "Y", 445, 125, 36, 36);
-        AddButton(ControllerButton.X, "X", 410, 155, 36, 36);
-        AddButton(ControllerButton.B, "B", 480, 155, 36, 36);
-        AddButton(ControllerButton.A, "A", 445, 185, 36, 36);
+    /// <summary>Re-lays out the controller drawing, relabels its buttons and the dropdown icons for the chosen picture.</summary>
+    private void ApplySkin(SkinKind kind)
+    {
+        var skin = ControllerSkins.Get(kind);
 
-        AddButton(ControllerButton.LeftBumper, "LB", 180, 75, 65, 32);
-        AddButton(ControllerButton.RightBumper, "RB", 445, 75, 65, 32);
-        AddButton(ControllerButton.LeftTrigger, "LT", 175, 25, 75, 36);
-        AddButton(ControllerButton.RightTrigger, "RT", 440, 25, 75, 36);
+        foreach (var vm in ControllerButtons)
+        {
+            var p = skin.Layout[vm.Button];
+            var face = ControllerSkins.Face(kind, vm.Button);
 
+            vm.Width = p.W;
+            vm.Height = p.H;
+            vm.X = p.Cx - p.W / 2;
+            vm.Y = p.Cy - p.H / 2;
+            vm.DisplayName = face.Legend;
+            vm.LegendColor = face.Color;
+            vm.CornerRadius = face.Shape == IconShape.Circle ? Math.Min(p.W, p.H) / 2 : p.H / 2;
+            vm.LegendFontSize = face.Legend.Length == 1 ? 15 : face.Legend.Length > 3 ? 10 : 12;
+        }
+
+        foreach (var option in RemapOptions.Where(o => o.Kind == RemapKind.Pad))
+        {
+            var face = ControllerSkins.Face(kind, option.Pad);
+            option.Legend = face.Legend;
+            option.LegendColor = face.Color;
+            option.Shape = face.Shape;
+        }
+
+        if (SelectedInputTab == InputTab.Gamepad) SurfaceDecor = new ObservableCollection<DecorShape>(skin.Decor);
         UpdateAllButtonDisplays();
     }
 
-    private void AddButton(ControllerButton btn, string label, double x, double y, double w, double h)
+    private ButtonViewModel MakeSource(SourceKind kind, SourcePlacement s) => new()
     {
-        ControllerButtons.Add(new ButtonViewModel
-        {
-            Kind = SourceKind.Pad,
-            Button = btn,
-            SourceName = btn.ToString(),
-            HasStick = btn is ControllerButton.LeftStickClick or ControllerButton.RightStickClick,
-            DisplayName = label,
-            X = x,
-            Y = y,
-            Width = w,
-            Height = h,
-            OnSelected = SelectButton
-        });
-    }
+        Kind = kind,
+        SourceName = s.Name,
+        FriendlyName = s.Name,
+        DisplayName = s.Legend,
+        X = s.Place.Cx - s.Place.W / 2,
+        Y = s.Place.Cy - s.Place.H / 2,
+        Width = s.Place.W,
+        Height = s.Place.H,
+        CornerRadius = s.Radius,
+        LegendFontSize = s.FontSize,
+        OnSelected = SelectButton
+    };
 
     private void InitializeSourcePickers()
     {
-        foreach (var key in KeyOptions())
-        {
-            KeyboardSources.Add(new ButtonViewModel
-            {
-                Kind = SourceKind.Key,
-                SourceName = key,
-                DisplayName = key,
-                Width = key.Length > 2 ? 88 : 44,
-                Height = 38,
-                OnSelected = SelectButton
-            });
-        }
-
-        foreach (var name in LowLevelInputHook.MouseNames)
-        {
-            MouseSources.Add(new ButtonViewModel
-            {
-                Kind = SourceKind.Mouse,
-                SourceName = name,
-                DisplayName = name,
-                Width = 130,
-                Height = 38,
-                OnSelected = SelectButton
-            });
-        }
-
+        foreach (var key in InputLayouts.Keyboard) KeyboardSources.Add(MakeSource(SourceKind.Key, key));
+        foreach (var button in InputLayouts.Mouse) MouseSources.Add(MakeSource(SourceKind.Mouse, button));
         UpdateAllButtonDisplays();
     }
 
@@ -444,16 +503,129 @@ public partial class MainViewModel : ObservableObject
         {
             InputTab.Keyboard => KeyboardSources,
             InputTab.Mouse => MouseSources,
-            _ => new ObservableCollection<ButtonViewModel>()
+            _ => ControllerButtons
         };
 
-        var first = value switch
+        IEnumerable<DecorShape> decor = value switch
         {
-            InputTab.Keyboard => KeyboardSources.FirstOrDefault(),
-            InputTab.Mouse => MouseSources.FirstOrDefault(),
-            _ => ControllerButtons.FirstOrDefault()
+            InputTab.Keyboard => InputLayouts.KeyboardDecor,
+            InputTab.Mouse => InputLayouts.MouseDecor,
+            _ => ControllerSkins.Get(SelectedSkin).Decor
         };
+        SurfaceDecor = new ObservableCollection<DecorShape>(decor);
+
+        var first = value == InputTab.Gamepad
+            ? CurrentSources.FirstOrDefault(b => b.Button == ControllerButton.A)
+            : CurrentSources.FirstOrDefault();
         if (first != null) SelectButton(first);
+    }
+
+    // ---- The "Remap to" dropdown ---------------------------------------------------------------------------------
+
+    private bool _syncingOption;
+
+    public ObservableCollection<RemapOption> RemapOptions { get; } = new();
+    public System.ComponentModel.ICollectionView RemapOptionsView { get; private set; } = null!;
+
+    [ObservableProperty]
+    private RemapOption? _selectedRemapOption;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsMacroMode))]
+    [NotifyPropertyChangedFor(nameof(IsRemapMode))]
+    private TargetMode _targetMode = TargetMode.Remap;
+
+    public bool IsMacroMode => TargetMode == TargetMode.Macro;
+    public bool IsRemapMode => TargetMode == TargetMode.Remap;
+
+    private void BuildRemapOptions()
+    {
+        const string Glyph = "";
+
+        RemapOptions.Add(new RemapOption(RemapKind.Nothing, "Nothing", "Nothing (disable this input)") { Legend = "", Shape = IconShape.Glyph });
+
+        foreach (var b in ControllerSkins.Get(SkinKind.Xbox).Layout.Keys)
+        {
+            RemapOptions.Add(new RemapOption(RemapKind.Pad, "Controller", FriendlyPadName(b)) { Pad = b });
+        }
+
+        foreach (var key in InputLayouts.Keyboard)
+        {
+            RemapOptions.Add(new RemapOption(RemapKind.Key, "Keyboard", key.Name) { Name = key.Name, Legend = key.Legend, Shape = IconShape.KeyCap });
+        }
+
+        foreach (var name in new[] { "Left Click", "Right Click", "Middle Click", "Mouse Button 4", "Mouse Button 5" })
+        {
+            RemapOptions.Add(new RemapOption(RemapKind.Mouse, "Mouse", name) { Name = name, Legend = Glyph, Shape = IconShape.Glyph });
+        }
+        RemapOptions.Add(new RemapOption(RemapKind.Scroll, "Mouse", ScrollUpLabel) { Number = 1, Legend = "", Shape = IconShape.Glyph });
+        RemapOptions.Add(new RemapOption(RemapKind.Scroll, "Mouse", ScrollDownLabel) { Number = -1, Legend = "", Shape = IconShape.Glyph });
+
+        for (int i = 0; i < LayerNames.Count; i++)
+        {
+            RemapOptions.Add(new RemapOption(RemapKind.Layer, "Layers", "Switch to " + LayerNames[i]) { Number = i, Legend = "", Shape = IconShape.Glyph });
+        }
+
+        var view = new System.Windows.Data.ListCollectionView(RemapOptions);
+        view.GroupDescriptions.Add(new System.Windows.Data.PropertyGroupDescription(nameof(RemapOption.Group)));
+        RemapOptionsView = view;
+        SelectedRemapOption = RemapOptions[0];
+    }
+
+    private RemapOption? FindOption(RemapTarget t) => t.Type switch
+    {
+        TargetType.None => RemapOptions.FirstOrDefault(o => o.Kind == RemapKind.Nothing),
+        TargetType.VirtualControllerButton => RemapOptions.FirstOrDefault(o => o.Kind == RemapKind.Pad && o.Pad == t.VirtualButton),
+        TargetType.KeyboardKey => RemapOptions.FirstOrDefault(o => o.Kind == RemapKind.Key && string.Equals(o.Name, t.KeyboardKey, StringComparison.OrdinalIgnoreCase)),
+        TargetType.MouseButton => RemapOptions.FirstOrDefault(o => o.Kind == RemapKind.Mouse && string.Equals(o.Name, t.MouseButton, StringComparison.OrdinalIgnoreCase)),
+        TargetType.MouseScroll => RemapOptions.FirstOrDefault(o => o.Kind == RemapKind.Scroll && o.Number == (t.ScrollDelta < 0 ? -1 : 1)),
+        TargetType.JumpToLayer => RemapOptions.FirstOrDefault(o => o.Kind == RemapKind.Layer && o.Number == t.Layer),
+        _ => null
+    };
+
+    /// <summary>Copies a picked dropdown choice into the fields the save command reads.</summary>
+    private void ApplyOption(RemapOption option)
+    {
+        switch (option.Kind)
+        {
+            case RemapKind.Nothing:
+                SelectedTargetType = TargetType.None;
+                break;
+            case RemapKind.Pad:
+                SelectedTargetType = TargetType.VirtualControllerButton;
+                SelectedVirtualButton = option.Pad;
+                break;
+            case RemapKind.Key:
+                SelectedTargetType = TargetType.KeyboardKey;
+                SelectedKeyboardKey = option.Name;
+                break;
+            case RemapKind.Mouse:
+                SelectedTargetType = TargetType.MouseButton;
+                SelectedMouseButton = option.Name;
+                break;
+            case RemapKind.Scroll:
+                SelectedTargetType = TargetType.MouseScroll;
+                SelectedScrollDirection = option.Number < 0 ? ScrollDownLabel : ScrollUpLabel;
+                break;
+            case RemapKind.Layer:
+                SelectedTargetType = TargetType.JumpToLayer;
+                SelectedJumpLayer = option.Number;
+                break;
+        }
+    }
+
+    partial void OnSelectedRemapOptionChanged(RemapOption? value)
+    {
+        if (_syncingOption || value == null || IsMacroMode) return;
+        ApplyOption(value);
+    }
+
+    partial void OnTargetModeChanged(TargetMode value)
+    {
+        if (_syncingOption) return;
+
+        if (value == TargetMode.Macro) SelectedTargetType = TargetType.Macro;
+        else if (SelectedRemapOption != null) ApplyOption(SelectedRemapOption);
     }
 
     // ---- Mapping access ------------------------------------------------------------------------------------------
@@ -550,6 +722,18 @@ public partial class MainViewModel : ObservableObject
         SelectedMode = binding?.Mode ?? MappingMode.Normal;
         TurboRateMs = binding?.TurboRateMs ?? 50;
         IsMuted = mapping?.IsMuted ?? false;
+
+        // Show the same thing in the Remap dropdown and the Remap/Macro switch (without re-applying it)
+        _syncingOption = true;
+        try
+        {
+            SelectedRemapOption = FindOption(target.Type == TargetType.Macro ? DefaultTarget(button) : target) ?? RemapOptions[0];
+            TargetMode = target.Type == TargetType.Macro ? TargetMode.Macro : TargetMode.Remap;
+        }
+        finally
+        {
+            _syncingOption = false;
+        }
     }
 
     partial void OnSelectedActivatorChanged(ActivatorType value)
@@ -632,8 +816,8 @@ public partial class MainViewModel : ObservableObject
 
         UpdateAllButtonDisplays();
         StatusMessage = SelectedTargetType == TargetType.None && SelectedActivator != ActivatorType.Single
-            ? $"Cleared {SelectedActivator} on {source.DisplayName}"
-            : $"Mapped {source.DisplayName} ({SelectedActivator}) -> {target.DisplayText}";
+            ? $"Cleared {SelectedActivator} on {source.FriendlyName}"
+            : $"Mapped {source.FriendlyName} ({SelectedActivator}) -> {target.DisplayText}";
     }
 
     [RelayCommand]
@@ -663,7 +847,7 @@ public partial class MainViewModel : ObservableObject
 
         SelectButton(source);
         UpdateAllButtonDisplays();
-        StatusMessage = $"Reset {source.DisplayName} to default";
+        StatusMessage = $"Reset {source.FriendlyName} to default";
     }
 
     // ---- Layers --------------------------------------------------------------------------------------------------
@@ -737,17 +921,6 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
-    private void SelectSlot(string slotStr)
-    {
-        if (int.TryParse(slotStr, out int slot))
-        {
-            ActiveSlot = slot;
-            SelectedProfile.ActiveSlot = slot;
-            StatusMessage = $"Active Slot: {slot}";
-        }
-    }
-
     // ---- Apply / stop --------------------------------------------------------------------------------------------
 
     private bool AnyMappingMuted() =>
@@ -770,17 +943,19 @@ public partial class MainViewModel : ObservableObject
             // Find the physical controller's devices before the virtual pad exists, so the virtual pad is never hidden
             _physicalDevices = _hidHide.IsAvailable ? _hidHide.GetPhysicalControllerDevices() : Array.Empty<string>();
 
-            bool ok = _virtualService.ConnectVirtualXbox();
-            _reader.ExcludedUserIndex = ok ? FindNewSlot(before) : -1;
+            bool ok = _virtualService.Connect(SelectedVirtualController);
 
-            bool wantMute = MuteAll || HideInputDevice || AnyMappingMuted();
+            // Only an Xbox 360 pad shows up as an XInput slot that has to be ignored; a DualShock 4 does not
+            _reader.ExcludedUserIndex = ok && SelectedVirtualController == ControllerType.Xbox360 ? FindNewSlot(before) : -1;
+
+            bool wantMute = HideInputDevice || AnyMappingMuted();
             HideResult? hide = wantMute ? (ok ? _hidHide.Hide(_physicalDevices) : HideResult.Fail("Hiding needs the virtual controller, which is not connected.")) : null;
             HideStatusText = hide?.Message ?? "Physical controller is not hidden";
 
             _pipeline.Start();
             PopulateConnectedDevices();
             StatusMessage = ok
-                ? "🟢 REMAPPING ACTIVE — Virtual Xbox 360 Controller Connected"
+                ? $"🟢 REMAPPING ACTIVE — Virtual {VirtualControllerOptions.First(o => o.Type == SelectedVirtualController).Name} controller connected"
                 : "🟡 REMAPPING ACTIVE — Virtual Output (ViGEm Driver not detected, running in simulation mode)";
             if (!_pipeline.KeyboardMouseHooked)
             {
@@ -808,7 +983,7 @@ public partial class MainViewModel : ObservableObject
     {
         if (!IsRemappingActive) return;
 
-        bool want = MuteAll || HideInputDevice || AnyMappingMuted();
+        bool want = HideInputDevice || AnyMappingMuted();
         if (want && !_hidHide.IsHiding)
         {
             var result = _hidHide.Hide(_physicalDevices);

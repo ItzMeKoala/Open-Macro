@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReWASD.Core.Models;
+using ReWASD.UI.Skins;
 
 namespace ReWASD.UI.ViewModels;
 
@@ -18,8 +19,23 @@ public partial class ButtonViewModel : ObservableObject
     [ObservableProperty]
     private string _sourceName = string.Empty;
 
+    /// <summary>A readable name for headings and messages (for example "Left Stick Click"), independent of the picture style.</summary>
+    [ObservableProperty]
+    private string _friendlyName = string.Empty;
+
+    /// <summary>What is printed on the button (a letter, a PlayStation symbol, a key name...).</summary>
     [ObservableProperty]
     private string _displayName = string.Empty;
+
+    /// <summary>Colour of the printed legend, as a hex string (for example Xbox's green A).</summary>
+    [ObservableProperty]
+    private string _legendColor = "#E0E6EE";
+
+    [ObservableProperty]
+    private double _cornerRadius = 19;
+
+    [ObservableProperty]
+    private double _legendFontSize = 12;
 
     [ObservableProperty]
     private double _x;
@@ -72,6 +88,53 @@ public partial class ButtonViewModel : ObservableObject
         OnSelected?.Invoke(this);
     }
 }
+
+public enum RemapKind
+{
+    Nothing,
+    Pad,
+    Key,
+    Mouse,
+    Scroll,
+    Layer
+}
+
+/// <summary>One choice in the "Remap to" dropdown, with the icon shown beside it.</summary>
+public sealed partial class RemapOption : ObservableObject
+{
+    public RemapOption(RemapKind kind, string group, string label)
+    {
+        Kind = kind;
+        Group = group;
+        Label = label;
+    }
+
+    public RemapKind Kind { get; }
+    public string Group { get; }
+    public string Label { get; }
+
+    /// <summary>For Pad options, the virtual button.</summary>
+    public ControllerButton Pad { get; init; }
+
+    /// <summary>For Key and Mouse options, the key or mouse button name.</summary>
+    public string Name { get; init; } = string.Empty;
+
+    /// <summary>For Scroll options +1 (up) or -1 (down); for Layer options the layer index.</summary>
+    public int Number { get; init; }
+
+    // The icon's face. Pad options change with the controller picture (Xbox letters vs PlayStation symbols).
+    [ObservableProperty]
+    private string _legend = string.Empty;
+
+    [ObservableProperty]
+    private string _legendColor = "#E0E6EE";
+
+    [ObservableProperty]
+    private IconShape _shape = IconShape.Circle;
+}
+
+/// <summary>One row of the virtual-controller menu.</summary>
+public sealed record VirtualControllerOption(ControllerType Type, string Name, bool IsAvailable, string Note);
 
 /// <summary>A checkbox in the layer-activation chord picker.</summary>
 public partial class ModifierOption : ObservableObject

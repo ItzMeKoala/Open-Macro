@@ -2,9 +2,9 @@ using System.Windows.Controls;
 
 namespace ReWASD.UI.Views;
 
-public partial class ControllerVisualizer : UserControl
+public partial class InputSurface : UserControl
 {
-    public ControllerVisualizer()
+    public InputSurface()
     {
         InitializeComponent();
     }
