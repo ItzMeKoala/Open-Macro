@@ -1,0 +1,111 @@
+<UserControl x:Class="ReWASD.UI.Views.ControllerVisualizer"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:vm="clr-namespace:ReWASD.UI.ViewModels"
+             mc:Ignorable="d" 
+             d:DesignHeight="460" d:DesignWidth="700">
+    <Grid Background="Transparent">
+        <!-- Main Gamepad Silhouette Canvas -->
+        <Canvas Width="700" Height="440" HorizontalAlignment="Center" VerticalAlignment="Center">
+            
+            <!-- Gamepad Outer Body Geometry (Matte Carbon Silhouette) -->
+            <Path Fill="#171A21" Stroke="#2D3544" StrokeThickness="2">
+                <Path.Data>
+                    <PathGeometry Figures="M 230 70 
+                                           C 270 65, 430 65, 470 70
+                                           C 510 70, 560 90, 580 140
+                                           C 600 190, 615 280, 585 365
+                                           C 565 420, 500 420, 470 340
+                                           C 445 270, 395 240, 350 240
+                                           C 305 240, 255 270, 230 340
+                                           C 200 420, 135 420, 115 365
+                                           C 85 280, 100 190, 120 140
+                                           C 140 90, 190 70, 230 70 Z" />
+                </Path.Data>
+            </Path>
+
+            <!-- Grip Texture Accents -->
+            <Path Fill="#1F232D" Stroke="#282F3D" StrokeThickness="1"
+                  Data="M 125 210 C 115 260, 130 330, 155 360 C 140 330, 130 270, 135 220 Z" />
+            <Path Fill="#1F232D" Stroke="#282F3D" StrokeThickness="1"
+                  Data="M 575 210 C 585 260, 570 330, 545 360 C 560 330, 570 270, 565 220 Z" />
+
+            <!-- Stick Recess Cavities -->
+            <Ellipse Canvas.Left="175" Canvas.Top="130" Width="68" Height="68" Fill="#13161C" Stroke="#262C38" StrokeThickness="1.5" />
+            <Ellipse Canvas.Left="360" Canvas.Top="215" Width="68" Height="68" Fill="#13161C" Stroke="#262C38" StrokeThickness="1.5" />
+
+            <!-- D-Pad Base Cavity -->
+            <Rectangle Canvas.Left="205" Canvas.Top="200" Width="114" Height="114" RadiusX="10" RadiusY="10" Fill="#14171E" Stroke="#262C38" StrokeThickness="1" />
+
+            <!-- Face Buttons Base Cavity -->
+            <Ellipse Canvas.Left="405" Canvas.Top="120" Width="115" Height="105" Fill="#14171E" Stroke="#262C38" StrokeThickness="1" />
+
+            <!-- Interactive Controller Buttons ItemsControl -->
+            <ItemsControl ItemsSource="{Binding ControllerButtons}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas Width="700" Height="440" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemContainerStyle>
+                    <Style TargetType="ContentPresenter">
+                        <Setter Property="Canvas.Left" Value="{Binding X}" />
+                        <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                    </Style>
+                </ItemsControl.ItemContainerStyle>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:ButtonViewModel}">
+                        <Button Command="{Binding SelectCommand}"
+                                Width="{Binding Width}" Height="{Binding Height}"
+                                Cursor="Hand">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Grid>
+                                        <!-- Button Outer Shell / Glow -->
+                                        <Border x:Name="bg" 
+                                                Background="#252A36" 
+                                                BorderBrush="#384254" 
+                                                BorderThickness="1.5" 
+                                                CornerRadius="19">
+                                            <Grid>
+                                                <!-- Button Label -->
+                                                <TextBlock Text="{Binding DisplayName}" 
+                                                           Foreground="#E0E6EE" 
+                                                           FontWeight="Bold" 
+                                                           FontSize="12"
+                                                           HorizontalAlignment="Center" 
+                                                           VerticalAlignment="Center" />
+
+                                                <!-- Remapped Indicator Dot -->
+                                                <Ellipse Width="6" Height="6" 
+                                                         Fill="{StaticResource BrushCyan}" 
+                                                         HorizontalAlignment="Right" 
+                                                         VerticalAlignment="Top" 
+                                                         Margin="0,3,4,0"
+                                                         Visibility="{Binding IsRemapped, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" />
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="bg" Property="Background" Value="#313847" />
+                                            <Setter TargetName="bg" Property="BorderBrush" Value="{StaticResource BrushCyanHover}" />
+                                        </Trigger>
+                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                            <Setter TargetName="bg" Property="BorderBrush" Value="{StaticResource BrushCyan}" />
+                                            <Setter TargetName="bg" Property="BorderThickness" Value="2" />
+                                            <Setter TargetName="bg" Property="Background" Value="#1E3747" />
+                                        </DataTrigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+        </Canvas>
+    </Grid>
+</UserControl>

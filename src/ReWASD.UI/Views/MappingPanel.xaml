@@ -1,0 +1,161 @@
+<UserControl x:Class="ReWASD.UI.Views.MappingPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:models="clr-namespace:ReWASD.Core.Models;assembly=ReWASD.Core"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="300">
+    <Border Background="{StaticResource BrushBgPanel}" 
+            BorderBrush="{StaticResource BrushBorder}" 
+            BorderThickness="1,0,0,0" 
+            Padding="16">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+
+                <!-- Header: Selected Button Info -->
+                <Border Background="{StaticResource BrushBgCard}" 
+                        BorderBrush="{StaticResource BrushBorderLight}" 
+                        BorderThickness="1" 
+                        CornerRadius="8" 
+                        Padding="14">
+                    <StackPanel>
+                        <TextBlock Text="SELECTED CONTROL" 
+                                   Foreground="{StaticResource BrushTextMuted}" 
+                                   FontSize="11" 
+                                   FontWeight="Bold" 
+                                   Margin="0,0,0,4"/>
+                        <TextBlock Text="{Binding SelectedButton.DisplayName, FallbackValue='None'}" 
+                                   Foreground="{StaticResource BrushCyan}" 
+                                   FontSize="20" 
+                                   FontWeight="Bold" />
+                        <TextBlock Text="{Binding SelectedButton.TargetText, StringFormat='Mapped to: {0}'}" 
+                                   Foreground="{StaticResource BrushTextSecondary}" 
+                                   FontSize="12" 
+                                   Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Remap Category Selector -->
+                <TextBlock Text="REMAP TARGET" 
+                           Foreground="{StaticResource BrushTextMuted}" 
+                           FontSize="11" 
+                           FontWeight="Bold" />
+
+                <!-- Controller / Keyboard / Mouse Category Tabs -->
+                <Grid Margin="0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    
+                    <RadioButton Content="🎮 Pad" 
+                                 Style="{StaticResource ShiftTabButtonStyle}" 
+                                 Grid.Column="0"
+                                 IsChecked="{Binding SelectedTargetType, Converter={x:Null}, Mode=OneWay}">
+                        <!-- Helper or simple binding -->
+                    </RadioButton>
+                </Grid>
+
+                <!-- Virtual Controller Target Selection -->
+                <StackPanel Margin="0,4">
+                    <TextBlock Text="Virtual Controller Button" 
+                               Foreground="{StaticResource BrushTextSecondary}" 
+                               FontSize="12" 
+                               Margin="0,0,0,4" />
+                    <ComboBox ItemsSource="{Binding AvailableVirtualButtons}" 
+                              SelectedItem="{Binding SelectedVirtualButton}"
+                              Background="{StaticResource BrushBgCard}"
+                              Foreground="{StaticResource BrushTextPrimary}"
+                              BorderBrush="{StaticResource BrushBorder}"
+                              Padding="8,6" />
+                </StackPanel>
+
+                <!-- Keyboard Key Selection -->
+                <StackPanel Margin="0,4">
+                    <TextBlock Text="Or Keyboard Key" 
+                               Foreground="{StaticResource BrushTextSecondary}" 
+                               FontSize="12" 
+                               Margin="0,0,0,4" />
+                    <ComboBox ItemsSource="{Binding AvailableKeyboardKeys}" 
+                              SelectedItem="{Binding SelectedKeyboardKey}"
+                              Background="{StaticResource BrushBgCard}"
+                              Foreground="{StaticResource BrushTextPrimary}"
+                              BorderBrush="{StaticResource BrushBorder}"
+                              Padding="8,6" />
+                </StackPanel>
+
+                <!-- Mouse Button Selection -->
+                <StackPanel Margin="0,4">
+                    <TextBlock Text="Or Mouse Action" 
+                               Foreground="{StaticResource BrushTextSecondary}" 
+                               FontSize="12" 
+                               Margin="0,0,0,4" />
+                    <ComboBox ItemsSource="{Binding AvailableMouseButtons}" 
+                              SelectedItem="{Binding SelectedMouseButton}"
+                              Background="{StaticResource BrushBgCard}"
+                              Foreground="{StaticResource BrushTextPrimary}"
+                              BorderBrush="{StaticResource BrushBorder}"
+                              Padding="8,6" />
+                </StackPanel>
+
+                <!-- Mapping Behavior (Mode) -->
+                <Border BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0" Margin="0,8" />
+
+                <TextBlock Text="MAPPING BEHAVIOR" 
+                           Foreground="{StaticResource BrushTextMuted}" 
+                           FontSize="11" 
+                           FontWeight="Bold" />
+
+                <!-- Turbo Rate Slider -->
+                <StackPanel Margin="0,4">
+                    <DockPanel>
+                        <TextBlock Text="Turbo Pause / Repeat" 
+                                   Foreground="{StaticResource BrushTextSecondary}" 
+                                   FontSize="12" />
+                        <TextBlock Text="{Binding TurboRateMs, StringFormat='{}{0} ms'}" 
+                                   Foreground="{StaticResource BrushCyan}" 
+                                   HorizontalAlignment="Right" 
+                                   FontSize="12" />
+                    </DockPanel>
+                    <Slider Minimum="20" Maximum="200" SmallChange="5" LargeChange="20"
+                            Value="{Binding TurboRateMs}" 
+                            Margin="0,6,0,0" />
+                </StackPanel>
+
+                <!-- Mute Original Input Checkbox -->
+                <CheckBox Content="Mute original hardware input" 
+                          IsChecked="{Binding IsMuted}" 
+                          Foreground="{StaticResource BrushTextPrimary}" 
+                          Margin="0,6" />
+
+                <!-- Action Buttons -->
+                <StackPanel Orientation="Vertical" Margin="0,16,0,0">
+                    <Button Content="SAVE MAPPING" 
+                            Command="{Binding SaveCurrentMappingCommand}"
+                            Background="{StaticResource BrushCyan}"
+                            Foreground="#101318"
+                            FontWeight="Bold"
+                            Padding="0,10"
+                            Margin="0,0,0,8"
+                            Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <Button Content="Reset to Default" 
+                            Command="{Binding ResetCurrentMappingCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            HorizontalAlignment="Stretch" />
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</UserControl>
