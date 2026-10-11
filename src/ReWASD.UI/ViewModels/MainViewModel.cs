@@ -3,6 +3,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReWASD.Core.Models;
 using ReWASD.Core.Serialization;
+using ReWASD.Engine;
+using ReWASD.Engine.Input;
 using ReWASD.Engine.Remapper;
 using ReWASD.Engine.VirtualOutput;
 
@@ -12,6 +14,9 @@ public partial class MainViewModel : ObservableObject
 {
     private readonly MappingEngine _mappingEngine;
     private readonly VirtualGamepadService _virtualService;
+    private readonly XInputReader _reader = new();
+    private readonly KeyboardMouseInjector _injector = new(new Win32InputBackend());
+    private readonly InputPipeline _pipeline;
 
     [ObservableProperty]
     private ObservableCollection<Profile> _profiles = new();
@@ -73,6 +78,7 @@ public partial class MainViewModel : ObservableObject
         _mappingEngine = new MappingEngine(_selectedProfile);
         _virtualService = new VirtualGamepadService();
         _virtualService.Initialize();
+        _pipeline = new InputPipeline(_mappingEngine, _reader, _virtualService, _injector);
 
         PopulateInspectorOptions();
         PopulateConnectedDevices();
@@ -111,9 +117,14 @@ public partial class MainViewModel : ObservableObject
 
     private void PopulateConnectedDevices()
     {
-        ConnectedDevices.Add("🎮 Xbox Wireless Controller (Connected)");
-        ConnectedDevices.Add("⌨️ Standard USB Keyboard");
-        ConnectedDevices.Add("🖱️ High Precision Gaming Mouse");
+        ConnectedDevices.Clear();
+        var slots = XInputReader.GetConnectedSlots();
+        foreach (var slot in slots)
+        {
+            string tag = slot == _reader.ExcludedUserIndex ? " (virtual output)" : "";
+            ConnectedDevices.Add($"🎮 XInput Controller {slot + 1}{tag}");
+        }
+        if (slots.Count == 0) ConnectedDevices.Add("No XInput controller detected");
     }
 
     private void InitializeControllerButtons()
@@ -214,7 +225,6 @@ public partial class MainViewModel : ObservableObject
     {
         if (SelectedButton == null) return;
 
-        var layer = SelectedProfile.ShiftLayers[ActiveShiftLayer];
         var target = new RemapTarget
         {
             Type = SelectedTargetType,
@@ -223,14 +233,18 @@ public partial class MainViewModel : ObservableObject
             MouseButton = SelectedTargetType == TargetType.MouseButton ? SelectedMouseButton : string.Empty
         };
 
-        layer.Mappings[SelectedButton.Button] = new ButtonMapping
+        // The pipeline thread reads these mappings, so edit under the engine's lock
+        lock (_mappingEngine.SyncRoot)
         {
-            SourceButton = SelectedButton.Button,
-            Target = target,
-            Mode = SelectedMode,
-            TurboRateMs = TurboRateMs,
-            IsMuted = IsMuted
-        };
+            SelectedProfile.ShiftLayers[ActiveShiftLayer].Mappings[SelectedButton.Button] = new ButtonMapping
+            {
+                SourceButton = SelectedButton.Button,
+                Target = target,
+                Mode = SelectedMode,
+                TurboRateMs = TurboRateMs,
+                IsMuted = IsMuted
+            };
+        }
 
         UpdateAllButtonDisplays();
         StatusMessage = $"Mapped {SelectedButton.Button} -> {target.DisplayText}";
@@ -241,13 +255,15 @@ public partial class MainViewModel : ObservableObject
     {
         if (SelectedButton == null) return;
 
-        var layer = SelectedProfile.ShiftLayers[ActiveShiftLayer];
-        layer.Mappings[SelectedButton.Button] = new ButtonMapping
+        lock (_mappingEngine.SyncRoot)
         {
-            SourceButton = SelectedButton.Button,
-            Target = RemapTarget.Default(SelectedButton.Button),
-            Mode = MappingMode.Normal
-        };
+            SelectedProfile.ShiftLayers[ActiveShiftLayer].Mappings[SelectedButton.Button] = new ButtonMapping
+            {
+                SourceButton = SelectedButton.Button,
+                Target = RemapTarget.Default(SelectedButton.Button),
+                Mode = MappingMode.Normal
+            };
+        }
 
         SelectButton(SelectedButton);
         UpdateAllButtonDisplays();
@@ -286,16 +302,44 @@ public partial class MainViewModel : ObservableObject
 
         if (IsRemappingActive)
         {
+            // Snapshot XInput slots first: the virtual pad is the slot that appears after connecting
+            var before = XInputReader.GetConnectedSlots();
             bool ok = _virtualService.ConnectVirtualXbox();
-            StatusMessage = ok 
-                ? "🟢 REMAPPING ACTIVE — Virtual Xbox 360 Controller Connected" 
+            _reader.ExcludedUserIndex = ok ? FindNewSlot(before) : -1;
+
+            _pipeline.Start();
+            PopulateConnectedDevices();
+            StatusMessage = ok
+                ? "🟢 REMAPPING ACTIVE — Virtual Xbox 360 Controller Connected"
                 : "🟡 REMAPPING ACTIVE — Virtual Output (ViGEm Driver not detected, running in simulation mode)";
         }
         else
         {
-            _virtualService.DisconnectVirtualXbox();
+            Shutdown();
+            PopulateConnectedDevices();
             StatusMessage = "⚪ REMAPPING PAUSED — Emulation Disconnected";
         }
+    }
+
+    private static int FindNewSlot(IReadOnlyList<int> before)
+    {
+        for (int attempt = 0; attempt < 20; attempt++)
+        {
+            foreach (var slot in XInputReader.GetConnectedSlots())
+            {
+                if (!before.Contains(slot)) return slot;
+            }
+            Thread.Sleep(25);
+        }
+        return -1;
+    }
+
+    /// <summary>Stops polling and releases every held key and the virtual pad. Call when the window closes.</summary>
+    public void Shutdown()
+    {
+        _pipeline.Stop();
+        _virtualService.DisconnectVirtualXbox();
+        _reader.ExcludedUserIndex = -1;
     }
 
     [RelayCommand]

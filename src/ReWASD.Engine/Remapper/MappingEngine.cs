@@ -18,11 +18,29 @@ public class RemappedState
 
 public class MappingEngine
 {
+    // Sources that are read from analog values; their 1:1 pass-through must not become a digital press.
+    private static readonly HashSet<ControllerButton> LeftStickDirections = new()
+    {
+        ControllerButton.LeftStickUp, ControllerButton.LeftStickDown,
+        ControllerButton.LeftStickLeft, ControllerButton.LeftStickRight
+    };
+
+    private static readonly HashSet<ControllerButton> RightStickDirections = new()
+    {
+        ControllerButton.RightStickUp, ControllerButton.RightStickDown,
+        ControllerButton.RightStickLeft, ControllerButton.RightStickRight
+    };
+
     public Profile CurrentProfile { get; set; }
     public bool IsActive { get; set; } = false;
     public int ActiveShiftLayerIndex { get; private set; } = 0;
 
-    // Not thread-safe: ProcessInputs is expected to be called from a single polling loop.
+    /// <summary>
+    /// Held while a frame is processed. Callers that edit the profile's mappings from another
+    /// thread must lock on this so the polling loop never sees a half-updated dictionary.
+    /// </summary>
+    public object SyncRoot { get; } = new();
+
     private readonly Dictionary<ControllerButton, bool> _toggleStates = new();
     private readonly Dictionary<ControllerButton, long> _pressStartMs = new();
     private HashSet<ControllerButton> _previousPressed = new();
@@ -36,13 +54,31 @@ public class MappingEngine
 
     public void SetShiftLayer(int layerIndex)
     {
-        if (CurrentProfile.ShiftLayers.ContainsKey(layerIndex))
+        lock (SyncRoot)
         {
-            ActiveShiftLayerIndex = layerIndex;
+            if (CurrentProfile.ShiftLayers.ContainsKey(layerIndex))
+            {
+                ActiveShiftLayerIndex = layerIndex;
+            }
         }
     }
 
     public RemappedState ProcessInputs(
+        HashSet<ControllerButton> pressedButtons,
+        double rawLeftStickX,
+        double rawLeftStickY,
+        double rawRightStickX,
+        double rawRightStickY,
+        double rawLeftTrigger,
+        double rawRightTrigger)
+    {
+        lock (SyncRoot)
+        {
+            return ProcessInputsCore(pressedButtons, rawLeftStickX, rawLeftStickY, rawRightStickX, rawRightStickY, rawLeftTrigger, rawRightTrigger);
+        }
+    }
+
+    private RemappedState ProcessInputsCore(
         HashSet<ControllerButton> pressedButtons,
         double rawLeftStickX,
         double rawLeftStickY,
@@ -56,7 +92,10 @@ public class MappingEngine
         if (!IsActive)
         {
             // Direct pass-through when remapping is not active
-            foreach (var b in pressedButtons) result.ActiveVirtualButtons.Add(b);
+            foreach (var b in pressedButtons)
+            {
+                if (!IsAnalogSource(b)) result.ActiveVirtualButtons.Add(b);
+            }
             result.LeftStickX = rawLeftStickX;
             result.LeftStickY = rawLeftStickY;
             result.RightStickX = rawRightStickX;
@@ -108,9 +147,12 @@ public class MappingEngine
             if (!activeLayer.Mappings.TryGetValue(button, out var mapping))
             {
                 // Fall back to 1:1 if not explicitly remapped
-                result.ActiveVirtualButtons.Add(button);
+                if (!IsAnalogSource(button)) result.ActiveVirtualButtons.Add(button);
                 continue;
             }
+
+            // 1:1 triggers and stick directions are carried by the analog values instead
+            if (IsAnalogSource(button) && IsIdentity(mapping, button)) continue;
 
             switch (mapping.Mode)
             {
@@ -135,23 +177,48 @@ public class MappingEngine
             }
         }
 
-        // 4. Process Analog Sticks with Deadzones & Curves
-        result.LeftStickX = CurrentProfile.LeftStick.TransformAxis(rawLeftStickX);
-        result.LeftStickY = CurrentProfile.LeftStick.TransformAxis(rawLeftStickY);
-        result.RightStickX = CurrentProfile.RightStick.TransformAxis(rawRightStickX);
-        result.RightStickY = CurrentProfile.RightStick.TransformAxis(rawRightStickY);
+        // 4. Process Analog Sticks with Deadzones & Curves.
+        // A stick whose direction buttons were remapped elsewhere (e.g. to WASD) stops driving the virtual stick.
+        bool leftStickFree = !AnyRemappedAway(activeLayer, LeftStickDirections);
+        bool rightStickFree = !AnyRemappedAway(activeLayer, RightStickDirections);
 
-        if (CurrentProfile.LeftStick.InvertX) result.LeftStickX = -result.LeftStickX;
-        if (CurrentProfile.LeftStick.InvertY) result.LeftStickY = -result.LeftStickY;
-        if (CurrentProfile.RightStick.InvertX) result.RightStickX = -result.RightStickX;
-        if (CurrentProfile.RightStick.InvertY) result.RightStickY = -result.RightStickY;
+        if (leftStickFree)
+        {
+            result.LeftStickX = CurrentProfile.LeftStick.TransformAxis(rawLeftStickX);
+            result.LeftStickY = CurrentProfile.LeftStick.TransformAxis(rawLeftStickY);
+            if (CurrentProfile.LeftStick.InvertX) result.LeftStickX = -result.LeftStickX;
+            if (CurrentProfile.LeftStick.InvertY) result.LeftStickY = -result.LeftStickY;
+        }
 
-        // 5. Process Triggers
-        result.LeftTrigger = rawLeftTrigger;
-        result.RightTrigger = rawRightTrigger;
+        if (rightStickFree)
+        {
+            result.RightStickX = CurrentProfile.RightStick.TransformAxis(rawRightStickX);
+            result.RightStickY = CurrentProfile.RightStick.TransformAxis(rawRightStickY);
+            if (CurrentProfile.RightStick.InvertX) result.RightStickX = -result.RightStickX;
+            if (CurrentProfile.RightStick.InvertY) result.RightStickY = -result.RightStickY;
+        }
+
+        // 5. Process Triggers: a remapped trigger no longer drives the analog value
+        result.LeftTrigger = IsRemappedAway(activeLayer, ControllerButton.LeftTrigger) ? 0.0 : rawLeftTrigger;
+        result.RightTrigger = IsRemappedAway(activeLayer, ControllerButton.RightTrigger) ? 0.0 : rawRightTrigger;
 
         return result;
     }
+
+    private static bool IsAnalogSource(ControllerButton b) =>
+        b is ControllerButton.LeftTrigger or ControllerButton.RightTrigger
+        || LeftStickDirections.Contains(b) || RightStickDirections.Contains(b);
+
+    private static bool IsIdentity(ButtonMapping mapping, ControllerButton source) =>
+        mapping.Mode == MappingMode.Normal
+        && mapping.Target.Type == TargetType.VirtualControllerButton
+        && mapping.Target.VirtualButton == source;
+
+    private static bool IsRemappedAway(ShiftLayer layer, ControllerButton button) =>
+        layer.Mappings.TryGetValue(button, out var m) && !IsIdentity(m, button);
+
+    private static bool AnyRemappedAway(ShiftLayer layer, IEnumerable<ControllerButton> buttons) =>
+        buttons.Any(b => IsRemappedAway(layer, b));
 
     private void ApplyMapping(ButtonMapping mapping, RemappedState state)
     {

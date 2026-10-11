@@ -96,10 +96,17 @@ public class VirtualGamepadService : IDisposable
             _virtualXbox.SetSliderValue(Xbox360Slider.RightTrigger, (byte)Math.Clamp((int)Math.Round(rt * 255), 0, 255));
 
             // Set Sticks (short -32768..32767)
-            _virtualXbox.SetAxisValue(Xbox360Axis.LeftThumbX, (short)Math.Clamp((int)(state.LeftStickX * 32767), -32768, 32767));
-            _virtualXbox.SetAxisValue(Xbox360Axis.LeftThumbY, (short)Math.Clamp((int)(state.LeftStickY * 32767), -32768, 32767));
-            _virtualXbox.SetAxisValue(Xbox360Axis.RightThumbX, (short)Math.Clamp((int)(state.RightStickX * 32767), -32768, 32767));
-            _virtualXbox.SetAxisValue(Xbox360Axis.RightThumbY, (short)Math.Clamp((int)(state.RightStickY * 32767), -32768, 32767));
+            // A stick-direction button remapped onto the virtual stick pushes it fully that way
+            var pressed = state.ActiveVirtualButtons;
+            double lx = DirectionOverride(pressed, ControllerButton.LeftStickLeft, ControllerButton.LeftStickRight, state.LeftStickX);
+            double ly = DirectionOverride(pressed, ControllerButton.LeftStickDown, ControllerButton.LeftStickUp, state.LeftStickY);
+            double rx = DirectionOverride(pressed, ControllerButton.RightStickLeft, ControllerButton.RightStickRight, state.RightStickX);
+            double ry = DirectionOverride(pressed, ControllerButton.RightStickDown, ControllerButton.RightStickUp, state.RightStickY);
+
+            _virtualXbox.SetAxisValue(Xbox360Axis.LeftThumbX, ToAxis(lx));
+            _virtualXbox.SetAxisValue(Xbox360Axis.LeftThumbY, ToAxis(ly));
+            _virtualXbox.SetAxisValue(Xbox360Axis.RightThumbX, ToAxis(rx));
+            _virtualXbox.SetAxisValue(Xbox360Axis.RightThumbY, ToAxis(ry));
 
             _virtualXbox.SubmitReport();
         }
@@ -108,6 +115,16 @@ public class VirtualGamepadService : IDisposable
             // Suppress transmission errors
         }
     }
+
+    private static double DirectionOverride(HashSet<ControllerButton> pressed, ControllerButton negative, ControllerButton positive, double analog)
+    {
+        bool neg = pressed.Contains(negative), pos = pressed.Contains(positive);
+        if (neg == pos) return analog; // neither, or both cancelling out
+        return pos ? 1.0 : -1.0;
+    }
+
+    private static short ToAxis(double value) =>
+        (short)Math.Clamp((int)Math.Round(value * 32767), -32768, 32767);
 
     public void Dispose()
     {
