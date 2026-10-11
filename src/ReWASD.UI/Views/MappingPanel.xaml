@@ -22,14 +22,21 @@
 
         <!-- The picture shown beside a choice: coloured letter, PlayStation symbol, keycap or icon -->
         <DataTemplate x:Key="RemapOptionTemplate" DataType="{x:Type vm:RemapOption}">
-            <StackPanel Orientation="Horizontal" Margin="0,2">
-                <Border x:Name="Badge" MinWidth="26" Height="26" Margin="0,0,10,0" Padding="5,0" CornerRadius="13"
+            <Grid Margin="0,2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="38" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border x:Name="Badge" Grid.Column="0" Height="26" MinWidth="26" HorizontalAlignment="Center" Padding="5,0" CornerRadius="13"
                         Background="#2A3140" BorderBrush="#3E485C" BorderThickness="1">
                     <TextBlock x:Name="Legend" Text="{Binding Legend}" Foreground="{Binding LegendColor}" FontWeight="Bold" FontSize="12"
                                HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
-                <TextBlock Text="{Binding Label}" VerticalAlignment="Center" Foreground="{StaticResource BrushTextPrimary}" />
-            </StackPanel>
+
+                <TextBlock Grid.Column="1" Text="{Binding Label}" VerticalAlignment="Center" Margin="6,0,0,0"
+                           Foreground="{StaticResource BrushTextPrimary}" TextTrimming="CharacterEllipsis" />
+            </Grid>
             <DataTemplate.Triggers>
                 <DataTrigger Binding="{Binding Shape}" Value="KeyCap">
                     <Setter TargetName="Badge" Property="CornerRadius" Value="5" />
@@ -91,13 +98,18 @@
                 <StackPanel Margin="0,12,0,0" Visibility="{Binding IsRemapMode, Converter={StaticResource BoolToVisibility}}">
                     <TextBlock Text="Remap to" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" Margin="0,0,0,6" />
                     <ComboBox ItemsSource="{Binding RemapOptionsView}" SelectedItem="{Binding SelectedRemapOption}"
-                              ItemTemplate="{StaticResource RemapOptionTemplate}" MaxDropDownHeight="380" Padding="8,5">
+                              ItemTemplate="{StaticResource RemapOptionTemplate}" MaxDropDownHeight="380" Padding="8,5"
+                              TextSearch.TextPath="Label" IsTextSearchEnabled="True"
+                              ScrollViewer.CanContentScroll="False"
+                              ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                         <ComboBox.GroupStyle>
                             <GroupStyle>
                                 <GroupStyle.HeaderTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold"
-                                                   Margin="10,8,0,4" />
+                                        <Border Background="#1C212B" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,1"
+                                                Padding="10,5" Margin="0,6,0,2">
+                                            <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextSecondary}" FontSize="11" FontWeight="Bold" />
+                                        </Border>
                                     </DataTemplate>
                                 </GroupStyle.HeaderTemplate>
                             </GroupStyle>
