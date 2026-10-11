@@ -29,6 +29,32 @@
             <Setter Property="Foreground" Value="{StaticResource BrushOrange}" />
         </Style>
 
+        <!-- Dark selection/hover look for the config list (the default highlight is white) -->
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource BrushBgCardHover}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource BrushBgCard}" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource BrushCyan}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <DataTemplate x:Key="ProfileItemTemplate">
             <StackPanel Margin="2,4">
                 <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" />

@@ -389,7 +389,7 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void ToggleApply()
+    private async Task ToggleApply()
     {
         IsRemappingActive = !IsRemappingActive;
         _mappingEngine.IsActive = IsRemappingActive;
@@ -423,8 +423,11 @@ public partial class MainViewModel : ObservableObject
         else
         {
             Shutdown();
-            PopulateConnectedDevices();
             StatusMessage = "⚪ REMAPPING PAUSED — Emulation Disconnected";
+
+            // The driver removes the virtual pad asynchronously; refreshing immediately would still list it
+            await Task.Delay(500);
+            PopulateConnectedDevices();
         }
     }
 
