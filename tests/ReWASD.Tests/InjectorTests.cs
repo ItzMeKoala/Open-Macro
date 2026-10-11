@@ -13,6 +13,7 @@ public class InjectorTests
         public void MouseDown(MouseButtonKind button) => Events.Add($"md:{button}");
         public void MouseUp(MouseButtonKind button) => Events.Add($"mu:{button}");
         public void MouseWheel(int delta) => Events.Add($"wheel:{delta}");
+        public void MouseMove(int dx, int dy) => Events.Add($"move:{dx},{dy}");
     }
 
     [Fact]

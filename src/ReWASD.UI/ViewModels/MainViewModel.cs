@@ -40,6 +40,7 @@ public partial class MainViewModel : ObservableObject
     private readonly KeyboardMouseInjector _injector;
     private readonly HidHideService _hidHide = new();
     private readonly MacroRunner _macros;
+    private readonly MacroPadState _macroPad;
     private readonly InputPipeline _pipeline;
 
     [ObservableProperty]
@@ -161,8 +162,9 @@ public partial class MainViewModel : ObservableObject
         _virtualService = new VirtualGamepadService();
         _virtualService.Initialize();
         _injector = new KeyboardMouseInjector(_inputBackend);
-        _macros = new MacroRunner(_inputBackend);
-        _pipeline = new InputPipeline(_mappingEngine, _reader, _virtualService, _injector, _macros);
+        _macroPad = new MacroPadState();
+        _macros = new MacroRunner(_inputBackend, _macroPad, new XInputRumbleOutput(_reader));
+        _pipeline = new InputPipeline(_mappingEngine, _reader, _virtualService, _injector, _macros, _macroPad);
 
         PopulateInspectorOptions();
         PopulateConnectedDevices();

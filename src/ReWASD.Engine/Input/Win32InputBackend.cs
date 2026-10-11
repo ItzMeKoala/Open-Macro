@@ -17,6 +17,7 @@ public sealed class Win32InputBackend : IInputBackend
     private const uint MouseMiddleDown = 0x0020, MouseMiddleUp = 0x0040;
     private const uint MouseXDown = 0x0080, MouseXUp = 0x0100;
     private const uint MouseWheelFlag = 0x0800;
+    private const uint MouseMoveFlag = 0x0001;
     private const uint XButton1 = 1, XButton2 = 2;
 
     [StructLayout(LayoutKind.Sequential)]
@@ -92,6 +93,9 @@ public sealed class Win32InputBackend : IInputBackend
 
     public void MouseWheel(int delta) =>
         Send(new Input { type = InputMouse, u = new InputUnion { mi = new MouseInput { dwFlags = MouseWheelFlag, mouseData = unchecked((uint)delta) } } });
+
+    public void MouseMove(int dx, int dy) =>
+        Send(new Input { type = InputMouse, u = new InputUnion { mi = new MouseInput { dx = dx, dy = dy, dwFlags = MouseMoveFlag } } });
 
     private static void Send(Input input) => SendInput(1, new[] { input }, Marshal.SizeOf<Input>());
 }

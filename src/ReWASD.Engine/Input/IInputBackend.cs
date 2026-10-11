@@ -17,4 +17,7 @@ public interface IInputBackend
     void MouseDown(MouseButtonKind button);
     void MouseUp(MouseButtonKind button);
     void MouseWheel(int delta);
+
+    /// <summary>Moves the cursor by a relative number of pixels (positive x = right, positive y = down).</summary>
+    void MouseMove(int dx, int dy);
 }

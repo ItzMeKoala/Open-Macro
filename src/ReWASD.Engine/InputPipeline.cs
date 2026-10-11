@@ -23,14 +23,17 @@ public sealed class InputPipeline : IDisposable
     private volatile bool _running;
 
     private readonly MacroRunner? _macros;
+    private readonly MacroPadState? _macroPad;
 
-    public InputPipeline(MappingEngine engine, IGamepadReader reader, VirtualGamepadService virtualPad, KeyboardMouseInjector injector, MacroRunner? macros = null)
+    public InputPipeline(MappingEngine engine, IGamepadReader reader, VirtualGamepadService virtualPad, KeyboardMouseInjector injector,
+        MacroRunner? macros = null, MacroPadState? macroPad = null)
     {
         _engine = engine;
         _reader = reader;
         _virtualPad = virtualPad;
         _injector = injector;
         _macros = macros;
+        _macroPad = macroPad;
     }
 
     public bool IsRunning => _running;
@@ -58,6 +61,8 @@ public sealed class InputPipeline : IDisposable
         timeEndPeriod(1);
         _injector.ReleaseAll();
         _macros?.CancelAll();
+        _macroPad?.Clear();
+        _engine.Reset();
     }
 
     private void Loop()
@@ -77,6 +82,7 @@ public sealed class InputPipeline : IDisposable
                         physical.RightStickX, physical.RightStickY,
                         physical.LeftTrigger, physical.RightTrigger);
 
+                    _macroPad?.ApplyTo(state); // macro-driven pad buttons and axes join the frame
                     _virtualPad.SendReport(state);
                     _injector.Apply(state);
                     _macros?.Update(state.ActiveMacros);

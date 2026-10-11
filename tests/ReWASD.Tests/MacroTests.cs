@@ -21,6 +21,7 @@ public class MacroTests
         public void MouseDown(MouseButtonKind button) => Add($"md:{button}");
         public void MouseUp(MouseButtonKind button) => Add($"mu:{button}");
         public void MouseWheel(int delta) => Add($"wheel:{delta}");
+        public void MouseMove(int dx, int dy) => Add($"move:{dx},{dy}");
     }
 
     private static bool WaitFor(Func<bool> condition, int timeoutMs = 2000)
