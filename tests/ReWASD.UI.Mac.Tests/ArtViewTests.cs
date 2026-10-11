@@ -187,10 +187,10 @@ public class ArtViewTests
         Click(369, 403);       // left stick
         Assert.Equal(ControllerButton.LeftStickClick, vm.SelectedButton!.Button);
 
-        Click(233, 40);        // the dome of the left trigger
+        Click(204, 59);        // the dome of the left trigger (it leans with the shell)
         Assert.Equal(ControllerButton.LeftTrigger, vm.SelectedButton!.Button);
 
-        Click(226, 100);       // the bumper under it
+        Click(213, 113);       // the bumper under it
         Assert.Equal(ControllerButton.LeftBumper, vm.SelectedButton!.Button);
 
         Click(140, 450);       // plain shell
