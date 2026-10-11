@@ -17,10 +17,16 @@ public sealed class MacInputBackend : IInputBackend, IDisposable
     private const double DoubleClickSeconds = 0.5;
 
     private readonly object _gate = new();
-    private readonly IntPtr _source = MacNative.CGEventSourceCreate(MacNative.EventSourceStateHidSystem);
+    // Keep injected state separate so releasing a synthetic modifier cannot latch it in hardware state.
+    private readonly IntPtr _source = MacNative.CGEventSourceCreate(MacNative.EventSourceStatePrivate);
+    private readonly Func<ulong> _swallowedFlags;
     private readonly HashSet<ushort> _heldModifiers = new();
     private readonly HashSet<MouseButtonKind> _heldButtons = new();
     private readonly Dictionary<MouseButtonKind, (long Ticks, int Count)> _lastClick = new();
+
+    public MacInputBackend() : this(() => 0) { }
+
+    internal MacInputBackend(Func<ulong> swallowedFlags) => _swallowedFlags = swallowedFlags;
 
     public void KeyDown(ushort virtualKey) => SendKey(virtualKey, true);
     public void KeyUp(ushort virtualKey) => SendKey(virtualKey, false);
@@ -173,7 +179,9 @@ public sealed class MacInputBackend : IInputBackend, IDisposable
         if (evt == IntPtr.Zero) return;
         try
         {
-            if (withFlags) MacNative.CGEventSetFlags(evt, HeldFlags());
+            if (withFlags)
+                MacNative.CGEventSetFlags(evt, MacModifierFlags.Merge(
+                    MacNative.CGEventSourceFlagsState(MacNative.EventSourceStateHidSystem), HeldFlags(), _swallowedFlags()));
             MacNative.CGEventSetIntegerValueField(evt, MacNative.FieldSourceUserData, InjectedMarker);
             MacNative.CGEventPost(MacNative.HidEventTap, evt);
         }
@@ -187,4 +195,11 @@ public sealed class MacInputBackend : IInputBackend, IDisposable
     {
         if (_source != IntPtr.Zero) MacNative.CFRelease(_source);
     }
+}
+
+/// <summary>Combines hardware modifiers with generated output without reintroducing mapped physical keys.</summary>
+internal static class MacModifierFlags
+{
+    internal static ulong Merge(ulong physical, ulong injected, ulong swallowed) =>
+        (physical & ~swallowed) | injected;
 }

@@ -18,7 +18,7 @@ public class SkinChoiceTests
         public string DescribeSlot(int slot) => Name ?? "";
     }
 
-    private static MainViewModel New(NamedPad pad)
+    private static MainViewModel New(NamedPad pad, string? dir = null)
     {
         var platform = Fakes.Platform(PlatformServices.MacOSInfo);
         var wrapped = new PlatformBackends
@@ -26,7 +26,7 @@ public class SkinChoiceTests
             Info = platform.Info, Reader = pad, InputBackend = platform.InputBackend, Rumble = platform.Rumble,
             VirtualPad = platform.VirtualPad, CreateHook = platform.CreateHook, MissingPermissions = platform.MissingPermissions
         };
-        return new MainViewModel(wrapped, new Fakes.Ui(), Fakes.TempProfiles());
+        return new MainViewModel(wrapped, new Fakes.Ui(), dir ?? Fakes.TempProfiles());
     }
 
     [Theory]
@@ -46,6 +46,26 @@ public class SkinChoiceTests
     [InlineData("XInput Controller 1")]
     [InlineData("Some Arcade Stick")]
     public void AnUnknownController_GuessesNothing(string? name) => Assert.Null(ControllerSkins.GuessFromName(name));
+
+    [Fact]
+    public void ASavedDefaultPicture_IsNotOverriddenByAConnectedController()
+    {
+        string dir = Fakes.TempProfiles();
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "skin.txt"), "Xbox");
+        try
+        {
+            var vm = New(new NamedPad { Name = "DualSense Wireless Controller" }, dir);
+            Assert.Equal(SkinKind.Xbox, vm.SelectedSkin);
+            vm.RefreshDevicesForTests();
+            Assert.Equal(SkinKind.Xbox, vm.SelectedSkin);
+            vm.Shutdown();
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
 
     [Fact]
     public void ADualSenseAlreadyConnected_ShowsThePlayStation5Drawing()

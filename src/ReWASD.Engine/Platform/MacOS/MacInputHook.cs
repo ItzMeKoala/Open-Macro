@@ -31,6 +31,21 @@ public sealed class MacInputHook : IInputHook
     private readonly HashSet<ushort> _swallowedModifiers = new();
     private ulong _swallowedFlags;
 
+    internal ulong SwallowedModifierFlags
+    {
+        get
+        {
+            lock (_modifierGate)
+            {
+                ulong flags = _swallowedFlags;
+                if ((flags & MacNative.FlagShift) != 0) flags |= MacNative.DeviceLShift | MacNative.DeviceRShift;
+                if ((flags & MacNative.FlagControl) != 0) flags |= MacNative.DeviceLControl | MacNative.DeviceRControl;
+                if ((flags & MacNative.FlagAlternate) != 0) flags |= MacNative.DeviceLAlt | MacNative.DeviceRAlt;
+                return flags;
+            }
+        }
+    }
+
     // The delegate is a field so the GC cannot collect it while the system still holds the pointer
     private MacNative.EventTapCallback? _callback;
     private IntPtr _tap;

@@ -54,6 +54,7 @@ internal static class MacNative
     public const uint HeadInsertEventTap = 0;
     public const uint EventTapOptionDefault = 0;
     public const int EventSourceStateHidSystem = 1;
+    public const int EventSourceStatePrivate = -1;
     public const uint ScrollEventUnitLine = 1;
 
     public delegate IntPtr EventTapCallback(IntPtr proxy, uint type, IntPtr evt, IntPtr userInfo);
@@ -78,6 +79,9 @@ internal static class MacNative
 
     [DllImport(CoreGraphics)]
     public static extern IntPtr CGEventSourceCreate(int stateId);
+
+    [DllImport(CoreGraphics)]
+    public static extern ulong CGEventSourceFlagsState(int stateId);
 
     [DllImport(CoreGraphics)]
     public static extern IntPtr CGEventCreate(IntPtr source);

@@ -5,6 +5,7 @@
              xmlns:vm="using:ReWASD.UI.ViewModels"
              xmlns:conv="using:ReWASD.UI.Mac.Converters"
              xmlns:art="using:ReWASD.UI.Mac.Art"
+             xmlns:views="using:ReWASD.UI.Mac.Views"
              mc:Ignorable="d" d:DesignHeight="460" d:DesignWidth="700"
              x:Class="ReWASD.UI.Mac.Views.InputSurface">
     <UserControl.Resources>
@@ -66,6 +67,37 @@
             <Setter Property="Background" Value="#9C7E2C" />
             <Setter Property="BorderBrush" Value="#F2D68F" />
         </Style>
+        <Style Selector="Button.src.shaped">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Canvas Width="700" Height="440" IsHitTestVisible="False">
+                        <Path Name="shape" Data="{Binding ShapeData, Converter={StaticResource PathGeometry}}"
+                              Clip="{Binding ClipData, Converter={StaticResource PathGeometry}}"
+                              Fill="#151921" Stroke="#8F7B45" StrokeThickness="1.6" StrokeJoin="Round" />
+                        <TextBlock Name="legend" Canvas.Left="{Binding LegendLeft}" Canvas.Top="{Binding LegendTop}"
+                                   Width="80" TextAlignment="Center" Text="{Binding DisplayName}"
+                                   Foreground="{Binding LegendColor, Converter={StaticResource HexBrush}}"
+                                   FontWeight="Bold" FontSize="{Binding LegendFontSize}" />
+                    </Canvas>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="Button.src.shaped:pointerover /template/ Path#shape">
+            <Setter Property="Fill" Value="#2A3140" />
+            <Setter Property="Stroke" Value="#F2D68F" />
+        </Style>
+        <Style Selector="Button.src.shaped.selected /template/ Path#shape">
+            <Setter Property="Fill" Value="#3A3220" />
+            <Setter Property="Stroke" Value="{StaticResource BrushCyan}" />
+            <Setter Property="StrokeThickness" Value="2.6" />
+        </Style>
+        <Style Selector="Button.src.shaped.live /template/ Path#shape">
+            <Setter Property="Fill" Value="#9C7E2C" />
+            <Setter Property="Stroke" Value="#F2D68F" />
+        </Style>
+        <Style Selector="Button.src.shaped.remapped /template/ TextBlock#legend">
+            <Setter Property="Foreground" Value="{StaticResource BrushCyan}" />
+        </Style>
     </UserControl.Styles>
 
     <Grid Background="Transparent">
@@ -75,7 +107,10 @@
         <art:ArtView Margin="16" Scene="{Binding SkinArt}" Sources="{Binding ControllerButtons}" IsVisible="{Binding ShowSkinArt}" />
 
         <Viewbox Stretch="Uniform" Margin="16" IsVisible="{Binding !ShowSkinArt}">
-            <Canvas Width="700" Height="440">
+            <Canvas Width="700" Height="440" RenderTransformOrigin="0.5,0.5">
+                <Canvas.RenderTransform>
+                    <ScaleTransform ScaleX="{Binding SurfaceScale}" ScaleY="{Binding SurfaceScale}" />
+                </Canvas.RenderTransform>
 
                 <!-- Body, wells, touchpad, keyboard plate... -->
                 <ItemsControl ItemsSource="{Binding SurfaceDecor}" IsHitTestVisible="False">
@@ -107,7 +142,10 @@
                     </ItemsControl.Styles>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="vm:ButtonViewModel">
-                            <Button Classes="src" Classes.selected="{Binding IsSelected}" Classes.live="{Binding IsPressed}"
+                            <views:SourceButton Classes="src" Classes.selected="{Binding IsSelected}" Classes.live="{Binding IsPressed}"
+                                    Classes.shaped="{Binding HasShape}" Classes.remapped="{Binding IsRemapped}"
+                                    ShapeGeometry="{Binding ShapeData, Converter={StaticResource PathGeometry}}"
+                                    Clip="{Binding ClipData, Converter={StaticResource PathGeometry}}"
                                     Command="{Binding SelectCommand}" Width="{Binding Width}" Height="{Binding Height}"
                                     ToolTip.Tip="{Binding FriendlyName}" />
                         </DataTemplate>

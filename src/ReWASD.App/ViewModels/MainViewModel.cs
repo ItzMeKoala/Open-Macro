@@ -526,7 +526,10 @@ public partial class MainViewModel : ObservableObject
         try
         {
             if (System.IO.File.Exists(SkinChoicePath) && Enum.TryParse<SkinKind>(System.IO.File.ReadAllText(SkinChoicePath).Trim(), out var kind) && Enum.IsDefined(kind))
-                SelectedSkin = kind; // counts as chosen by hand, so it also stops the automatic pick
+            {
+                _skinPinned = true; // also pin when the saved choice equals the default and the setter does not run
+                SelectedSkin = kind;
+            }
         }
         catch (Exception)
         {

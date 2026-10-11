@@ -62,6 +62,47 @@ public class WindowTests
     }
 
     [AvaloniaFact]
+    public void MouseRegions_CanEachBeSelectedWithoutOverlapping()
+    {
+        var vm = NewViewModel();
+        var window = Show(vm);
+        try
+        {
+            vm.SelectedInputTab = InputTab.Mouse;
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            var surface = window.GetVisualDescendants().OfType<Views.InputSurface>().Single();
+            var drawing = surface.GetVisualDescendants().OfType<Viewbox>().Single(v => v.IsEffectivelyVisible).Child!;
+
+            void Click(double x, double y)
+            {
+                var point = Avalonia.VisualExtensions.TranslatePoint(drawing, new Avalonia.Point(x, y), window)!.Value;
+                window.MouseDown(point, Avalonia.Input.MouseButton.Left);
+                window.MouseUp(point, Avalonia.Input.MouseButton.Left);
+            }
+
+            foreach (var (name, x, y) in new[]
+            {
+                ("Right Click", 410.0, 125.0), ("Left Click", 290.0, 125.0),
+                ("Wheel Up", 350.0, 87.0), ("Middle Click", 350.0, 120.0),
+                ("Wheel Down", 350.0, 153.0), ("Mouse Button 5", 268.0, 241.0),
+                ("Mouse Button 4", 268.0, 283.0)
+            })
+            {
+                Click(x, y);
+                Assert.Equal(name, vm.SelectedButton!.SourceName);
+            }
+
+            Click(350, 330); // unmapped body: no source should claim it
+            Assert.Equal("Mouse Button 4", vm.SelectedButton!.SourceName);
+        }
+        finally
+        {
+            window.Close();
+            vm.Shutdown();
+        }
+    }
+
+    [AvaloniaFact]
     public void PreferencesPage_ExplainsMacPermissions()
     {
         var vm = NewViewModel();

@@ -80,17 +80,21 @@ public static class PlatformServices
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [SupportedOSPlatform("macos")]
-    private static PlatformBackends CreateMacOS() => new()
+    private static PlatformBackends CreateMacOS()
     {
-        Info = MacOSInfo,
-        Reader = new MacGameController(),
-        InputBackend = new MacInputBackend(),
-        Rumble = new NullRumbleOutput(),
-        VirtualPad = new NullVirtualGamepad(),
-        CreateHook = (key, mouse) => new MacInputHook(key, mouse),
-        MissingPermissions = MacPermissions.DescribeMissing,
-        RequestPermissions = MacPermissions.Request
-    };
+        MacInputHook? hook = null;
+        return new PlatformBackends
+        {
+            Info = MacOSInfo,
+            Reader = new MacGameController(),
+            InputBackend = new MacInputBackend(() => hook?.SwallowedModifierFlags ?? 0),
+            Rumble = new NullRumbleOutput(),
+            VirtualPad = new NullVirtualGamepad(),
+            CreateHook = (key, mouse) => hook = new MacInputHook(key, mouse),
+            MissingPermissions = MacPermissions.DescribeMissing,
+            RequestPermissions = MacPermissions.Request
+        };
+    }
 }
 
 /// <summary>Used where the physical controller cannot be vibrated; rumble requests are ignored.</summary>
