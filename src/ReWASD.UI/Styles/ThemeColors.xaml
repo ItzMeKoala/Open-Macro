@@ -2,17 +2,17 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- ReWASD Signature Color Palette -->
-    <Color x:Key="ColorBgDeep">#13161B</Color>
-    <Color x:Key="ColorBgPanel">#1A1E26</Color>
-    <Color x:Key="ColorBgCard">#222834</Color>
-    <Color x:Key="ColorBgCardHover">#2C3342</Color>
-    <Color x:Key="ColorBorder">#2E3646</Color>
-    <Color x:Key="ColorBorderLight">#3E485C</Color>
+    <Color x:Key="ColorBgDeep">#161617</Color>
+    <Color x:Key="ColorBgPanel">#1E1E20</Color>
+    <Color x:Key="ColorBgCard">#2A2A2C</Color>
+    <Color x:Key="ColorBgCardHover">#363638</Color>
+    <Color x:Key="ColorBorder">#3A3A3D</Color>
+    <Color x:Key="ColorBorderLight">#4A4A4E</Color>
 
-    <!-- Accents -->
-    <Color x:Key="ColorCyan">#00D2FF</Color>
-    <Color x:Key="ColorCyanHover">#33DEFF</Color>
-    <Color x:Key="ColorCyanDark">#0088A8</Color>
+    <!-- Accents: the "Cyan" keys are kept so existing views pick up the warm gold accent -->
+    <Color x:Key="ColorCyan">#E9C46A</Color>
+    <Color x:Key="ColorCyanHover">#F2D68F</Color>
+    <Color x:Key="ColorCyanDark">#A8873A</Color>
     <Color x:Key="ColorOrange">#FFAA00</Color>
     <Color x:Key="ColorGreen">#00E676</Color>
     <Color x:Key="ColorYellow">#FFCC00</Color>

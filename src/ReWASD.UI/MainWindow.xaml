@@ -19,17 +19,18 @@
 
     <Window.Resources>
         <conv:EnumToBoolConverter x:Key="EnumToBool" />
+        <conv:InverseBoolConverter x:Key="InverseBool" />
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 
-        <!-- Status-bar indicator: green when the dependency is present, orange otherwise -->
+        <!-- Status indicator: orange by default, green when the dependency is present -->
         <Style x:Key="StatusIndicator" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11" />
-            <Setter Property="Margin" Value="0,0,16,0" />
+            <Setter Property="Margin" Value="0,0,14,0" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Foreground" Value="{StaticResource BrushOrange}" />
         </Style>
 
-        <!-- Dark selection/hover look for the config list (the default highlight is white) -->
+        <!-- Dark selection/hover look for the config list -->
         <Style TargetType="ListBoxItem">
             <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
             <Setter Property="Padding" Value="8,4" />
@@ -61,166 +62,159 @@
                 <TextBlock Text="{Binding ProcessExecutable, TargetNullValue='All applications'}" Foreground="{StaticResource BrushTextMuted}" FontSize="11" TextTrimming="CharacterEllipsis" />
             </StackPanel>
         </DataTemplate>
+
+        <!-- One row of the output-device popup -->
+        <Style x:Key="OutputRow" TargetType="Border">
+            <Setter Property="Padding" Value="14,10" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
     </Window.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
-            <!-- Top App Bar -->
-            <RowDefinition Height="64" />
-            <!-- Shift Layers Sub-bar -->
-            <RowDefinition Height="42" />
-            <!-- Main Content (Navigation | Visualizer | Inspector) -->
-            <RowDefinition Height="*" />
-            <!-- Bottom Status Bar -->
-            <RowDefinition Height="32" />
+            <RowDefinition Height="48" />   <!-- config bar -->
+            <RowDefinition Height="44" />   <!-- layer bar -->
+            <RowDefinition Height="38" />   <!-- input-type tabs -->
+            <RowDefinition Height="*" />    <!-- content -->
+            <RowDefinition Height="46" />   <!-- device bar -->
+            <RowDefinition Height="58" />   <!-- apply bar -->
         </Grid.RowDefinitions>
 
-        <!-- 1. TOP APP BAR -->
-        <Border Grid.Row="0" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,0,1" Padding="18,0">
+        <!-- 1. CONFIG BAR -->
+        <Border Grid.Row="0" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,0,1" Padding="14,0">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <!-- Brand -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="🎯" FontSize="20" Margin="0,0,10,0" VerticalAlignment="Center" />
-                    <TextBlock Text="reWASD" Foreground="{StaticResource BrushCyan}" FontWeight="Bold" FontSize="18" VerticalAlignment="Center" />
-                    <TextBlock Text="· Open Source" Foreground="{StaticResource BrushTextMuted}" FontSize="14" Margin="6,0,0,0" VerticalAlignment="Center" />
-                </StackPanel>
-
-                <!-- Slots Selector (Center) -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <TextBlock Text="SLOT:" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0" />
-                    <RadioButton Content="1" Style="{StaticResource SlotButtonStyle}" Command="{Binding SelectSlotCommand}" CommandParameter="1" IsChecked="True" Margin="0,0,4,0" />
-                    <RadioButton Content="2" Style="{StaticResource SlotButtonStyle}" Command="{Binding SelectSlotCommand}" CommandParameter="2" Margin="0,0,4,0" />
-                    <RadioButton Content="3" Style="{StaticResource SlotButtonStyle}" Command="{Binding SelectSlotCommand}" CommandParameter="3" Margin="0,0,4,0" />
-                    <RadioButton Content="4" Style="{StaticResource SlotButtonStyle}" Command="{Binding SelectSlotCommand}" CommandParameter="4" />
-                </StackPanel>
-
-                <!-- Apply & Remap Toggle Button -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Command="{Binding ToggleApplyCommand}"
-                            Style="{StaticResource ApplyButtonStyle}"
-                            Margin="0,0,12,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <ToggleButton x:Name="ConfigToggle" Cursor="Hand" Background="Transparent" BorderThickness="0"
+                                  IsChecked="{Binding IsConfigMenuOpen, Mode=TwoWay}"
+                                  IsHitTestVisible="{Binding IsOpen, ElementName=ConfigPopup, Converter={StaticResource InverseBool}}">
+                        <ToggleButton.Template>
+                            <ControlTemplate TargetType="ToggleButton">
+                                <Border Background="Transparent" Padding="4,6">
+                                    <ContentPresenter />
+                                </Border>
+                            </ControlTemplate>
+                        </ToggleButton.Template>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="⚡" Margin="0,0,6,0" />
-                            <TextBlock Text="APPLY" />
+                            <TextBlock Text="{Binding SelectedProfile.Name}" Foreground="{StaticResource BrushTextPrimary}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock Text="&#xE70D;" FontFamily="{StaticResource IconFont}" FontSize="11" Foreground="{StaticResource BrushTextSecondary}" Margin="10,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
-                    </Button>
+                    </ToggleButton>
+
+                    <Button Style="{StaticResource IconButton}" Content="&#xE74E;" Margin="10,0,0,0" ToolTip="Save config" Command="{Binding SaveProfileCommand}" />
+                    <Button Style="{StaticResource IconButton}" Content="&#xE946;" ToolTip="About" Command="{Binding ShowInfoCommand}" />
+
+                    <!-- Config switcher -->
+                    <Popup x:Name="ConfigPopup" IsOpen="{Binding IsConfigMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=ConfigToggle}"
+                           Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                        <Border Width="300" Margin="0,4,0,0" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorderLight}" BorderThickness="1" CornerRadius="8" Padding="10">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,8" LastChildFill="False">
+                                    <TextBlock DockPanel.Dock="Left" Text="CONFIGS" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" />
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xE710;" Width="28" Height="28" ToolTip="New config" Command="{Binding NewProfileCommand}" />
+                                </DockPanel>
+                                <ListBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}"
+                                         ItemTemplate="{StaticResource ProfileItemTemplate}" MaxHeight="220"
+                                         Background="Transparent" BorderThickness="0" Foreground="{StaticResource BrushTextPrimary}"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+                                <TextBlock Text="Target process (blank = all)" Foreground="{StaticResource BrushTextSecondary}" FontSize="11" Margin="0,10,0,4" />
+                                <TextBox Text="{Binding SelectedProcessExecutable, UpdateSourceTrigger=PropertyChanged}"
+                                         Background="{StaticResource BrushBgCard}" Foreground="{StaticResource BrushTextPrimary}"
+                                         BorderBrush="{StaticResource BrushBorder}" Padding="8,6" />
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button Style="{StaticResource IconButton}" Content="&#xE713;" ToolTip="Preferences" Command="{Binding ToggleSettingsCommand}" />
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- 2. SHIFT LAYERS SUB-BAR -->
-        <Border Grid.Row="1" Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,0,1" Padding="18,0">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="CONFIG LAYER:" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,16,0" />
-                <RadioButton Content="MAIN" Style="{StaticResource ShiftTabButtonStyle}" Command="{Binding SelectShiftLayerCommand}" CommandParameter="0" IsChecked="True" Margin="0,0,8,0" />
-                <RadioButton Content="SHIFT 1" Style="{StaticResource ShiftTabButtonStyle}" Command="{Binding SelectShiftLayerCommand}" CommandParameter="1" Margin="0,0,8,0" />
-                <RadioButton Content="SHIFT 2" Style="{StaticResource ShiftTabButtonStyle}" Command="{Binding SelectShiftLayerCommand}" CommandParameter="2" Margin="0,0,8,0" />
-                <RadioButton Content="SHIFT 3" Style="{StaticResource ShiftTabButtonStyle}" Command="{Binding SelectShiftLayerCommand}" CommandParameter="3" Margin="0,0,8,0" />
-                <RadioButton Content="SHIFT 4" Style="{StaticResource ShiftTabButtonStyle}" Command="{Binding SelectShiftLayerCommand}" CommandParameter="4" />
+        <!-- 2. LAYER BAR -->
+        <Border Grid.Row="1" Background="{StaticResource BrushBgPanel}" Padding="14,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ComboBox ItemsSource="{Binding LayerNames}" SelectedIndex="{Binding ActiveShiftLayer, Mode=TwoWay}"
+                          Width="150" Background="Transparent" BorderThickness="0" FontSize="14" />
+                <Button Style="{StaticResource IconButton}" Content="&#xE710;" Width="30" Height="30" IsEnabled="False" ToolTip="Adding layers is not implemented yet" />
             </StackPanel>
         </Border>
 
-        <!-- 3. MAIN CONTENT: (NAVIGATION | VISUALIZER | INSPECTOR) -->
-        <Grid Grid.Row="2">
+        <!-- 3. INPUT-TYPE TABS -->
+        <Border Grid.Row="2" Background="{StaticResource BrushBgPanel}" Padding="14,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <RadioButton Style="{StaticResource ShiftTabButtonStyle}" IsChecked="True" Margin="0,0,10,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE7FC;" FontFamily="{StaticResource IconFont}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <TextBlock Text="Gamepad" VerticalAlignment="Center" />
+                    </StackPanel>
+                </RadioButton>
+                <RadioButton Style="{StaticResource ShiftTabButtonStyle}" IsEnabled="False" Opacity="0.4" ToolTip="Keyboard remapping is not implemented yet" Margin="0,0,10,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE765;" FontFamily="{StaticResource IconFont}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <TextBlock Text="Keyboard" VerticalAlignment="Center" />
+                    </StackPanel>
+                </RadioButton>
+                <RadioButton Style="{StaticResource ShiftTabButtonStyle}" IsEnabled="False" Opacity="0.4" ToolTip="Mouse remapping is not implemented yet">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE962;" FontFamily="{StaticResource IconFont}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <TextBlock Text="Mouse" VerticalAlignment="Center" />
+                    </StackPanel>
+                </RadioButton>
+            </StackPanel>
+        </Border>
+
+        <!-- 4. CONTENT: visualizer | inspector | icon rail -->
+        <Grid Grid.Row="3">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="250" MinWidth="220" />
-                <ColumnDefinition Width="*" MinWidth="480" />
-                <ColumnDefinition Width="320" MinWidth="280" />
+                <ColumnDefinition Width="*" MinWidth="420" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="56" />
             </Grid.ColumnDefinitions>
 
-            <!-- Left: navigation, configs, devices -->
-            <Border Grid.Column="0" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,1,0" Padding="14">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <!-- Page navigation -->
-                    <UniformGrid Grid.Row="0" Columns="2" Margin="0,0,0,14">
-                        <RadioButton Content="Remap" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0"
-                                     IsChecked="{Binding CurrentPage, Converter={StaticResource EnumToBool}, ConverterParameter=Remap}" />
-                        <RadioButton Content="Preferences" Style="{StaticResource ShiftTabButtonStyle}"
-                                     IsChecked="{Binding CurrentPage, Converter={StaticResource EnumToBool}, ConverterParameter=Preferences}" />
-                    </UniformGrid>
-
-                    <!-- Configs header -->
-                    <DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="False">
-                        <TextBlock DockPanel.Dock="Left" Text="CONFIGS" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" />
-                        <Button DockPanel.Dock="Right" Content="+" Command="{Binding NewProfileCommand}"
-                                Style="{StaticResource SecondaryButtonStyle}" ToolTip="Create New Config"
-                                Width="28" Height="28" Padding="0" />
-                    </DockPanel>
-
-                    <!-- Config list: each profile targets a game process -->
-                    <ListBox Grid.Row="2" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}"
-                             ItemTemplate="{StaticResource ProfileItemTemplate}"
-                             Background="Transparent" BorderThickness="0" Foreground="{StaticResource BrushTextPrimary}"
-                             ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
-
-                    <!-- Selected config's target process -->
-                    <StackPanel Grid.Row="3" Margin="0,10,0,0">
-                        <TextBlock Text="Target process (blank = all)" Foreground="{StaticResource BrushTextSecondary}" FontSize="11" Margin="0,0,0,4" />
-                        <TextBox Text="{Binding SelectedProcessExecutable, UpdateSourceTrigger=PropertyChanged}"
-                                 Background="{StaticResource BrushBgCard}" Foreground="{StaticResource BrushTextPrimary}"
-                                 BorderBrush="{StaticResource BrushBorder}" Padding="8,6" />
-                    </StackPanel>
-
-                    <!-- Devices -->
-                    <StackPanel Grid.Row="4" Margin="0,14,0,0">
-                        <TextBlock Text="CONNECTED DEVICES" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
-                        <ItemsControl ItemsSource="{Binding ConnectedDevices}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,6">
-                                        <TextBlock Text="{Binding}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" TextWrapping="Wrap" />
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </Grid>
-            </Border>
-
-            <!-- Center Stage: Controller Visualizer -->
-            <Border Grid.Column="1" Background="{StaticResource BrushBgDeep}">
+            <Border Grid.Column="0" Background="{StaticResource BrushBgDeep}">
                 <views:ControllerVisualizer />
             </Border>
 
-            <!-- Right: binding frame (tabs + mapping inspector) -->
-            <Grid Grid.Column="2">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
+            <!-- Inspector (binding frame) -->
+            <Border Grid.Column="1" Width="330" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1,0,0,0"
+                    Visibility="{Binding IsInspectorOpen, Converter={StaticResource BoolToVisibility}}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
 
-                <!-- Tabs for features that arrive one by one; disabled until implemented -->
-                <Border Grid.Row="0" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1,0,0,1" Padding="10,8">
-                    <UniformGrid Columns="3">
-                        <RadioButton Content="Main" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,4"
-                                     IsChecked="{Binding SelectedBindingTab, Converter={StaticResource EnumToBool}, ConverterParameter=Main}" />
-                        <RadioButton Content="Shift" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,4" IsEnabled="False" Opacity="0.4" ToolTip="Not implemented yet" />
-                        <RadioButton Content="Advanced" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,0,4" IsEnabled="False" Opacity="0.4" ToolTip="Not implemented yet" />
-                        <RadioButton Content="Keyboard" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0" IsEnabled="False" Opacity="0.4" ToolTip="Not implemented yet" />
-                        <RadioButton Content="Rumble" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0" IsEnabled="False" Opacity="0.4" ToolTip="Not implemented yet" />
-                        <RadioButton Content="Mask" Style="{StaticResource ShiftTabButtonStyle}" IsEnabled="False" Opacity="0.4" ToolTip="Not implemented yet" />
-                    </UniformGrid>
-                </Border>
+                    <!-- Tabs for features that arrive one by one; disabled until implemented -->
+                    <Border Grid.Row="0" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,0,1" Padding="10,8">
+                        <UniformGrid Columns="3">
+                            <RadioButton Content="Main" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,4"
+                                         IsChecked="{Binding SelectedBindingTab, Converter={StaticResource EnumToBool}, ConverterParameter=Main}" />
+                            <RadioButton Content="Shift" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,4" IsEnabled="False" Opacity="0.4" ToolTip="Not implemented yet" />
+                            <RadioButton Content="Advanced" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,0,4" IsEnabled="False" Opacity="0.4" ToolTip="Not implemented yet" />
+                            <RadioButton Content="Keyboard" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0" IsEnabled="False" Opacity="0.4" ToolTip="Not implemented yet" />
+                            <RadioButton Content="Rumble" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0" IsEnabled="False" Opacity="0.4" ToolTip="Not implemented yet" />
+                            <RadioButton Content="Mask" Style="{StaticResource ShiftTabButtonStyle}" IsEnabled="False" Opacity="0.4" ToolTip="Not implemented yet" />
+                        </UniformGrid>
+                    </Border>
 
-                <views:MappingPanel Grid.Row="1" />
-            </Grid>
+                    <views:MappingPanel Grid.Row="1" />
+                </Grid>
+            </Border>
+
+            <!-- Right icon rail -->
+            <Border Grid.Column="2" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1,0,0,0">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <ToggleButton Style="{StaticResource IconToggle}" Content="&#xE70F;" ToolTip="Mapping inspector" Margin="0,0,0,10"
+                                  IsChecked="{Binding IsInspectorOpen, Mode=TwoWay}" />
+                    <ToggleButton Style="{StaticResource IconToggle}" Content="&#xE7FC;" ToolTip="Gamepad settings — not implemented yet" Margin="0,0,0,10" IsEnabled="False" />
+                    <ToggleButton Style="{StaticResource IconToggle}" Content="&#xE765;" ToolTip="Keyboard overlay — not implemented yet" Margin="0,0,0,10" IsEnabled="False" />
+                    <ToggleButton Style="{StaticResource IconToggle}" Content="&#xE9D9;" ToolTip="Macros — see the Macro target in the inspector" IsEnabled="False" />
+                </StackPanel>
+            </Border>
 
             <!-- Preferences page: covers the visualizer and inspector -->
-            <Border Grid.Column="1" Grid.ColumnSpan="2" Background="{StaticResource BrushBgDeep}" Padding="32"
+            <Border Grid.Column="0" Grid.ColumnSpan="2" Background="{StaticResource BrushBgDeep}" Padding="32"
                     Visibility="{Binding IsPreferencesPage, Converter={StaticResource BoolToVisibility}}">
                 <StackPanel MaxWidth="520" HorizontalAlignment="Left">
                     <TextBlock Text="Preferences" Foreground="{StaticResource BrushTextPrimary}" FontSize="22" FontWeight="Bold" Margin="0,0,0,20" />
@@ -231,7 +225,7 @@
                             <TextBlock Text="{Binding DriverStatusText}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
                             <TextBlock Text="Required to present a virtual Xbox 360 controller to games." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" Margin="0,2,0,10" />
                             <TextBlock Text="{Binding HidHideStatusText}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                            <TextBlock Text="Optional. Hides the physical controller so games only see the virtual one (used by 'Mute original hardware input')." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0" />
+                            <TextBlock Text="Optional. Hides the physical controller so games only see the virtual one (used by 'Mute' and 'Hide input device')." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0" />
                         </StackPanel>
                     </Border>
 
@@ -246,17 +240,16 @@
             </Border>
         </Grid>
 
-        <!-- 4. BOTTOM STATUS BAR -->
-        <Border Grid.Row="3" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0" Padding="14,0">
-            <Grid VerticalAlignment="Center">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+        <!-- 5. DEVICE BAR -->
+        <Border Grid.Row="4" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0" Padding="14,0">
+            <Grid>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <ToggleButton Style="{StaticResource IconToggle}" Content="&#xE7FC;" Width="38" Height="38" IsChecked="True" IsHitTestVisible="False" ToolTip="Physical gamepad" />
+                    <ToggleButton Style="{StaticResource IconToggle}" Content="&#xE765;" Width="38" Height="38" IsEnabled="False" ToolTip="Keyboard — not implemented yet" />
+                    <ToggleButton Style="{StaticResource IconToggle}" Content="&#xE962;" Width="38" Height="38" IsEnabled="False" ToolTip="Mouse — not implemented yet" />
+                </StackPanel>
 
-                <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" VerticalAlignment="Center" />
-
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <TextBlock Text="{Binding DriverStatusText}">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock" BasedOn="{StaticResource StatusIndicator}">
@@ -279,8 +272,99 @@
                             </Style>
                         </TextBlock.Style>
                     </TextBlock>
-                    <TextBlock Text="v0.1.0-alpha" Foreground="{StaticResource BrushTextMuted}" FontSize="11" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding ConnectedDevices[0]}" Foreground="{StaticResource BrushTextPrimary}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBlock Text="v0.1.0-alpha" Foreground="{StaticResource BrushTextMuted}" FontSize="11" Margin="14,0,0,0" VerticalAlignment="Center" />
                 </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 6. APPLY BAR -->
+        <Border Grid.Row="5" Background="{StaticResource BrushBgDeep}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0" Padding="14,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Power: stops remapping; lit green while active -->
+                    <Button Command="{Binding ToggleApplyCommand}" Content="&#xE7E8;" ToolTip="Start / stop remapping" Margin="0,0,10,0">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
+                                <Setter Property="Width" Value="40" />
+                                <Setter Property="Height" Value="40" />
+                                <Setter Property="FontSize" Value="18" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsRemappingActive}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource BrushGreen}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <Button Command="{Binding ToggleApplyCommand}" Style="{StaticResource ApplyButtonStyle}" MinWidth="170">
+                        <TextBlock>
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="{Binding ActiveSlot, StringFormat='Apply to Slot {0}'}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRemappingActive}" Value="True">
+                                            <Setter Property="Text" Value="Stop remapping" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Button>
+
+                    <ComboBox ItemsSource="{Binding SlotNumbers}" SelectedItem="{Binding ActiveSlot, Mode=TwoWay}"
+                              Width="64" Margin="4,0,12,0" VerticalAlignment="Center" ToolTip="Slot" />
+
+                    <!-- Output device menu -->
+                    <ToggleButton x:Name="OutputToggle" Style="{StaticResource IconToggle}" Content="&#xE7FC;" ToolTip="Output device"
+                                  IsChecked="{Binding IsOutputMenuOpen, Mode=TwoWay}"
+                                  IsHitTestVisible="{Binding IsOpen, ElementName=OutputPopup, Converter={StaticResource InverseBool}}" />
+
+                    <Popup x:Name="OutputPopup" IsOpen="{Binding IsOutputMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=OutputToggle}"
+                           Placement="Top" HorizontalOffset="-10" VerticalOffset="-6" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                        <Border Width="340" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorderLight}" BorderThickness="1" CornerRadius="8">
+                            <StackPanel>
+                                <!-- Physical device -->
+                                <Border Style="{StaticResource OutputRow}">
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Left" Text="&#xE7FC;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource BrushCyan}" Margin="0,0,12,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding ConnectedDevices[0]}" Foreground="{StaticResource BrushCyan}" FontSize="14" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    </DockPanel>
+                                </Border>
+
+                                <Border BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0" />
+
+                                <!-- Virtual output types: only Xbox 360 exists so far -->
+                                <Border Style="{StaticResource OutputRow}" Background="{StaticResource BrushBgCard}">
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Right" Text="&#xE73E;" FontFamily="{StaticResource IconFont}" Foreground="{StaticResource BrushCyan}" VerticalAlignment="Center" />
+                                        <TextBlock Text="Virtual Xbox 360" Foreground="{StaticResource BrushTextPrimary}" FontSize="14" />
+                                    </DockPanel>
+                                </Border>
+                                <Border Style="{StaticResource OutputRow}" Opacity="0.4" ToolTip="Not implemented yet"><TextBlock Text="Virtual Xbox One" Foreground="{StaticResource BrushTextPrimary}" FontSize="14" /></Border>
+                                <Border Style="{StaticResource OutputRow}" Opacity="0.4" ToolTip="Not implemented yet"><TextBlock Text="Virtual DS4" Foreground="{StaticResource BrushTextPrimary}" FontSize="14" /></Border>
+                                <Border Style="{StaticResource OutputRow}" Opacity="0.4" ToolTip="Not implemented yet"><TextBlock Text="Virtual DS3" Foreground="{StaticResource BrushTextPrimary}" FontSize="14" /></Border>
+                                <Border Style="{StaticResource OutputRow}" Opacity="0.4" ToolTip="Not implemented yet"><TextBlock Text="Virtual Switch Pro" Foreground="{StaticResource BrushTextPrimary}" FontSize="14" /></Border>
+
+                                <Border BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0" />
+
+                                <StackPanel Margin="14,10,14,12">
+                                    <CheckBox Content="Mute all" IsChecked="{Binding MuteAll}" Foreground="{StaticResource BrushTextPrimary}" Margin="0,0,0,8" ToolTip="Hide the physical controller from games while remapping (needs HidHide)" />
+                                    <CheckBox Content="Hide input device from the system" IsChecked="{Binding HideInputDevice}" IsEnabled="{Binding IsHidHideAvailable}" Foreground="{StaticResource BrushTextPrimary}" ToolTip="Needs HidHide" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+                </StackPanel>
+
+                <TextBlock Grid.Column="1" Text="{Binding StatusMessage}" Foreground="{StaticResource BrushTextSecondary}" FontSize="12"
+                           HorizontalAlignment="Right" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
             </Grid>
         </Border>
 

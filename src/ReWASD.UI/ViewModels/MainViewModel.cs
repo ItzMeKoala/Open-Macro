@@ -59,6 +59,31 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _selectedProcessExecutable = string.Empty;
 
+    [ObservableProperty]
+    private bool _isInspectorOpen = true;
+
+    [ObservableProperty]
+    private bool _isOutputMenuOpen;
+
+    [ObservableProperty]
+    private bool _isConfigMenuOpen;
+
+    // Both options hide the physical pad through HidHide; hiding is per device, not per button
+    [ObservableProperty]
+    private bool _muteAll;
+
+    [ObservableProperty]
+    private bool _hideInputDevice;
+
+    public IReadOnlyList<int> SlotNumbers { get; } = new[] { 1, 2, 3, 4 };
+
+    partial void OnActiveSlotChanged(int value)
+    {
+        SelectedProfile.ActiveSlot = value;
+    }
+
+    public IReadOnlyList<string> LayerNames { get; } = new[] { "Main Layer", "Shift 1", "Shift 2", "Shift 3", "Shift 4" };
+
     public bool IsPreferencesPage => CurrentPage == AppPage.Preferences;
 
     public bool IsDriverAvailable => _virtualService.IsDriverAvailable;
@@ -169,6 +194,40 @@ public partial class MainViewModel : ObservableObject
     private void ShowPage(string page)
     {
         if (Enum.TryParse<AppPage>(page, out var parsed)) CurrentPage = parsed;
+    }
+
+    [RelayCommand]
+    private void ToggleSettings()
+    {
+        CurrentPage = IsPreferencesPage ? AppPage.Remap : AppPage.Preferences;
+    }
+
+    [RelayCommand]
+    private void ShowInfo()
+    {
+        StatusMessage = "ReWASD Open Source v0.1.0-alpha — clean-room gamepad remapper";
+    }
+
+    [RelayCommand]
+    private void SaveProfile()
+    {
+        try
+        {
+            var dir = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ReWASD-OpenSource", "profiles");
+            var invalid = System.IO.Path.GetInvalidFileNameChars();
+            var fileName = string.Concat(SelectedProfile.Name.Select(c => invalid.Contains(c) ? '_' : c)) + ".json";
+            var path = System.IO.Path.Combine(dir, fileName);
+
+            lock (_mappingEngine.SyncRoot)
+            {
+                ProfileSerializer.SaveToFile(SelectedProfile, path);
+            }
+            StatusMessage = $"Saved config to {path}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Could not save config: {ex.Message}";
+        }
     }
 
     private void PopulateInspectorOptions()
@@ -364,17 +423,15 @@ public partial class MainViewModel : ObservableObject
         StatusMessage = $"Reset {SelectedButton.Button} to default";
     }
 
-    [RelayCommand]
-    private void SelectShiftLayer(string layerIndexStr)
+    partial void OnActiveShiftLayerChanged(int value)
     {
-        if (int.TryParse(layerIndexStr, out int idx) && SelectedProfile.ShiftLayers.ContainsKey(idx))
-        {
-            ActiveShiftLayer = idx;
-            _mappingEngine.SetShiftLayer(idx);
-            UpdateAllButtonDisplays();
-            if (SelectedButton != null) SelectButton(SelectedButton);
-            StatusMessage = $"Switched to {SelectedProfile.ShiftLayers[idx].Name}";
-        }
+        // The layer dropdown binds here; ignore indexes the profile doesn't have (e.g. -1 while the list refreshes)
+        if (!SelectedProfile.ShiftLayers.TryGetValue(value, out var layer)) return;
+
+        _mappingEngine.SetShiftLayer(value);
+        UpdateAllButtonDisplays();
+        if (SelectedButton != null) SelectButton(SelectedButton);
+        StatusMessage = $"Switched to {layer.Name}";
     }
 
     [RelayCommand]
@@ -400,7 +457,8 @@ public partial class MainViewModel : ObservableObject
             var before = XInputReader.GetConnectedSlots();
 
             // "Mute" hides the physical pad from games. Capture it before the virtual pad exists so only real devices are hidden.
-            bool wantMute = SelectedProfile.ShiftLayers.Values.Any(l => l.Mappings.Values.Any(m => m.IsMuted));
+            bool wantMute = MuteAll || HideInputDevice
+                || SelectedProfile.ShiftLayers.Values.Any(l => l.Mappings.Values.Any(m => m.IsMuted));
             var devicesToHide = wantMute && _hidHide.IsAvailable ? _hidHide.GetPresentGamingDevices() : Array.Empty<string>();
 
             bool ok = _virtualService.ConnectVirtualXbox();

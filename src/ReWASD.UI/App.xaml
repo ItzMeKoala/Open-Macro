@@ -8,6 +8,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Styles/ThemeColors.xaml" />
                 <ResourceDictionary Source="Styles/ControlStyles.xaml" />
+                <ResourceDictionary Source="Styles/ShellStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         </ResourceDictionary>
