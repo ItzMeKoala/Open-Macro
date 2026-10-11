@@ -59,7 +59,7 @@
     </UserControl.Resources>
 
     <Border Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1,0,0,0" Padding="16,14">
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel>
 
                 <!-- Which input is being edited -->
@@ -164,19 +164,30 @@
                 </StackPanel>
 
                 <!-- Actions -->
-                <Button Content="SAVE" Command="{Binding SaveCurrentMappingCommand}" Background="{StaticResource BrushCyan}" Foreground="#101318"
-                        FontWeight="Bold" Padding="0,10" Margin="0,20,0,8" Cursor="Hand">
+                <Button Content="SAVE" Command="{Binding SaveCurrentMappingCommand}"
+                        Background="{StaticResource BrushCyan}" Foreground="#101318"
+                        FontWeight="Bold" FontSize="13"
+                        HorizontalAlignment="Stretch" Height="38" Margin="0,20,0,8" Cursor="Hand">
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                            <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="6">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource BrushCyanHover}" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource BrushCyanDark}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Button.Template>
                 </Button>
 
-                <Button Content="Reset to default" Command="{Binding ResetCurrentMappingCommand}" Style="{StaticResource SecondaryButtonStyle}"
-                        HorizontalAlignment="Stretch" />
+                <Button Content="Reset to default" Command="{Binding ResetCurrentMappingCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        HorizontalAlignment="Stretch" Height="38" />
             </StackPanel>
         </ScrollViewer>
     </Border>
