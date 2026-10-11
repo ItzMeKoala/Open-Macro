@@ -240,7 +240,7 @@ public class ArtViewTests
         double later = Look(view, ControllerButton.RightTrigger).Glow;
         Assert.True(later > early, "the trigger kept moving as frames arrived");
 
-        view.Advance(2);                                                    // plenty of time for the spring to settle
+        for (int i = 0; i < 30; i++) view.Advance(0.1);                    // plenty of time for the spring to settle (one step covers at most 0.1 s)
         Assert.Equal(0.35, Look(view, ControllerButton.RightTrigger).Glow, 2);   // a trigger's tint tops out at 35%
     }
 

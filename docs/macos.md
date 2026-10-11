@@ -50,6 +50,9 @@ Click any part of the drawing to select it. The drawing is `src/ReWASD.Core/Skin
 browser and carries the part names and motion settings as `data-*` attributes (see `SvgArtParser`). Other pictures
 and the Windows app still use the outline drawings.
 
+The PlayStation logo on the PS button is the public-domain "PlayStation logo.svg" from Wikimedia Commons. The mark is a
+trademark of Sony Interactive Entertainment and is shown only to depict the controller.
+
 ## Differences to know about
 
 - Key names in configs are the Windows ones; `Alt` is Option, `Back` is the Delete key, `Delete` is forward delete
