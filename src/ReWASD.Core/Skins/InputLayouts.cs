@@ -1,7 +1,6 @@
 using ReWASD.Core.Models;
-using ReWASD.Engine.Input;
 
-namespace ReWASD.UI.Skins;
+namespace ReWASD.Core.Skins;
 
 /// <summary>One key (or mouse button) on a drawing: its profile name, what is printed on it, and where it sits.</summary>
 public sealed record SourcePlacement(string Name, string Legend, Placement Place, IconShape Shape, double Radius = 6, double FontSize = 12);
@@ -73,17 +72,15 @@ public static class InputLayouts
         for (int i = 0; i < letters.Length; i++) keys.Add(Key(letters[i].ToString(), letters[i].ToString(), startX + i, y));
     }
 
-    public static IReadOnlyList<DecorShape> KeyboardDecor { get; } = new[]
-    {
-        new DecorShape(ControllerSkins.RoundRect(OriginX - 12, OriginY - 40, 18.5 * Unit + 24, 7.2 * Unit + 36, 16), "#12151B", "#2E3646", 2)
-    };
+    public static IReadOnlyList<DecorShape> KeyboardDecor { get; } =
+        ControllerSkins.Neon(ControllerSkins.RoundRect(OriginX - 12, OriginY - 40, 18.5 * Unit + 24, 7.2 * Unit + 36, 16), 2.2, fill: "#0E0F13").ToArray();
 
     // ---- Mouse ----------------------------------------------------------------------------------------------------
 
     public static IReadOnlyList<SourcePlacement> Mouse { get; } = new[]
     {
-        new SourcePlacement("Left Click", "Left", new Placement(303, 140, 86, 112), IconShape.KeyCap, 30, 13),
-        new SourcePlacement("Right Click", "Right", new Placement(397, 140, 86, 112), IconShape.KeyCap, 30, 13),
+        new SourcePlacement("Left Click", "Left", new Placement(300, 140, 74, 112), IconShape.KeyCap, 30, 13),
+        new SourcePlacement("Right Click", "Right", new Placement(400, 140, 74, 112), IconShape.KeyCap, 30, 13),
         new SourcePlacement("Wheel Up", "▲", new Placement(350, 108, 26, 24), IconShape.KeyCap, 8, 10),
         new SourcePlacement("Middle Click", "●", new Placement(350, 140, 26, 34), IconShape.KeyCap, 8, 12),
         new SourcePlacement("Wheel Down", "▼", new Placement(350, 172, 26, 24), IconShape.KeyCap, 8, 10),
@@ -91,10 +88,9 @@ public static class InputLayouts
         new SourcePlacement("Mouse Button 5", "Fwd", new Placement(279, 282, 44, 34), IconShape.KeyCap, 8, 11)
     };
 
-    public static IReadOnlyList<DecorShape> MouseDecor { get; } = new[]
-    {
-        new DecorShape("M 350 62 C 272 62 250 118 250 190 L 250 292 C 250 362 292 400 350 400 C 408 400 450 362 450 292 L 450 190 C 450 118 428 62 350 62 Z", "#171A21", "#3A4254", 2),
-        new DecorShape("M 350 70 L 350 205", "#00000000", "#2A3140", 1.5),
-        new DecorShape("M 256 206 C 300 214 400 214 444 206", "#00000000", "#2A3140", 1.5)
-    };
+    public static IReadOnlyList<DecorShape> MouseDecor { get; } =
+        ControllerSkins.Neon("M 350 62 C 272 62 250 118 250 190 L 250 292 C 250 362 292 400 350 400 C 408 400 450 362 450 292 L 450 190 C 450 118 428 62 350 62 Z", 2.4, fill: "#0E0F13")
+            .Concat(ControllerSkins.Neon("M 350 70 L 350 205", 1.5, dim: true))
+            .Concat(ControllerSkins.Neon("M 256 206 C 300 214 400 214 444 206", 1.5, dim: true))
+            .ToArray();
 }

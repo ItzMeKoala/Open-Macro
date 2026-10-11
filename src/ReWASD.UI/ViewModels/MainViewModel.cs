@@ -9,7 +9,7 @@ using ReWASD.Engine.HidHide;
 using ReWASD.Engine.Input;
 using ReWASD.Engine.Remapper;
 using ReWASD.Engine.VirtualOutput;
-using ReWASD.UI.Skins;
+using ReWASD.Core.Skins;
 
 namespace ReWASD.UI.ViewModels;
 

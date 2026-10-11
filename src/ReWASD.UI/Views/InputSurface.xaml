@@ -7,9 +7,13 @@
              mc:Ignorable="d"
              d:DesignHeight="460" d:DesignWidth="700">
     <Grid Background="Transparent">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="64" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-        <!-- The drawing: a fixed 700x440 canvas scaled to whatever room there is -->
-        <Viewbox Stretch="Uniform" Margin="16">
+        <!-- The drawing: a fixed 700x440 canvas scaled to whatever room there is, a little smaller than the space -->
+        <Viewbox Grid.Row="1" Stretch="Uniform" Margin="56,0,56,22">
             <Canvas Width="700" Height="440">
 
                 <!-- Body, wells, touchpad, keyboard plate... -->
@@ -21,7 +25,8 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Path Data="{Binding Data}" Fill="{Binding Fill}" Stroke="{Binding Stroke}" StrokeThickness="{Binding StrokeThickness}" />
+                            <Path Data="{Binding Data}" Fill="{Binding Fill}" Stroke="{Binding Stroke}" StrokeThickness="{Binding StrokeThickness}"
+                                  StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -100,15 +105,21 @@
         </Viewbox>
 
         <!-- Which controller picture to draw (gamepad only) -->
-        <ComboBox ItemsSource="{Binding SkinOptions}" SelectedValuePath="Kind" SelectedValue="{Binding SelectedSkin, Mode=TwoWay}"
-                  Width="170" Height="34" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="18,14,0,0"
-                  ToolTip="Controller picture"
-                  Visibility="{Binding IsGamepadTab, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <ComboBox.ItemTemplate>
-                <DataTemplate>
-                    <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}" />
-                </DataTemplate>
-            </ComboBox.ItemTemplate>
-        </ComboBox>
+        <Border Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="16,0,6,0" Height="42" CornerRadius="10"
+                Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorderLight}" BorderThickness="1"
+                ToolTip="Which controller picture to draw"
+                Visibility="{Binding IsGamepadTab, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Controller:" Foreground="{StaticResource BrushTextSecondary}" FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0" />
+                <ComboBox ItemsSource="{Binding SkinOptions}" SelectedValuePath="Kind" SelectedValue="{Binding SelectedSkin, Mode=TwoWay}"
+                          Width="170" Height="34" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" FontSize="14" FontWeight="SemiBold">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+        </Border>
     </Grid>
 </UserControl>

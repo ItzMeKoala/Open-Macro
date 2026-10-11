@@ -1,7 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReWASD.Core.Models;
-using ReWASD.UI.Skins;
+using ReWASD.Core.Skins;
 
 namespace ReWASD.UI.ViewModels;
 
