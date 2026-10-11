@@ -11,6 +11,23 @@ using ReWASD.Engine.VirtualOutput;
 
 namespace ReWASD.UI.ViewModels;
 
+public enum AppPage
+{
+    Remap,
+    Preferences
+}
+
+/// <summary>Tabs of the binding frame. Only tabs whose feature exists are enabled; the rest are placeholders.</summary>
+public enum BindingTab
+{
+    Main,
+    Shift,
+    Advanced,
+    Keyboard,
+    Rumble,
+    Mask
+}
+
 public partial class MainViewModel : ObservableObject
 {
     private const string ScrollUpLabel = "Scroll Up";
@@ -30,6 +47,24 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private Profile _selectedProfile;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPreferencesPage))]
+    private AppPage _currentPage = AppPage.Remap;
+
+    [ObservableProperty]
+    private BindingTab _selectedBindingTab = BindingTab.Main;
+
+    // Target process for the selected profile (empty = applies to everything)
+    [ObservableProperty]
+    private string _selectedProcessExecutable = string.Empty;
+
+    public bool IsPreferencesPage => CurrentPage == AppPage.Preferences;
+
+    public bool IsDriverAvailable => _virtualService.IsDriverAvailable;
+    public bool IsHidHideAvailable => _hidHide.IsAvailable;
+    public string DriverStatusText => IsDriverAvailable ? "ViGEmBus: Ready" : "ViGEmBus: Not installed";
+    public string HidHideStatusText => IsHidHideAvailable ? "HidHide: Ready" : "HidHide: Not installed";
 
     [ObservableProperty]
     private int _activeSlot = 1;
@@ -119,9 +154,21 @@ public partial class MainViewModel : ObservableObject
     {
         // Keep the engine on the profile being edited
         _mappingEngine.CurrentProfile = value;
+        SelectedProcessExecutable = value.ProcessExecutable ?? string.Empty;
         if (!value.ShiftLayers.ContainsKey(ActiveShiftLayer)) ActiveShiftLayer = 0;
         _mappingEngine.SetShiftLayer(ActiveShiftLayer);
         UpdateAllButtonDisplays();
+    }
+
+    partial void OnSelectedProcessExecutableChanged(string value)
+    {
+        SelectedProfile.ProcessExecutable = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    [RelayCommand]
+    private void ShowPage(string page)
+    {
+        if (Enum.TryParse<AppPage>(page, out var parsed)) CurrentPage = parsed;
     }
 
     private void PopulateInspectorOptions()

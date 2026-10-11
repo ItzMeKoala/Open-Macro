@@ -5,8 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:ReWASD.UI.ViewModels"
         xmlns:views="clr-namespace:ReWASD.UI.Views"
+        xmlns:conv="clr-namespace:ReWASD.UI.Converters"
         mc:Ignorable="d"
-        Title="ReWASD Open Source — Gamepad Remapper" 
+        Title="ReWASD Open Source — Gamepad Remapper"
         Height="720" Width="1200"
         MinHeight="650" MinWidth="1050"
         WindowStartupLocation="CenterScreen"
@@ -16,13 +17,33 @@
         <vm:MainViewModel />
     </Window.DataContext>
 
+    <Window.Resources>
+        <conv:EnumToBoolConverter x:Key="EnumToBool" />
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+
+        <!-- Status-bar indicator: green when the dependency is present, orange otherwise -->
+        <Style x:Key="StatusIndicator" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Margin" Value="0,0,16,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{StaticResource BrushOrange}" />
+        </Style>
+
+        <DataTemplate x:Key="ProfileItemTemplate">
+            <StackPanel Margin="2,4">
+                <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding ProcessExecutable, TargetNullValue='All applications'}" Foreground="{StaticResource BrushTextMuted}" FontSize="11" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+        </DataTemplate>
+    </Window.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
             <!-- Top App Bar -->
             <RowDefinition Height="64" />
             <!-- Shift Layers Sub-bar -->
             <RowDefinition Height="42" />
-            <!-- Main Content (Sidebar | Visualizer | Inspector) -->
+            <!-- Main Content (Navigation | Visualizer | Inspector) -->
             <RowDefinition Height="*" />
             <!-- Bottom Status Bar -->
             <RowDefinition Height="32" />
@@ -32,38 +53,16 @@
         <Border Grid.Row="0" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,0,1" Padding="18,0">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <!-- Brand & Profile Selector -->
                     <ColumnDefinition Width="Auto" />
-                    <!-- Slots Selector -->
                     <ColumnDefinition Width="*" />
-                    <!-- Apply & Status Actions -->
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <!-- Brand & Profile Selector -->
+                <!-- Brand -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="🎯" FontSize="20" Margin="0,0,10,0" VerticalAlignment="Center" />
                     <TextBlock Text="reWASD" Foreground="{StaticResource BrushCyan}" FontWeight="Bold" FontSize="18" VerticalAlignment="Center" />
-                    <TextBlock Text="· Open Source" Foreground="{StaticResource BrushTextMuted}" FontSize="14" Margin="6,0,24,0" VerticalAlignment="Center" />
-
-                    <!-- Profile Dropdown -->
-                    <TextBlock Text="PROFILE:" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0" />
-                    <ComboBox ItemsSource="{Binding Profiles}" 
-                              SelectedItem="{Binding SelectedProfile}" 
-                              DisplayMemberPath="Name"
-                              Width="220" 
-                              Background="{StaticResource BrushBgCard}" 
-                              Foreground="{StaticResource BrushTextPrimary}" 
-                              BorderBrush="{StaticResource BrushBorder}" 
-                              VerticalAlignment="Center" 
-                              Padding="10,6" />
-
-                    <Button Content="+" Command="{Binding NewProfileCommand}" 
-                            Style="{StaticResource SecondaryButtonStyle}" 
-                            Margin="8,0,0,0" 
-                            ToolTip="Create New Profile" 
-                            VerticalAlignment="Center" 
-                            Width="32" Height="32" Padding="0" />
+                    <TextBlock Text="· Open Source" Foreground="{StaticResource BrushTextMuted}" FontSize="14" Margin="6,0,0,0" VerticalAlignment="Center" />
                 </StackPanel>
 
                 <!-- Slots Selector (Center) -->
@@ -77,18 +76,13 @@
 
                 <!-- Apply & Remap Toggle Button -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="{Binding IsRemappingActive, Converter={x:Null}, FallbackValue='APPLY'}" 
-                            Command="{Binding ToggleApplyCommand}"
-                            Style="{StaticResource ApplyButtonStyle}" 
+                    <Button Command="{Binding ToggleApplyCommand}"
+                            Style="{StaticResource ApplyButtonStyle}"
                             Margin="0,0,12,0">
-                        <Button.ContentTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="⚡" Margin="0,0,6,0" />
-                                    <TextBlock Text="APPLY" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </Button.ContentTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⚡" Margin="0,0,6,0" />
+                            <TextBlock Text="APPLY" />
+                        </StackPanel>
                     </Button>
                 </StackPanel>
             </Grid>
@@ -106,39 +100,69 @@
             </StackPanel>
         </Border>
 
-        <!-- 3. MAIN CONTENT: (SIDEBAR | VISUALIZER | INSPECTOR) -->
+        <!-- 3. MAIN CONTENT: (NAVIGATION | VISUALIZER | INSPECTOR) -->
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <!-- Left Sidebar: Devices -->
-                <ColumnDefinition Width="230" MinWidth="200" />
-                <!-- Center: Controller Visualizer -->
-                <ColumnDefinition Width="*" MinWidth="500" />
-                <!-- Right: Mapping Inspector -->
+                <ColumnDefinition Width="250" MinWidth="220" />
+                <ColumnDefinition Width="*" MinWidth="480" />
                 <ColumnDefinition Width="320" MinWidth="280" />
             </Grid.ColumnDefinitions>
 
-            <!-- Left Device Sidebar -->
+            <!-- Left: navigation, configs, devices -->
             <Border Grid.Column="0" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,1,0" Padding="14">
-                <StackPanel>
-                    <TextBlock Text="CONNECTED DEVICES" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,12" />
-                    
-                    <ItemsControl ItemsSource="{Binding ConnectedDevices}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,6">
-                                    <TextBlock Text="{Binding}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" TextWrapping="Wrap" />
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                    <Border BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0" Margin="0,12,0,12" />
+                    <!-- Page navigation -->
+                    <UniformGrid Grid.Row="0" Columns="2" Margin="0,0,0,14">
+                        <RadioButton Content="Remap" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0"
+                                     IsChecked="{Binding CurrentPage, Converter={StaticResource EnumToBool}, ConverterParameter=Remap}" />
+                        <RadioButton Content="Preferences" Style="{StaticResource ShiftTabButtonStyle}"
+                                     IsChecked="{Binding CurrentPage, Converter={StaticResource EnumToBool}, ConverterParameter=Preferences}" />
+                    </UniformGrid>
 
-                    <TextBlock Text="DEVICE GROUPING" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
-                    <CheckBox Content="Group with Keyboard &amp; Mouse" IsChecked="True" Foreground="{StaticResource BrushTextSecondary}" Margin="0,4" />
-                    <CheckBox Content="Hook Mouse Cursor for Sticks" IsChecked="False" Foreground="{StaticResource BrushTextSecondary}" Margin="0,4" />
-                    <CheckBox Content="Virtual Controller: Xbox 360" IsChecked="True" IsEnabled="False" Foreground="{StaticResource BrushTextSecondary}" Margin="0,4" />
-                </StackPanel>
+                    <!-- Configs header -->
+                    <DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="False">
+                        <TextBlock DockPanel.Dock="Left" Text="CONFIGS" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" />
+                        <Button DockPanel.Dock="Right" Content="+" Command="{Binding NewProfileCommand}"
+                                Style="{StaticResource SecondaryButtonStyle}" ToolTip="Create New Config"
+                                Width="28" Height="28" Padding="0" />
+                    </DockPanel>
+
+                    <!-- Config list: each profile targets a game process -->
+                    <ListBox Grid.Row="2" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}"
+                             ItemTemplate="{StaticResource ProfileItemTemplate}"
+                             Background="Transparent" BorderThickness="0" Foreground="{StaticResource BrushTextPrimary}"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+
+                    <!-- Selected config's target process -->
+                    <StackPanel Grid.Row="3" Margin="0,10,0,0">
+                        <TextBlock Text="Target process (blank = all)" Foreground="{StaticResource BrushTextSecondary}" FontSize="11" Margin="0,0,0,4" />
+                        <TextBox Text="{Binding SelectedProcessExecutable, UpdateSourceTrigger=PropertyChanged}"
+                                 Background="{StaticResource BrushBgCard}" Foreground="{StaticResource BrushTextPrimary}"
+                                 BorderBrush="{StaticResource BrushBorder}" Padding="8,6" />
+                    </StackPanel>
+
+                    <!-- Devices -->
+                    <StackPanel Grid.Row="4" Margin="0,14,0,0">
+                        <TextBlock Text="CONNECTED DEVICES" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                        <ItemsControl ItemsSource="{Binding ConnectedDevices}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,6">
+                                        <TextBlock Text="{Binding}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" TextWrapping="Wrap" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Grid>
             </Border>
 
             <!-- Center Stage: Controller Visualizer -->
@@ -146,8 +170,54 @@
                 <views:ControllerVisualizer />
             </Border>
 
-            <!-- Right Inspector: Mapping Panel -->
-            <views:MappingPanel Grid.Column="2" />
+            <!-- Right: binding frame (tabs + mapping inspector) -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Tabs for features that arrive one by one; disabled until implemented -->
+                <Border Grid.Row="0" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1,0,0,1" Padding="10,8">
+                    <UniformGrid Columns="3">
+                        <RadioButton Content="Main" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,4"
+                                     IsChecked="{Binding SelectedBindingTab, Converter={StaticResource EnumToBool}, ConverterParameter=Main}" />
+                        <RadioButton Content="Shift" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,4" IsEnabled="False" Opacity="0.4" ToolTip="Not implemented yet" />
+                        <RadioButton Content="Advanced" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,0,4" IsEnabled="False" Opacity="0.4" ToolTip="Not implemented yet" />
+                        <RadioButton Content="Keyboard" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0" IsEnabled="False" Opacity="0.4" ToolTip="Not implemented yet" />
+                        <RadioButton Content="Rumble" Style="{StaticResource ShiftTabButtonStyle}" Margin="0,0,4,0" IsEnabled="False" Opacity="0.4" ToolTip="Not implemented yet" />
+                        <RadioButton Content="Mask" Style="{StaticResource ShiftTabButtonStyle}" IsEnabled="False" Opacity="0.4" ToolTip="Not implemented yet" />
+                    </UniformGrid>
+                </Border>
+
+                <views:MappingPanel Grid.Row="1" />
+            </Grid>
+
+            <!-- Preferences page: covers the visualizer and inspector -->
+            <Border Grid.Column="1" Grid.ColumnSpan="2" Background="{StaticResource BrushBgDeep}" Padding="32"
+                    Visibility="{Binding IsPreferencesPage, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel MaxWidth="520" HorizontalAlignment="Left">
+                    <TextBlock Text="Preferences" Foreground="{StaticResource BrushTextPrimary}" FontSize="22" FontWeight="Bold" Margin="0,0,0,20" />
+
+                    <TextBlock Text="DRIVERS" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="{Binding DriverStatusText}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                            <TextBlock Text="Required to present a virtual Xbox 360 controller to games." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" Margin="0,2,0,10" />
+                            <TextBlock Text="{Binding HidHideStatusText}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                            <TextBlock Text="Optional. Hides the physical controller so games only see the virtual one (used by 'Mute original hardware input')." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="OUTPUT" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
+                        <StackPanel>
+                            <TextBlock Text="Virtual controller: Xbox 360" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                            <TextBlock Text="Other output types are not implemented yet." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" Margin="0,2,0,0" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
         </Grid>
 
         <!-- 4. BOTTOM STATUS BAR -->
@@ -159,9 +229,30 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" VerticalAlignment="Center" />
-                
+
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="ViGEmBus: Ready" Foreground="{StaticResource BrushGreen}" FontSize="11" Margin="0,0,16,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding DriverStatusText}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource StatusIndicator}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDriverAvailable}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource BrushGreen}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text="{Binding HidHideStatusText}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource StatusIndicator}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsHidHideAvailable}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource BrushGreen}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                     <TextBlock Text="v0.1.0-alpha" Foreground="{StaticResource BrushTextMuted}" FontSize="11" VerticalAlignment="Center" />
                 </StackPanel>
             </Grid>
