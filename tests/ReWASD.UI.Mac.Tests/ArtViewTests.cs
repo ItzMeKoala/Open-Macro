@@ -187,10 +187,10 @@ public class ArtViewTests
         Click(369, 403);       // left stick
         Assert.Equal(ControllerButton.LeftStickClick, vm.SelectedButton!.Button);
 
-        Click(233, 118);       // the visible hump of the left trigger
+        Click(233, 100);       // the visible, raised left trigger
         Assert.Equal(ControllerButton.LeftTrigger, vm.SelectedButton!.Button);
 
-        Click(233, 152);       // the bumper strip in front of it
+        Click(233, 150);       // the bumper strip in front of it
         Assert.Equal(ControllerButton.LeftBumper, vm.SelectedButton!.Button);
 
         Click(140, 450);       // plain shell
