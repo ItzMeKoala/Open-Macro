@@ -25,6 +25,17 @@ Inspect the target binary [path/to/binary.dll] and explain how virtual gamepad b
 
 The agent will automatically invoke REA's MCP tools (or the `rea` CLI) to decompile, map imports/exports, trace call trees, and extract clean implementation specifications.
 
+### Running it
+
+- **Windows:** build `src/ReWASD.UI` (WPF). A virtual controller needs the ViGEmBus driver; hiding the pad needs HidHide.
+- **macOS:** see [docs/macos.md](docs/macos.md). Run `scripts/package-macos.sh` to build `ReWASD.app`.
+
+```sh
+dotnet build ReWASD.sln     # works on Windows and macOS
+dotnet test ReWASD.sln
+```
+
 ### Project Structure
 - `.agents/skills/reverse-engineer-anything/` — REA workflow instructions and references for agent assistants.
+- `src/` — `ReWASD.Core` (models), `ReWASD.Engine` (remapping, input, platform backends), `ReWASD.App` (shared view models), `ReWASD.UI` (WPF, Windows), `ReWASD.UI.Mac` (Avalonia, macOS).
 - `GEMINI.md` — Project context and reverse-engineering rules.

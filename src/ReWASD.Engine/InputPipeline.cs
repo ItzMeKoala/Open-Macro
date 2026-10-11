@@ -17,7 +17,7 @@ public sealed class InputPipeline : IDisposable
 
     private readonly MappingEngine _engine;
     private readonly IGamepadReader _reader;
-    private readonly VirtualGamepadService _virtualPad;
+    private readonly IVirtualGamepad _virtualPad;
     private readonly KeyboardMouseInjector _injector;
 
     private Thread? _thread;
@@ -25,12 +25,12 @@ public sealed class InputPipeline : IDisposable
 
     private readonly MacroRunner? _macros;
     private readonly MacroPadState? _macroPad;
-    private readonly LowLevelInputHook? _hook;
+    private readonly IInputHook? _hook;
 
     private static readonly PhysicalState NoController = new(new HashSet<ControllerButton>(), 0, 0, 0, 0, 0, 0);
 
-    public InputPipeline(MappingEngine engine, IGamepadReader reader, VirtualGamepadService virtualPad, KeyboardMouseInjector injector,
-        MacroRunner? macros = null, MacroPadState? macroPad = null, LowLevelInputHook? hook = null)
+    public InputPipeline(MappingEngine engine, IGamepadReader reader, IVirtualGamepad virtualPad, KeyboardMouseInjector injector,
+        MacroRunner? macros = null, MacroPadState? macroPad = null, IInputHook? hook = null)
     {
         _engine = engine;
         _reader = reader;
@@ -60,7 +60,7 @@ public sealed class InputPipeline : IDisposable
         if (_running) return;
         _running = true;
         KeyboardMouseHooked = _hook?.Start() ?? false;
-        timeBeginPeriod(1); // default timer granularity is ~15ms, far too coarse for polling
+        if (OperatingSystem.IsWindows()) timeBeginPeriod(1); // default timer granularity is ~15ms, far too coarse for polling
         _thread = new Thread(Loop) { IsBackground = true, Name = "ReWASD input pipeline" };
         _thread.Start();
     }
@@ -71,7 +71,7 @@ public sealed class InputPipeline : IDisposable
         _running = false;
         _thread?.Join();
         _thread = null;
-        timeEndPeriod(1);
+        if (OperatingSystem.IsWindows()) timeEndPeriod(1);
         _hook?.Stop(); // stop swallowing input before anything else
         KeyboardMouseHooked = false;
         _injector.ReleaseAll();

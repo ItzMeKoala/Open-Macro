@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:conv="clr-namespace:ReWASD.UI.Converters"
-             xmlns:vm="clr-namespace:ReWASD.UI.ViewModels"
+             xmlns:vm="clr-namespace:ReWASD.UI.ViewModels;assembly=ReWASD.App"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="300">
     <UserControl.Resources>

@@ -1,0 +1,126 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ReWASD.UI.ViewModels"
+             xmlns:conv="using:ReWASD.UI.Mac.Converters"
+             mc:Ignorable="d" d:DesignHeight="460" d:DesignWidth="700"
+             x:Class="ReWASD.UI.Mac.Views.InputSurface">
+    <UserControl.Resources>
+        <conv:DoubleToCornerRadiusConverter x:Key="Radius" />
+        <conv:HexToBrushConverter x:Key="HexBrush" />
+        <conv:PathTextToGeometryConverter x:Key="PathGeometry" />
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="Button.src">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Name="bg" Background="#252A36" BorderBrush="#384254" BorderThickness="1.5"
+                            CornerRadius="{Binding CornerRadius, Converter={StaticResource Radius}}">
+                        <Grid>
+                            <!-- Live trigger pull: a fill that rises with the analog value -->
+                            <Border Background="#88E9C46A" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,1"
+                                    Height="{Binding Height}" CornerRadius="{Binding CornerRadius, Converter={StaticResource Radius}}" IsHitTestVisible="False">
+                                <Border.RenderTransform>
+                                    <ScaleTransform ScaleY="{Binding AnalogValue}" />
+                                </Border.RenderTransform>
+                            </Border>
+
+                            <!-- Live stick position -->
+                            <Ellipse Width="9" Height="9" Fill="{StaticResource BrushCyan}" IsHitTestVisible="False"
+                                     HorizontalAlignment="Center" VerticalAlignment="Center"
+                                     IsVisible="{Binding StickActive}">
+                                <Ellipse.RenderTransform>
+                                    <TranslateTransform X="{Binding StickOffsetX}" Y="{Binding StickOffsetY}" />
+                                </Ellipse.RenderTransform>
+                            </Ellipse>
+
+                            <TextBlock Text="{Binding DisplayName}" Foreground="{Binding LegendColor, Converter={StaticResource HexBrush}}"
+                                       FontWeight="Bold" FontSize="{Binding LegendFontSize}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
+
+                            <!-- Remapped indicator -->
+                            <Ellipse Width="6" Height="6" Fill="{StaticResource BrushCyan}" IsHitTestVisible="False"
+                                     HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,4,0"
+                                     IsVisible="{Binding IsRemapped}" />
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="Button.src:pointerover /template/ Border#bg">
+            <Setter Property="Background" Value="#313847" />
+            <Setter Property="BorderBrush" Value="{StaticResource BrushCyanHover}" />
+        </Style>
+        <Style Selector="Button.src.selected /template/ Border#bg">
+            <Setter Property="BorderBrush" Value="{StaticResource BrushCyan}" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="Background" Value="#1E3747" />
+        </Style>
+        <!-- Physically held right now -->
+        <Style Selector="Button.src.live /template/ Border#bg">
+            <Setter Property="Background" Value="#9C7E2C" />
+            <Setter Property="BorderBrush" Value="#F2D68F" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid Background="Transparent">
+
+        <!-- The drawing: a fixed 700x440 canvas scaled to whatever room there is -->
+        <Viewbox Stretch="Uniform" Margin="16">
+            <Canvas Width="700" Height="440">
+
+                <!-- Body, wells, touchpad, keyboard plate... -->
+                <ItemsControl ItemsSource="{Binding SurfaceDecor}" IsHitTestVisible="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas Width="700" Height="440" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Path Data="{Binding Data, Converter={StaticResource PathGeometry}}" Fill="{Binding Fill, Converter={StaticResource HexBrush}}"
+                                  Stroke="{Binding Stroke, Converter={StaticResource HexBrush}}" StrokeThickness="{Binding StrokeThickness}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Selectable buttons / keys -->
+                <ItemsControl ItemsSource="{Binding CurrentSources}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas Width="700" Height="440" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.Styles>
+                        <Style Selector="ContentPresenter">
+                            <Setter Property="Canvas.Left" Value="{Binding X}" />
+                            <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                        </Style>
+                    </ItemsControl.Styles>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="vm:ButtonViewModel">
+                            <Button Classes="src" Classes.selected="{Binding IsSelected}" Classes.live="{Binding IsPressed}"
+                                    Command="{Binding SelectCommand}" Width="{Binding Width}" Height="{Binding Height}"
+                                    ToolTip.Tip="{Binding FriendlyName}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Canvas>
+        </Viewbox>
+
+        <!-- Which controller picture to draw (gamepad only) -->
+        <ComboBox ItemsSource="{Binding SkinOptions}" SelectedValueBinding="{Binding Kind}" SelectedValue="{Binding SelectedSkin, Mode=TwoWay}"
+                  Width="170" Height="34" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="18,14,0,0"
+                  ToolTip.Tip="Controller picture" IsVisible="{Binding IsGamepadTab}">
+            <ComboBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}" />
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+    </Grid>
+</UserControl>

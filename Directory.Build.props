@@ -1,0 +1,8 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Lets the whole solution (including the WPF project) be built and checked on macOS and Linux; it only compiles, WPF still runs on Windows only -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+</Project>

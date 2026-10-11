@@ -9,5 +9,10 @@ namespace ReWASD.UI;
 /// </summary>
 public partial class App : Application
 {
+    public App()
+    {
+        // Must be set before MainWindow.xaml creates its MainViewModel
+        UiHost.Current = new WpfUi();
+    }
 }
 
