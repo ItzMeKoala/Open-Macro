@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main, feat/macos-support]
+  pull_request:
+
+jobs:
+  # The engine, shared view models, Mac front end and tests build and run on both systems.
+  # The WPF front end only runs on Windows, but it is compiled on macOS too, so a break shows up everywhere.
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Build
+        run: dotnet build ReWASD.sln --configuration Release
+      - name: Test
+        run: dotnet test ReWASD.sln --configuration Release --no-build
+
+  package-macos:
+    runs-on: macos-latest
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Build ReWASD.app
+        run: scripts/package-macos.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ReWASD-macOS
+          path: artifacts/macos/**/ReWASD.app

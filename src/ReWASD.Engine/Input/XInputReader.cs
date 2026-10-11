@@ -22,7 +22,7 @@ public interface IGamepadReader
 /// Polls the first connected XInput controller. The virtual ViGEm pad also shows up as an XInput
 /// device, so its slot must be excluded or the output would be read back in as input.
 /// </summary>
-public sealed class XInputReader : IGamepadReader
+public sealed class XInputReader : IPhysicalController
 {
     private const int MaxControllers = 4;
     private const uint ErrorSuccess = 0;
@@ -31,9 +31,6 @@ public sealed class XInputReader : IGamepadReader
     private const ushort Start = 0x0010, Back = 0x0020, LeftThumb = 0x0040, RightThumb = 0x0080;
     private const ushort LeftShoulder = 0x0100, RightShoulder = 0x0200, GuideButton = 0x0400;
     private const ushort BtnA = 0x1000, BtnB = 0x2000, BtnX = 0x4000, BtnY = 0x8000;
-
-    private const double TriggerPressThreshold = 0.35;
-    private const double StickDirectionThreshold = 0.5;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct XInputGamepad
@@ -63,6 +60,10 @@ public sealed class XInputReader : IGamepadReader
 
     /// <summary>Slot currently being read, or -1 if no controller is connected.</summary>
     public int ActiveUserIndex { get; private set; } = -1;
+
+    public IReadOnlyList<int> ConnectedSlots() => GetConnectedSlots();
+
+    public string DescribeSlot(int slot) => $"XInput Controller {slot + 1}";
 
     public static IReadOnlyList<int> GetConnectedSlots()
     {
@@ -138,22 +139,7 @@ public sealed class XInputReader : IGamepadReader
         double rx = Axis(g.sThumbRX), ry = Axis(g.sThumbRY);
         double lt = g.bLeftTrigger / 255.0, rt = g.bRightTrigger / 255.0;
 
-        // Analog inputs also act as buttons so they can be remapped
-        if (lt > TriggerPressThreshold) buttons.Add(ControllerButton.LeftTrigger);
-        if (rt > TriggerPressThreshold) buttons.Add(ControllerButton.RightTrigger);
-        AddDirections(buttons, lx, ly, ControllerButton.LeftStickLeft, ControllerButton.LeftStickRight, ControllerButton.LeftStickDown, ControllerButton.LeftStickUp);
-        AddDirections(buttons, rx, ry, ControllerButton.RightStickLeft, ControllerButton.RightStickRight, ControllerButton.RightStickDown, ControllerButton.RightStickUp);
-
-        return new PhysicalState(buttons, lx, ly, rx, ry, lt, rt);
-    }
-
-    private static void AddDirections(HashSet<ControllerButton> buttons, double x, double y,
-        ControllerButton left, ControllerButton right, ControllerButton down, ControllerButton up)
-    {
-        if (x < -StickDirectionThreshold) buttons.Add(left);
-        if (x > StickDirectionThreshold) buttons.Add(right);
-        if (y < -StickDirectionThreshold) buttons.Add(down);
-        if (y > StickDirectionThreshold) buttons.Add(up);
+        return PhysicalStateBuilder.Build(buttons, lx, ly, rx, ry, lt, rt);
     }
 
     private static double Axis(short raw) => Math.Clamp(raw / 32767.0, -1.0, 1.0);

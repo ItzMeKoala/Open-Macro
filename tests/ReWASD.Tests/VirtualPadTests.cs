@@ -17,14 +17,23 @@ public class VirtualPadTests
     [Fact]
     public void OnlyXbox360AndDualShock4_AreSupported()
     {
-        Assert.True(VirtualGamepadService.IsSupported(ControllerType.Xbox360));
-        Assert.True(VirtualGamepadService.IsSupported(ControllerType.DualShock4));
-        Assert.False(VirtualGamepadService.IsSupported(ControllerType.XboxOne));
-        Assert.False(VirtualGamepadService.IsSupported(ControllerType.DualSense));
-        Assert.False(VirtualGamepadService.IsSupported(ControllerType.SwitchPro));
+        Assert.True(VirtualPadSupport.IsSupported(ControllerType.Xbox360));
+        Assert.True(VirtualPadSupport.IsSupported(ControllerType.DualShock4));
+        Assert.False(VirtualPadSupport.IsSupported(ControllerType.XboxOne));
+        Assert.False(VirtualPadSupport.IsSupported(ControllerType.DualSense));
+        Assert.False(VirtualPadSupport.IsSupported(ControllerType.SwitchPro));
     }
 
-    [Fact]
+    [WindowsFact]
+    public void ViGEmService_ReportsTheSameSupportedTypes()
+    {
+        foreach (var type in Enum.GetValues<ControllerType>())
+        {
+            Assert.Equal(VirtualPadSupport.IsSupported(type), VirtualGamepadService.IsSupported(type));
+        }
+    }
+
+    [WindowsFact]
     public void FaceButtons_MapToPlayStationNames()
     {
         var frame = VirtualPadMath.ToDs4(State(ControllerButton.A, ControllerButton.B, ControllerButton.X, ControllerButton.Y));
@@ -32,7 +41,7 @@ public class VirtualPadTests
         Assert.True(frame.Buttons.SetEquals(new[] { DualShock4Button.Cross, DualShock4Button.Circle, DualShock4Button.Square, DualShock4Button.Triangle }));
     }
 
-    [Fact]
+    [WindowsFact]
     public void ShouldersSticksAndMenuButtons_Map()
     {
         var frame = VirtualPadMath.ToDs4(State(
@@ -61,7 +70,7 @@ public class VirtualPadTests
         _ => DualShock4DPadDirection.None
     };
 
-    [Theory]
+    [WindowsTheory]
     [InlineData(true, false, false, false, "North")]
     [InlineData(true, true, false, false, "Northeast")]
     [InlineData(false, true, true, false, "Southeast")]
@@ -77,7 +86,7 @@ public class VirtualPadTests
         Assert.Same(Direction(expected), VirtualPadMath.DPad(up, right, down, left));
     }
 
-    [Fact]
+    [WindowsFact]
     public void Ds4Sticks_CentreIs128_AndUpIsZero()
     {
         var centred = VirtualPadMath.ToDs4(new RemappedState());
@@ -92,7 +101,7 @@ public class VirtualPadTests
         Assert.Equal(255, down.LeftY);
     }
 
-    [Fact]
+    [WindowsFact]
     public void Ds4Triggers_AlsoPressTheDigitalButtonPastTheThreshold()
     {
         Assert.DoesNotContain(DualShock4Button.TriggerLeft, VirtualPadMath.ToDs4(new RemappedState { LeftTrigger = 0.2 }).Buttons);
@@ -115,7 +124,7 @@ public class VirtualPadTests
         Assert.Equal(0.0, axes.LeftTrigger);
     }
 
-    [Fact]
+    [WindowsFact]
     public void OppositeStickDirections_CancelBackToTheAnalogValue()
     {
         var state = State(ControllerButton.LeftStickLeft, ControllerButton.LeftStickRight);

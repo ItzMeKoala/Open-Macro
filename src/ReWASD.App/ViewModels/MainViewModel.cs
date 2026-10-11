@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReWASD.Core.Models;
@@ -7,9 +6,11 @@ using ReWASD.Core.Serialization;
 using ReWASD.Engine;
 using ReWASD.Engine.HidHide;
 using ReWASD.Engine.Input;
+using ReWASD.Engine.Platform;
 using ReWASD.Engine.Remapper;
 using ReWASD.Engine.VirtualOutput;
 using ReWASD.Core.Skins;
+using ReWASD.Core.Skins.Art;
 
 namespace ReWASD.UI.ViewModels;
 
@@ -39,18 +40,22 @@ public partial class MainViewModel : ObservableObject
     private const string ScrollUpLabel = "Scroll Up";
     private const string ScrollDownLabel = "Scroll Down";
 
+    private readonly PlatformBackends _platform;
+    private readonly IPlatformUi _ui;
+    private readonly string _profilesDirectory;
     private readonly MappingEngine _mappingEngine;
-    private readonly VirtualGamepadService _virtualService;
-    private readonly XInputReader _reader = new();
-    private readonly Win32InputBackend _inputBackend = new();
+    private readonly IVirtualGamepad _virtualService;
+    private readonly IPhysicalController _reader;
+    private readonly IInputBackend _inputBackend;
     private readonly KeyboardMouseInjector _injector;
     private readonly HidHideService _hidHide = new();
     private readonly MacroRunner _macros;
     private readonly MacroPadState _macroPad;
-    private readonly LowLevelInputHook _hook;
+    private readonly IInputHook _hook;
     private readonly InputPipeline _pipeline;
     private readonly MacroRecorder _recorder = new();
-    private readonly DispatcherTimer _liveTimer;
+    private readonly IDisposable _liveTimer;
+    private bool _hadController;
     private readonly Action<string, bool> _recordKey;
     private readonly Action<string, bool> _recordMouse;
     private bool _hookStartedForRecording;
@@ -69,6 +74,7 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsGamepadTab))]
+    [NotifyPropertyChangedFor(nameof(ShowSkinArt))]
     private InputTab _selectedInputTab = InputTab.Gamepad;
 
     [ObservableProperty]
@@ -95,14 +101,22 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private ControllerType _selectedVirtualController = ControllerType.Xbox360;
 
-    public IReadOnlyList<VirtualControllerOption> VirtualControllerOptions { get; } = new[]
+    public IReadOnlyList<VirtualControllerOption> VirtualControllerOptions { get; }
+
+    private static IReadOnlyList<VirtualControllerOption> BuildVirtualControllerOptions(PlatformInfo platform)
     {
-        new VirtualControllerOption(ControllerType.Xbox360, "Xbox 360", true, "Works with every game that supports an Xbox controller"),
-        new VirtualControllerOption(ControllerType.DualShock4, "DualShock 4", true, "For games and emulators that expect a PlayStation 4 controller"),
-        new VirtualControllerOption(ControllerType.XboxOne, "Xbox One", false, "Not available: the ViGEm driver cannot emulate an Xbox One controller"),
-        new VirtualControllerOption(ControllerType.DualSense, "DualSense (PS5)", false, "Not available: the ViGEm driver cannot emulate a DualSense controller"),
-        new VirtualControllerOption(ControllerType.SwitchPro, "Switch Pro", false, "Not available: the ViGEm driver cannot emulate a Switch Pro controller")
-    };
+        // macOS has no driver that can present a virtual controller, so no type is available there
+        const string NoMac = "Not available on macOS: it has no virtual game controller driver";
+        bool can = platform.SupportsVirtualController;
+        return new[]
+        {
+            new VirtualControllerOption(ControllerType.Xbox360, "Xbox 360", can, can ? "Works with every game that supports an Xbox controller" : NoMac),
+            new VirtualControllerOption(ControllerType.DualShock4, "DualShock 4", can, can ? "For games and emulators that expect a PlayStation 4 controller" : NoMac),
+            new VirtualControllerOption(ControllerType.XboxOne, "Xbox One", false, "Not available: the ViGEm driver cannot emulate an Xbox One controller"),
+            new VirtualControllerOption(ControllerType.DualSense, "DualSense (PS5)", false, "Not available: the ViGEm driver cannot emulate a DualSense controller"),
+            new VirtualControllerOption(ControllerType.SwitchPro, "Switch Pro", false, "Not available: the ViGEm driver cannot emulate a Switch Pro controller")
+        };
+    }
 
     // What hiding the physical controller actually did, so a failure is never silent
     [ObservableProperty]
@@ -137,7 +151,7 @@ public partial class MainViewModel : ObservableObject
         _virtualService.DisconnectVirtual();
         Thread.Sleep(300); // the driver removes the old pad asynchronously
 
-        var before = XInputReader.GetConnectedSlots();
+        var before = _reader.ConnectedSlots();
         bool ok = _virtualService.Connect(SelectedVirtualController);
         _reader.ExcludedUserIndex = ok && SelectedVirtualController == ControllerType.Xbox360 ? FindNewSlot(before) : -1;
 
@@ -159,8 +173,41 @@ public partial class MainViewModel : ObservableObject
 
     public bool IsDriverAvailable => _virtualService.IsDriverAvailable;
     public bool IsHidHideAvailable => _hidHide.IsAvailable;
-    public string DriverStatusText => IsDriverAvailable ? "ViGEmBus: Ready" : "ViGEmBus: Not installed";
-    public string HidHideStatusText => IsHidHideAvailable ? "HidHide: Ready" : "HidHide: Not installed";
+
+    /// <summary>What the operating system can and cannot do (virtual controller, hiding the pad, permissions).</summary>
+    public PlatformInfo Platform => _platform.Info;
+    public bool SupportsVirtualController => Platform.SupportsVirtualController;
+    public bool SupportsDeviceHiding => Platform.SupportsDeviceHiding;
+    public bool IsMacOS => Platform.NeedsInputPermissions;
+    public string PanicKeyText => Platform.PanicKeyText;
+
+    public string DriverStatusText =>
+        !SupportsVirtualController ? $"Virtual controller: not available on {Platform.Name}"
+        : IsDriverAvailable ? "ViGEmBus: Ready" : "ViGEmBus: Not installed";
+
+    public string HidHideStatusText =>
+        !SupportsDeviceHiding ? $"Hide controller: not available on {Platform.Name}"
+        : IsHidHideAvailable ? "HidHide: Ready" : "HidHide: Not installed";
+
+    /// <summary>macOS asks permission before an app may watch or inject keys and the mouse; empty on systems that don't.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPermissionIssue))]
+    [NotifyPropertyChangedFor(nameof(PermissionStatusText))]
+    private string _missingPermissions = string.Empty;
+
+    public bool HasPermissionIssue => MissingPermissions.Length > 0;
+    public string PermissionStatusText => !Platform.NeedsInputPermissions ? string.Empty : HasPermissionIssue ? "Permissions: needed" : "Permissions: granted";
+
+    private void RefreshPermissions() => MissingPermissions = _platform.MissingPermissions() ?? string.Empty;
+
+    /// <summary>Shows the system's permission prompts (macOS) and re-checks.</summary>
+    [RelayCommand]
+    private void RequestPermissions()
+    {
+        _platform.RequestPermissions();
+        RefreshPermissions();
+        StatusMessage = HasPermissionIssue ? MissingPermissions : "Permissions are granted";
+    }
 
     [ObservableProperty]
     private int _activeSlot = 1;
@@ -248,29 +295,41 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<ButtonViewModel> MouseSources { get; } = new();
     public ObservableCollection<string> ConnectedDevices { get; } = new();
 
+    /// <summary>Creates the view model for the operating system it runs on, hosted by the toolkit that registered itself in <see cref="UiHost"/>.</summary>
     public MainViewModel()
+        : this(PlatformServices.Create(), UiHost.Current ?? new SynchronizationContextUi(), AppPaths.ProfilesDirectory)
     {
+    }
+
+    public MainViewModel(PlatformBackends platform, IPlatformUi ui, string profilesDirectory)
+    {
+        _platform = platform;
+        _ui = ui;
+        _profilesDirectory = profilesDirectory;
+        _reader = platform.Reader;
+        _inputBackend = platform.InputBackend;
+        VirtualControllerOptions = BuildVirtualControllerOptions(platform.Info);
+
         _selectedProfile = Profile.CreateDefault("Default Controller Profile");
         Profiles.Add(_selectedProfile);
         LoadSavedProfiles();
 
         _mappingEngine = new MappingEngine(_selectedProfile);
-        _virtualService = new VirtualGamepadService();
+        _virtualService = platform.VirtualPad;
         _virtualService.Initialize();
         _injector = new KeyboardMouseInjector(_inputBackend);
         _macroPad = new MacroPadState();
-        _macros = new MacroRunner(_inputBackend, _macroPad, new XInputRumbleOutput(_reader));
-        _hook = new LowLevelInputHook(_mappingEngine.IsKeySuppressed, _mappingEngine.IsMouseSuppressed);
+        _macros = new MacroRunner(_inputBackend, _macroPad, platform.Rumble);
+        _hook = platform.CreateHook(_mappingEngine.IsKeySuppressed, _mappingEngine.IsMouseSuppressed);
         _hook.PanicRequested += OnPanicRequested;
         _pipeline = new InputPipeline(_mappingEngine, _reader, _virtualService, _injector, _macros, _macroPad, _hook);
         _recordKey = _recorder.OnKey;
         _recordMouse = _recorder.OnMouse;
 
         // Drives the live button, trigger and stick display (and pad recording) from the UI thread
-        _liveTimer = new DispatcherTimer(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(16) };
-        _liveTimer.Tick += OnLiveTick;
-        _liveTimer.Start();
+        _liveTimer = _ui.StartTimer(TimeSpan.FromMilliseconds(16), OnLiveTick);
 
+        RefreshPermissions();
         PopulateInspectorOptions();
         PopulateConnectedDevices();
         InitializeControllerButtons();
@@ -281,19 +340,20 @@ public partial class MainViewModel : ObservableObject
         // Start with the A button selected
         var start = ControllerButtons.FirstOrDefault(b => b.Button == ControllerButton.A) ?? ControllerButtons.FirstOrDefault();
         if (start != null) SelectButton(start);
-    }
 
-    private static string ProfilesDirectory =>
-        System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ReWASD-OpenSource", "profiles");
+        _constructed = true;
+        LoadSkinChoice();
+        AutoSelectSkin();
+    }
 
     /// <summary>Brings back configs saved with the save button. A saved config replaces the starter one of the same name.</summary>
     private void LoadSavedProfiles()
     {
         try
         {
-            if (!System.IO.Directory.Exists(ProfilesDirectory)) return;
+            if (!System.IO.Directory.Exists(_profilesDirectory)) return;
 
-            foreach (var file in System.IO.Directory.EnumerateFiles(ProfilesDirectory, "*.json").OrderBy(f => f))
+            foreach (var file in System.IO.Directory.EnumerateFiles(_profilesDirectory, "*.json").OrderBy(f => f))
             {
                 try
                 {
@@ -343,7 +403,7 @@ public partial class MainViewModel : ObservableObject
         SelectedProcessExecutable = profile.ProcessExecutable ?? string.Empty;
 
         // A config saved with a type this build cannot emulate falls back to Xbox 360
-        SelectedVirtualController = VirtualGamepadService.IsSupported(profile.TargetControllerType) ? profile.TargetControllerType : ControllerType.Xbox360;
+        SelectedVirtualController = VirtualPadSupport.IsSupported(profile.TargetControllerType) ? profile.TargetControllerType : ControllerType.Xbox360;
         profile.TargetControllerType = SelectedVirtualController; // write the fallback back so it is saved correctly
         profile.Timings ??= new ActivatorTimings();
         LongPressMs = profile.Timings.LongPressMs;
@@ -379,7 +439,7 @@ public partial class MainViewModel : ObservableObject
         {
             var invalid = System.IO.Path.GetInvalidFileNameChars();
             var fileName = string.Concat(SelectedProfile.Name.Select(c => invalid.Contains(c) ? '_' : c)) + ".json";
-            var path = System.IO.Path.Combine(ProfilesDirectory, fileName);
+            var path = System.IO.Path.Combine(_profilesDirectory, fileName);
 
             lock (_mappingEngine.SyncRoot)
             {
@@ -395,16 +455,21 @@ public partial class MainViewModel : ObservableObject
 
     private void PopulateInspectorOptions() => BuildRemapOptions();
 
+    /// <summary>Re-reads the connected controllers, as happens when one is plugged in or out.</summary>
+    internal void RefreshDevicesForTests() => PopulateConnectedDevices();
+
     private void PopulateConnectedDevices()
     {
         ConnectedDevices.Clear();
-        var slots = XInputReader.GetConnectedSlots();
+        var slots = _reader.ConnectedSlots();
         foreach (var slot in slots)
         {
             string tag = slot == _reader.ExcludedUserIndex ? " (virtual output)" : "";
-            ConnectedDevices.Add($"🎮 XInput Controller {slot + 1}{tag}");
+            ConnectedDevices.Add($"🎮 {_reader.DescribeSlot(slot)}{tag}");
         }
-        if (slots.Count == 0) ConnectedDevices.Add("No XInput controller detected");
+        if (slots.Count == 0) ConnectedDevices.Add(Platform.NoControllerText);
+
+        AutoSelectSkin();
     }
 
     // ---- Surface: controller picture, keyboard and mouse ---------------------------------------------------------
@@ -421,7 +486,82 @@ public partial class MainViewModel : ObservableObject
 
     public IReadOnlyList<SkinOption> SkinOptions => ControllerSkins.Options;
 
-    partial void OnSelectedSkinChanged(SkinKind value) => ApplySkin(value);
+    /// <summary>The detailed animated drawing of the chosen controller, if it has one (front ends that cannot show it use the outline).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowSkinArt))]
+    private ArtScene? _skinArt;
+
+    /// <summary>True when the detailed drawing replaces the outline: the controller tab is open and the skin has one.</summary>
+    public bool ShowSkinArt => SkinArt != null && SelectedInputTab == InputTab.Gamepad;
+
+    partial void OnSelectedSkinChanged(SkinKind value)
+    {
+        if (!_autoSkin)
+        {
+            _skinPinned = true; // the person chose this picture, so a different controller plugged in later won't change it
+            SaveSkinChoice(value);
+        }
+        ApplySkin(value);
+    }
+
+    // The picture is remembered between runs in a small file next to the saved configs (which only read *.json, so it is ignored by them)
+    private string SkinChoicePath => System.IO.Path.Combine(_profilesDirectory, "skin.txt");
+
+    private void SaveSkinChoice(SkinKind kind)
+    {
+        if (!_constructed) return;
+        try
+        {
+            System.IO.Directory.CreateDirectory(_profilesDirectory);
+            System.IO.File.WriteAllText(SkinChoicePath, kind.ToString());
+        }
+        catch (Exception)
+        {
+            // Not being able to remember the choice must never get in the way of using the app
+        }
+    }
+
+    private void LoadSkinChoice()
+    {
+        try
+        {
+            if (System.IO.File.Exists(SkinChoicePath) && Enum.TryParse<SkinKind>(System.IO.File.ReadAllText(SkinChoicePath).Trim(), out var kind) && Enum.IsDefined(kind))
+            {
+                _skinPinned = true; // also pin when the saved choice equals the default and the setter does not run
+                SelectedSkin = kind;
+            }
+        }
+        catch (Exception)
+        {
+            // An unreadable file just means the default picture
+        }
+    }
+
+    private bool _skinPinned;
+    private bool _autoSkin;
+    private bool _constructed;
+
+    /// <summary>Shows the picture that matches the connected controller (a DualSense gets the PS5 drawing), unless one was chosen by hand.</summary>
+    private void AutoSelectSkin()
+    {
+        if (!_constructed || _skinPinned) return;
+
+        var slots = _reader.ConnectedSlots();
+        if (slots.Count == 0) return;
+
+        int slot = slots.Contains(_reader.ActiveUserIndex) ? _reader.ActiveUserIndex : slots[0];
+        if (ControllerSkins.GuessFromName(_reader.DescribeSlot(slot)) is not { } kind || kind == SelectedSkin) return;
+
+        _autoSkin = true;
+        try
+        {
+            SelectedSkin = kind;
+        }
+        finally
+        {
+            _autoSkin = false;
+        }
+    }
 
     private static string FriendlyPadName(ControllerButton b) =>
         System.Text.RegularExpressions.Regex.Replace(b.ToString(), "(?<=[a-z])(?=[A-Z])", " ");
@@ -451,6 +591,7 @@ public partial class MainViewModel : ObservableObject
     private void ApplySkin(SkinKind kind)
     {
         var skin = ControllerSkins.Get(kind);
+        SkinArt = skin.Art;
 
         foreach (var vm in ControllerButtons)
         {
@@ -551,10 +692,26 @@ public partial class MainViewModel : ObservableObject
     private bool _syncingOption;
 
     public ObservableCollection<RemapOption> RemapOptions { get; } = new();
-    public System.ComponentModel.ICollectionView RemapOptionsView { get; private set; } = null!;
+
+    /// <summary>The options grouped for toolkits that can group a list (WPF); null elsewhere, which uses <see cref="RemapGroups"/>.</summary>
+    public System.Collections.IEnumerable? RemapOptionsView { get; private set; }
+
+    /// <summary>The same options, already split into their groups (Controller, Keyboard, Mouse, Layers).</summary>
+    public IReadOnlyList<RemapGroup> RemapGroups { get; private set; } = Array.Empty<RemapGroup>();
 
     [ObservableProperty]
     private RemapOption? _selectedRemapOption;
+
+    /// <summary>Whether the grouped "Remap to" menu is open (toolkits without a grouped drop-down draw their own).</summary>
+    [ObservableProperty]
+    private bool _isRemapMenuOpen;
+
+    [RelayCommand]
+    private void ChooseRemapOption(RemapOption? option)
+    {
+        if (option != null) SelectedRemapOption = option;
+        IsRemapMenuOpen = false;
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsMacroMode))]
@@ -570,9 +727,11 @@ public partial class MainViewModel : ObservableObject
 
         RemapOptions.Add(new RemapOption(RemapKind.Nothing, "Nothing", "Nothing (disable this input)") { Legend = "", Shape = IconShape.Glyph });
 
+        // Without a virtual controller (macOS) a mapping to a pad button has nowhere to go, so the group says so
+        string padGroup = SupportsVirtualController ? "Controller" : "Controller (Windows only)";
         foreach (var b in ControllerSkins.Get(SkinKind.Xbox).Layout.Keys)
         {
-            RemapOptions.Add(new RemapOption(RemapKind.Pad, "Controller", FriendlyPadName(b)) { Pad = b });
+            RemapOptions.Add(new RemapOption(RemapKind.Pad, padGroup, FriendlyPadName(b)) { Pad = b });
         }
 
         foreach (var key in InputLayouts.Keyboard)
@@ -592,9 +751,8 @@ public partial class MainViewModel : ObservableObject
             RemapOptions.Add(new RemapOption(RemapKind.Layer, "Layers", "Switch to " + LayerNames[i]) { Number = i, Legend = "", Shape = IconShape.Glyph });
         }
 
-        var view = new System.Windows.Data.ListCollectionView(RemapOptions);
-        view.GroupDescriptions.Add(new System.Windows.Data.PropertyGroupDescription(nameof(RemapOption.Group)));
-        RemapOptionsView = view;
+        RemapOptionsView = _ui.CreateGroupedView(RemapOptions, nameof(RemapOption.Group));
+        RemapGroups = RemapOptions.GroupBy(o => o.Group).Select(g => new RemapGroup(g.Key, g.ToList())).ToList();
         SelectedRemapOption = RemapOptions[0];
     }
 
@@ -963,8 +1121,12 @@ public partial class MainViewModel : ObservableObject
 
         if (IsRemappingActive)
         {
+            // macOS only lets an app watch or inject input once the person has allowed it; ask now, not on the first key press
+            if (Platform.NeedsInputPermissions && _platform.MissingPermissions() != null) _platform.RequestPermissions();
+            RefreshPermissions();
+
             // Snapshot XInput slots first: the virtual pad is the slot that appears after connecting
-            var before = XInputReader.GetConnectedSlots();
+            var before = _reader.ConnectedSlots();
 
             // Find the physical controller's devices before the virtual pad exists, so the virtual pad is never hidden
             _physicalDevices = _hidHide.IsAvailable ? _hidHide.GetPhysicalControllerDevices() : Array.Empty<string>();
@@ -975,17 +1137,27 @@ public partial class MainViewModel : ObservableObject
             _reader.ExcludedUserIndex = ok && SelectedVirtualController == ControllerType.Xbox360 ? FindNewSlot(before) : -1;
 
             bool wantMute = HideInputDevice || AnyMappingMuted();
-            HideResult? hide = wantMute ? (ok ? _hidHide.Hide(_physicalDevices) : HideResult.Fail("Hiding needs the virtual controller, which is not connected.")) : null;
+            HideResult? hide = !wantMute ? null
+                : !SupportsDeviceHiding ? HideResult.Fail($"Hiding a controller from other apps is not possible on {Platform.Name}.")
+                : ok ? _hidHide.Hide(_physicalDevices)
+                : HideResult.Fail("Hiding needs the virtual controller, which is not connected.");
             HideStatusText = hide?.Message ?? "Physical controller is not hidden";
 
             _pipeline.Start();
             PopulateConnectedDevices();
             StatusMessage = ok
                 ? $"🟢 REMAPPING ACTIVE — Virtual {VirtualControllerOptions.First(o => o.Type == SelectedVirtualController).Name} controller connected"
-                : "🟡 REMAPPING ACTIVE — Virtual Output (ViGEm Driver not detected, running in simulation mode)";
+                : !SupportsVirtualController
+                    ? $"🟢 REMAPPING ACTIVE — controller to keyboard, mouse and macros ({Platform.Name} has no virtual controller)"
+                    : "🟡 REMAPPING ACTIVE — Virtual Output (ViGEm Driver not detected, running in simulation mode)";
             if (!_pipeline.KeyboardMouseHooked)
             {
                 StatusMessage += " — keyboard/mouse hook unavailable";
+                if (HasPermissionIssue) StatusMessage += $". {MissingPermissions}";
+            }
+            else if (HasPermissionIssue)
+            {
+                StatusMessage += $" — {MissingPermissions}";
             }
             if (hide != null)
             {
@@ -1032,10 +1204,17 @@ public partial class MainViewModel : ObservableObject
 
     // ---- Live input display and macro recording -------------------------------------------------------------------
 
-    private void OnLiveTick(object? sender, EventArgs e)
+    private void OnLiveTick()
     {
         // While remapping runs the pipeline owns the pad reader; otherwise read it here so the display still works
         PhysicalState? phys = _pipeline.IsRunning ? _pipeline.LatestPhysical : _reader.Read();
+
+        // Plugging a controller in or out shows in the device bar straight away
+        if ((phys != null) != _hadController)
+        {
+            _hadController = phys != null;
+            PopulateConnectedDevices();
+        }
 
         if (IsRecording && phys != null) _recorder.OnPad(phys.Buttons);
 
@@ -1128,15 +1307,15 @@ public partial class MainViewModel : ObservableObject
     /// <summary>Stops the live display timer. Call when the window closes.</summary>
     public void StopLiveUpdates()
     {
-        _liveTimer.Stop();
+        _liveTimer.Dispose();
         if (IsRecording) StopMacroRecording();
     }
 
-    private static int FindNewSlot(IReadOnlyList<int> before)
+    private int FindNewSlot(IReadOnlyList<int> before)
     {
         for (int attempt = 0; attempt < 20; attempt++)
         {
-            foreach (var slot in XInputReader.GetConnectedSlots())
+            foreach (var slot in _reader.ConnectedSlots())
             {
                 if (!before.Contains(slot)) return slot;
             }
@@ -1148,7 +1327,7 @@ public partial class MainViewModel : ObservableObject
     // Ctrl+Alt+Shift+F12: always works, even if a mapping has swallowed keys you needed
     private void OnPanicRequested()
     {
-        System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
+        _ui.Post(() =>
         {
             if (!IsRemappingActive) return;
             ToggleApplyCommand.Execute(null);
@@ -1161,7 +1340,7 @@ public partial class MainViewModel : ObservableObject
     {
         _pipeline.Stop();
         _hidHide.Restore();
-        _virtualService.DisconnectVirtualXbox();
+        _virtualService.DisconnectVirtual();
         _reader.ExcludedUserIndex = -1;
     }
 

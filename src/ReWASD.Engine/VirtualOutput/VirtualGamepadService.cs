@@ -8,10 +8,10 @@ using ReWASD.Engine.Remapper;
 namespace ReWASD.Engine.VirtualOutput;
 
 /// <summary>Presents a virtual Xbox 360 or DualShock 4 controller to the system through the ViGEmBus driver.</summary>
-public class VirtualGamepadService : IDisposable
+public class VirtualGamepadService : IVirtualGamepad
 {
     /// <summary>The pad types ViGEm can emulate. Xbox One, DualSense and Switch Pro pads are not available through it.</summary>
-    public static readonly IReadOnlyList<ControllerType> SupportedTypes = new[] { ControllerType.Xbox360, ControllerType.DualShock4 };
+    public static readonly IReadOnlyList<ControllerType> SupportedTypes = VirtualPadSupport.SupportedTypes;
 
     private ViGEmClient? _client;
     private IXbox360Controller? _xbox;
@@ -24,7 +24,7 @@ public class VirtualGamepadService : IDisposable
     /// <summary>The type currently connected, or null.</summary>
     public ControllerType? ConnectedType => _xbox != null ? ControllerType.Xbox360 : _ds4 != null ? ControllerType.DualShock4 : null;
 
-    public static bool IsSupported(ControllerType type) => SupportedTypes.Contains(type);
+    public static bool IsSupported(ControllerType type) => VirtualPadSupport.IsSupported(type);
 
     public void Initialize()
     {

@@ -1,0 +1,195 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:conv="using:ReWASD.UI.Mac.Converters"
+             xmlns:views="using:ReWASD.UI.Mac.Views"
+             mc:Ignorable="d" d:DesignHeight="600" d:DesignWidth="300"
+             x:Class="ReWASD.UI.Mac.Views.MappingPanel">
+    <UserControl.Resources>
+        <conv:EnumToBoolConverter x:Key="EnumToBool" />
+        <conv:MappingModeLabelConverter x:Key="ModeLabel" />
+        <conv:MacroRepeatLabelConverter x:Key="RepeatLabel" />
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <!-- A row in the "Remap to" menu -->
+        <Style Selector="Button.menuitem">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Padding" Value="10,3" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="Button.menuitem:pointerover /template/ Border#Bd">
+            <Setter Property="Background" Value="{StaticResource BrushBgCardHover}" />
+        </Style>
+
+        <!-- The drop-down box showing the current choice -->
+        <Style Selector="ToggleButton.dropdown">
+            <Setter Property="Background" Value="{StaticResource BrushBgCard}" />
+            <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BrushBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                                          HorizontalContentAlignment="Stretch" VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="ToggleButton.dropdown:pointerover /template/ Border#Bd">
+            <Setter Property="Background" Value="{StaticResource BrushBgCardHover}" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1,0,0,0" Padding="16,14">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+
+                <!-- Which input is being edited -->
+                <TextBlock Text="{Binding SelectedButton.FriendlyName, FallbackValue='Nothing selected'}"
+                           Foreground="{StaticResource BrushCyan}" FontSize="20" FontWeight="Bold" />
+                <TextBlock Text="{Binding SelectedButton.TargetText, StringFormat='Currently: {0}'}"
+                           Foreground="{StaticResource BrushTextSecondary}" FontSize="12" Margin="0,2,0,0" />
+
+                <!-- When it fires -->
+                <TextBlock Text="WHEN" Classes="section" />
+                <UniformGrid Columns="3">
+                    <RadioButton Content="Single" Classes="tab" ToolTip.Tip="One press"
+                                 IsChecked="{Binding SelectedActivator, Converter={StaticResource EnumToBool}, ConverterParameter=Single}" />
+                    <RadioButton Content="Long" Classes="tab" ToolTip.Tip="Held past the long-press time"
+                                 IsChecked="{Binding SelectedActivator, Converter={StaticResource EnumToBool}, ConverterParameter=Long}" />
+                    <RadioButton Content="Double" Classes="tab" ToolTip.Tip="Two quick presses"
+                                 IsChecked="{Binding SelectedActivator, Converter={StaticResource EnumToBool}, ConverterParameter=Double}" />
+                    <RadioButton Content="Triple" Classes="tab" ToolTip.Tip="Three quick presses"
+                                 IsChecked="{Binding SelectedActivator, Converter={StaticResource EnumToBool}, ConverterParameter=Triple}" />
+                    <RadioButton Content="Start" Classes="tab" ToolTip.Tip="The moment it goes down"
+                                 IsChecked="{Binding SelectedActivator, Converter={StaticResource EnumToBool}, ConverterParameter=Start}" />
+                    <RadioButton Content="Release" Classes="tab" ToolTip.Tip="When it is let go"
+                                 IsChecked="{Binding SelectedActivator, Converter={StaticResource EnumToBool}, ConverterParameter=Release}" />
+                </UniformGrid>
+
+                <!-- What it does: remap to something, or run a macro -->
+                <TextBlock Text="DO" Classes="section" />
+                <UniformGrid Columns="2">
+                    <RadioButton Content="Remap" Classes="tab"
+                                 IsChecked="{Binding TargetMode, Converter={StaticResource EnumToBool}, ConverterParameter=Remap}" />
+                    <RadioButton Content="Macro" Classes="tab"
+                                 IsChecked="{Binding TargetMode, Converter={StaticResource EnumToBool}, ConverterParameter=Macro}" />
+                </UniformGrid>
+
+                <!-- Remap: one menu with every choice, grouped under headings -->
+                <StackPanel Margin="0,12,0,0" IsVisible="{Binding IsRemapMode}">
+                    <TextBlock Text="Remap to" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" Margin="0,0,0,6" />
+                    <ToggleButton Name="RemapToggle" Classes="dropdown" IsChecked="{Binding IsRemapMenuOpen, Mode=TwoWay}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Orientation="Horizontal">
+                                <views:OptionBadge Legend="{Binding SelectedRemapOption.Legend}" LegendColor="{Binding SelectedRemapOption.LegendColor}"
+                                                   Shape="{Binding SelectedRemapOption.Shape}" />
+                                <TextBlock Text="{Binding SelectedRemapOption.Label}" VerticalAlignment="Center" Foreground="{StaticResource BrushTextPrimary}" />
+                            </StackPanel>
+                            <PathIcon Grid.Column="1" Data="{StaticResource IconChevronDown}" Width="10" Height="10"
+                                      Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="8,0,2,0" />
+                        </Grid>
+                    </ToggleButton>
+                    <Popup IsOpen="{Binding IsRemapMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding #RemapToggle}" Placement="Bottom"
+                           IsLightDismissEnabled="True" WindowManagerAddShadowHint="False">
+                        <Border Classes="menu" Width="{Binding #RemapToggle.Bounds.Width}" MaxHeight="380" Margin="0,2,0,0" Padding="0,4">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding RemapGroups}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold"
+                                                           Margin="10,8,0,4" />
+                                                <ItemsControl ItemsSource="{Binding Options}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Button Classes="menuitem"
+                                                                    Command="{Binding $parent[UserControl].DataContext.ChooseRemapOptionCommand}"
+                                                                    CommandParameter="{Binding}">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <views:OptionBadge Legend="{Binding Legend}" LegendColor="{Binding LegendColor}" Shape="{Binding Shape}" />
+                                                                    <TextBlock Text="{Binding Label}" VerticalAlignment="Center" Foreground="{StaticResource BrushTextPrimary}" />
+                                                                </StackPanel>
+                                                            </Button>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+                    </Popup>
+                </StackPanel>
+
+                <!-- Macro: record or type a sequence -->
+                <StackPanel Margin="0,12,0,0" IsVisible="{Binding IsMacroMode}">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Content="● Record" Command="{Binding StartMacroRecordingCommand}" Classes="secondary"
+                                Padding="14,6" Margin="0,0,8,0" ToolTip.Tip="Record keys, mouse clicks and controller buttons with their timing" />
+                        <Button Content="■ Stop" Command="{Binding StopMacroRecordingCommand}" Classes="secondary"
+                                Padding="14,6" ToolTip.Tip="Finish recording" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding RecordingHint}" Foreground="{StaticResource BrushOrange}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8" />
+
+                    <TextBox Text="{Binding MacroScript}" AcceptsReturn="False" TextWrapping="Wrap" MinHeight="64"
+                             Padding="8,6" FontFamily="Menlo, Consolas, monospace" FontSize="12"
+                             ToolTip.Tip="One step per item, separated by semicolons, e.g. KeyDown:W; Delay:50; KeyUp:W" />
+                    <TextBlock Text="{Binding MacroError}" Foreground="#FF6B6B" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0" />
+
+                    <TextBlock Text="Repeat" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" Margin="0,10,0,6" />
+                    <ComboBox ItemsSource="{Binding AvailableMacroRepeatModes}" SelectedItem="{Binding SelectedMacroRepeat}" Padding="8,5" HorizontalAlignment="Stretch"
+                              ToolTip.Tip="Hold until released keeps everything the macro pressed held while you hold the button, which is how one button can press several others">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={StaticResource RepeatLabel}}" Foreground="{StaticResource BrushTextPrimary}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+
+                <!-- How it behaves once it fires -->
+                <TextBlock Text="BEHAVIOUR" Classes="section" />
+                <ComboBox ItemsSource="{Binding AvailableModes}" SelectedItem="{Binding SelectedMode}" Padding="8,5" HorizontalAlignment="Stretch">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Converter={StaticResource ModeLabel}}" Foreground="{StaticResource BrushTextPrimary}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <StackPanel Margin="0,10,0,0" IsVisible="{Binding IsTurboMode}">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding TurboRateMs, StringFormat='{}{0} ms'}" Foreground="{StaticResource BrushCyan}" FontSize="12" />
+                        <TextBlock Text="Repeat every" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" />
+                    </DockPanel>
+                    <Slider Minimum="20" Maximum="200" SmallChange="5" LargeChange="20" TickFrequency="1" IsSnapToTickEnabled="True"
+                            Value="{Binding TurboRateMs}" Margin="0,6,0,0" />
+                </StackPanel>
+
+                <!-- Actions -->
+                <Button Content="SAVE" Command="{Binding SaveCurrentMappingCommand}" Classes="primary" Margin="0,20,0,8" />
+                <Button Content="Reset to default" Command="{Binding ResetCurrentMappingCommand}" Classes="secondary" HorizontalAlignment="Stretch" />
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</UserControl>

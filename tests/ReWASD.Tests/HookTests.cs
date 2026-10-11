@@ -60,7 +60,7 @@ public class HookTests
     }
 
     // Uses F13, a key no application binds, and swallows it, so running this has no visible effect.
-    [Fact]
+    [WindowsFact]
     public void Hook_CapturesAndSwallowsMappedKey_AndTracksRelease()
     {
         using var hook = new LowLevelInputHook(name => name == "F13", _ => false) { IncludeInjected = true };
@@ -82,7 +82,7 @@ public class HookTests
         }
     }
 
-    [Fact]
+    [WindowsFact]
     public void Hook_IgnoresInjectedInput_ByDefault()
     {
         using var hook = new LowLevelInputHook(_ => true, _ => true); // would swallow everything it saw

@@ -1,0 +1,21 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="using:ReWASD.UI.Mac.Converters"
+             x:Class="ReWASD.UI.Mac.App"
+             Name="ReWASD"
+             RequestedThemeVariant="Dark">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://ReWASD/Styles/Icons.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <conv:EnumToBoolConverter x:Key="EnumToBool" />
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://ReWASD/Styles/Theme.axaml" />
+    </Application.Styles>
+</Application>

@@ -151,6 +151,9 @@ public sealed partial class RemapOption : ObservableObject
     private IconShape _shape = IconShape.Circle;
 }
 
+/// <summary>One heading of the "Remap to" dropdown with the choices under it.</summary>
+public sealed record RemapGroup(string Name, IReadOnlyList<RemapOption> Options);
+
 /// <summary>One row of the virtual-controller menu.</summary>
 public sealed record VirtualControllerOption(ControllerType Type, string Name, bool IsAvailable, string Note);
 

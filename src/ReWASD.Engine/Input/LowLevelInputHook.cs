@@ -11,7 +11,7 @@ namespace ReWASD.Engine.Input;
 /// Safety: only inputs the engine reports as mapped are swallowed. Ctrl+Alt+Shift+F12 is a panic key that is
 /// never forwarded to the engine and raises <see cref="PanicRequested"/>.
 /// </summary>
-public sealed class LowLevelInputHook : IDisposable
+public sealed class LowLevelInputHook : IInputHook
 {
     public static readonly string[] MouseNames =
     {
@@ -31,8 +31,6 @@ public sealed class LowLevelInputHook : IDisposable
 
     private const uint LlkhfInjected = 0x10;
     private const uint LlmhfInjected = 0x01;
-    private const int WheelHoldMs = 60;
-    private const ushort VkF12 = 0x7B;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct KbdLlHookStruct
@@ -90,15 +88,7 @@ public sealed class LowLevelInputHook : IDisposable
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
     private static extern IntPtr GetModuleHandleW(string? name);
 
-    private readonly Func<string, bool> _isKeySuppressed;
-    private readonly Func<string, bool> _isMouseSuppressed;
-    private readonly object _gate = new();
-    private readonly HashSet<string> _pressedKeys = new(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _pressedMouse = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, long> _wheelUntil = new(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _swallowedKeys = new(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _swallowedMouse = new(StringComparer.OrdinalIgnoreCase);
-    private readonly bool[] _modifiers = new bool[3]; // ctrl, alt, shift
+    private readonly InputHookCore _core;
 
     // Delegates are fields so the GC cannot collect them while Windows still holds the pointers
     private HookProc? _keyboardProc;
@@ -109,8 +99,10 @@ public sealed class LowLevelInputHook : IDisposable
 
     public LowLevelInputHook(Func<string, bool> isKeySuppressed, Func<string, bool> isMouseSuppressed)
     {
-        _isKeySuppressed = isKeySuppressed;
-        _isMouseSuppressed = isMouseSuppressed;
+        _core = new InputHookCore(isKeySuppressed, isMouseSuppressed,
+            () => PanicRequested?.Invoke(),
+            (name, down) => KeyEvent?.Invoke(name, down),
+            (name, down) => MouseEvent?.Invoke(name, down));
     }
 
     /// <summary>When true (tests only), events injected by this or any process are processed instead of ignored.</summary>
@@ -154,32 +146,11 @@ public sealed class LowLevelInputHook : IDisposable
         _threadId = 0;
         IsInstalled = false;
 
-        lock (_gate)
-        {
-            _pressedKeys.Clear();
-            _pressedMouse.Clear();
-            _wheelUntil.Clear();
-            _swallowedKeys.Clear();
-            _swallowedMouse.Clear();
-            Array.Clear(_modifiers);
-        }
+        _core.Reset();
     }
 
     /// <summary>Keys and mouse buttons (and recent wheel notches) currently down, by profile name.</summary>
-    public (IReadOnlyCollection<string> Keys, IReadOnlyCollection<string> Mouse) Snapshot()
-    {
-        lock (_gate)
-        {
-            long now = Environment.TickCount64;
-            foreach (var expired in _wheelUntil.Where(w => w.Value <= now).Select(w => w.Key).ToList())
-            {
-                _wheelUntil.Remove(expired);
-                _pressedMouse.Remove(expired);
-            }
-
-            return (_pressedKeys.ToArray(), _pressedMouse.ToArray());
-        }
-    }
+    public (IReadOnlyCollection<string> Keys, IReadOnlyCollection<string> Mouse) Snapshot() => _core.Snapshot();
 
     private void MessageLoop(ManualResetEventSlim ready)
     {
@@ -223,7 +194,7 @@ public sealed class LowLevelInputHook : IDisposable
                 bool down = message is WmKeyDown or WmSysKeyDown;
                 bool up = message is WmKeyUp or WmSysKeyUp;
 
-                if ((!injected || IncludeInjected) && (down || up) && HandleKey((ushort)kb.vkCode, down)) return (IntPtr)1;
+                if ((!injected || IncludeInjected) && (down || up) && _core.HandleKey((ushort)kb.vkCode, down)) return (IntPtr)1;
             }
         }
         catch (Exception)
@@ -231,48 +202,6 @@ public sealed class LowLevelInputHook : IDisposable
             // Never let a bug in our handling block the user's keyboard
         }
         return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
-    }
-
-    /// <summary>Returns true if the event should be swallowed.</summary>
-    private bool HandleKey(ushort vk, bool down)
-    {
-        // Track modifiers for the panic key before anything else
-        switch (vk)
-        {
-            case 0x10 or 0xA0 or 0xA1: lock (_gate) _modifiers[2] = down; break;
-            case 0x11 or 0xA2 or 0xA3: lock (_gate) _modifiers[0] = down; break;
-            case 0x12 or 0xA4 or 0xA5: lock (_gate) _modifiers[1] = down; break;
-        }
-
-        if (vk == VkF12)
-        {
-            bool panic;
-            lock (_gate) panic = _modifiers[0] && _modifiers[1] && _modifiers[2];
-            if (panic)
-            {
-                if (down) ThreadPool.QueueUserWorkItem(_ => PanicRequested?.Invoke());
-                return true; // the panic combo itself is never passed on
-            }
-        }
-
-        if (!KeyMap.TryGetKeyName(vk, out var name)) return false;
-
-        KeyEvent?.Invoke(name, down);
-
-        lock (_gate)
-        {
-            if (down)
-            {
-                _pressedKeys.Add(name);
-                if (_swallowedKeys.Contains(name)) return true;       // auto-repeat of a key we are already swallowing
-                if (!_isKeySuppressed(name)) return false;
-                _swallowedKeys.Add(name);
-                return true;
-            }
-
-            _pressedKeys.Remove(name);
-            return _swallowedKeys.Remove(name); // a swallowed key's release is swallowed too, so nothing is left stuck
-        }
     }
 
     private IntPtr MouseCallback(int nCode, IntPtr wParam, IntPtr lParam)
@@ -295,7 +224,7 @@ public sealed class LowLevelInputHook : IDisposable
 
     private bool HandleMouse(int message, uint mouseData)
     {
-        string? name;
+        string name;
         bool down;
 
         switch (message)
@@ -312,35 +241,12 @@ public sealed class LowLevelInputHook : IDisposable
                 break;
             case WmMouseWheel:
                 short delta = (short)(mouseData >> 16);
-                name = delta > 0 ? "Wheel Up" : "Wheel Down";
-                MouseEvent?.Invoke(name, true);
-                lock (_gate)
-                {
-                    if (!_isMouseSuppressed(name)) return false;
-                    _pressedMouse.Add(name);
-                    _wheelUntil[name] = Environment.TickCount64 + WheelHoldMs;
-                }
-                return true;
+                return _core.HandleWheel(delta > 0 ? "Wheel Up" : "Wheel Down");
             default:
                 return false; // movement and everything else is left alone
         }
 
-        MouseEvent?.Invoke(name, down);
-
-        lock (_gate)
-        {
-            if (down)
-            {
-                _pressedMouse.Add(name);
-                if (_swallowedMouse.Contains(name)) return true;
-                if (!_isMouseSuppressed(name)) return false;
-                _swallowedMouse.Add(name);
-                return true;
-            }
-
-            _pressedMouse.Remove(name);
-            return _swallowedMouse.Remove(name);
-        }
+        return _core.HandleMouseButton(name, down);
     }
 
     public void Dispose() => Stop();
