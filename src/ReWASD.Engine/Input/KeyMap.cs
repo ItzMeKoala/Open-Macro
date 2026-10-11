@@ -35,7 +35,7 @@ public static class KeyMap
             }
         }
 
-        if (name.Length is 2 or 3 && (name[0] is 'F' or 'f') && int.TryParse(name.AsSpan(1), out int f) && f is >= 1 and <= 12)
+        if (name.Length is 2 or 3 && (name[0] is 'F' or 'f') && int.TryParse(name.AsSpan(1), out int f) && f is >= 1 and <= 24)
         {
             vk = (ushort)(0x70 + f - 1);
             return true;
@@ -45,6 +45,45 @@ public static class KeyMap
     }
 
     public static bool IsExtended(ushort vk) => Extended.Contains(vk);
+
+    // One canonical name per virtual key, so a captured key always maps back to the name profiles use
+    private static readonly string[] CanonicalNamed =
+    {
+        "Space", "Tab", "Escape", "Enter", "Back", "ShiftKey", "ControlKey", "Alt",
+        "Up", "Down", "Left", "Right", "PageUp", "PageDown", "End", "Home", "Insert", "Delete"
+    };
+
+    private static readonly Dictionary<ushort, string> ReverseNamed =
+        CanonicalNamed.ToDictionary(n => Named[n], n => n);
+
+    /// <summary>Turns a captured virtual key into the profile name for it. Left and right modifiers share one name.</summary>
+    public static bool TryGetKeyName(ushort vk, out string name)
+    {
+        if (vk is (>= 'A' and <= 'Z') or (>= '0' and <= '9'))
+        {
+            name = ((char)vk).ToString();
+            return true;
+        }
+
+        if (vk is >= 0x70 and <= 0x87)
+        {
+            name = "F" + (vk - 0x6F);
+            return true;
+        }
+
+        vk = vk switch
+        {
+            0x10 or 0xA1 => 0xA0, // Shift
+            0x11 or 0xA3 => 0xA2, // Control
+            0x12 or 0xA5 => 0xA4, // Alt
+            _ => vk
+        };
+
+        return ReverseNamed.TryGetValue(vk, out name!);
+    }
+
+    /// <summary>The names the UI offers for keys that are not letters, digits or F-keys.</summary>
+    public static IReadOnlyList<string> NamedKeys => CanonicalNamed;
 
     /// <summary>
     /// Resolves a mouse target name. Returns true if recognised; exactly one of

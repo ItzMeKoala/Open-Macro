@@ -41,6 +41,7 @@ public partial class MainViewModel : ObservableObject
     private readonly HidHideService _hidHide = new();
     private readonly MacroRunner _macros;
     private readonly MacroPadState _macroPad;
+    private readonly LowLevelInputHook _hook;
     private readonly InputPipeline _pipeline;
 
     [ObservableProperty]
@@ -164,7 +165,9 @@ public partial class MainViewModel : ObservableObject
         _injector = new KeyboardMouseInjector(_inputBackend);
         _macroPad = new MacroPadState();
         _macros = new MacroRunner(_inputBackend, _macroPad, new XInputRumbleOutput(_reader));
-        _pipeline = new InputPipeline(_mappingEngine, _reader, _virtualService, _injector, _macros, _macroPad);
+        _hook = new LowLevelInputHook(_mappingEngine.IsKeySuppressed, _mappingEngine.IsMouseSuppressed);
+        _hook.PanicRequested += OnPanicRequested;
+        _pipeline = new InputPipeline(_mappingEngine, _reader, _virtualService, _injector, _macros, _macroPad, _hook);
 
         PopulateInspectorOptions();
         PopulateConnectedDevices();
@@ -473,6 +476,10 @@ public partial class MainViewModel : ObservableObject
             StatusMessage = ok
                 ? "🟢 REMAPPING ACTIVE — Virtual Xbox 360 Controller Connected"
                 : "🟡 REMAPPING ACTIVE — Virtual Output (ViGEm Driver not detected, running in simulation mode)";
+            if (!_pipeline.KeyboardMouseHooked)
+            {
+                StatusMessage += " — keyboard/mouse hook unavailable";
+            }
             if (wantMute)
             {
                 StatusMessage += muted ? " — physical controller hidden"
@@ -502,6 +509,17 @@ public partial class MainViewModel : ObservableObject
             Thread.Sleep(25);
         }
         return -1;
+    }
+
+    // Ctrl+Alt+Shift+F12: always works, even if a mapping has swallowed keys you needed
+    private void OnPanicRequested()
+    {
+        System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
+        {
+            if (!IsRemappingActive) return;
+            ToggleApplyCommand.Execute(null);
+            StatusMessage = "Panic key pressed — remapping stopped";
+        });
     }
 
     /// <summary>Stops polling and releases every held key and the virtual pad. Call when the window closes.</summary>

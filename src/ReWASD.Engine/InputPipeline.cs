@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using ReWASD.Core.Models;
 using ReWASD.Engine.Input;
 using ReWASD.Engine.Remapper;
 using ReWASD.Engine.VirtualOutput;
@@ -24,9 +25,12 @@ public sealed class InputPipeline : IDisposable
 
     private readonly MacroRunner? _macros;
     private readonly MacroPadState? _macroPad;
+    private readonly LowLevelInputHook? _hook;
+
+    private static readonly PhysicalState NoController = new(new HashSet<ControllerButton>(), 0, 0, 0, 0, 0, 0);
 
     public InputPipeline(MappingEngine engine, IGamepadReader reader, VirtualGamepadService virtualPad, KeyboardMouseInjector injector,
-        MacroRunner? macros = null, MacroPadState? macroPad = null)
+        MacroRunner? macros = null, MacroPadState? macroPad = null, LowLevelInputHook? hook = null)
     {
         _engine = engine;
         _reader = reader;
@@ -34,7 +38,11 @@ public sealed class InputPipeline : IDisposable
         _injector = injector;
         _macros = macros;
         _macroPad = macroPad;
+        _hook = hook;
     }
+
+    /// <summary>False if the keyboard/mouse hook could not be installed, so keys and mouse buttons cannot be remapped.</summary>
+    public bool KeyboardMouseHooked { get; private set; }
 
     public bool IsRunning => _running;
 
@@ -47,6 +55,7 @@ public sealed class InputPipeline : IDisposable
     {
         if (_running) return;
         _running = true;
+        KeyboardMouseHooked = _hook?.Start() ?? false;
         timeBeginPeriod(1); // default timer granularity is ~15ms, far too coarse for polling
         _thread = new Thread(Loop) { IsBackground = true, Name = "ReWASD input pipeline" };
         _thread.Start();
@@ -59,6 +68,8 @@ public sealed class InputPipeline : IDisposable
         _thread?.Join();
         _thread = null;
         timeEndPeriod(1);
+        _hook?.Stop(); // stop swallowing input before anything else
+        KeyboardMouseHooked = false;
         _injector.ReleaseAll();
         _macros?.CancelAll();
         _macroPad?.Clear();
@@ -74,25 +85,21 @@ public sealed class InputPipeline : IDisposable
                 var physical = _reader.Read();
                 HasPhysicalController = physical != null;
 
-                if (physical != null)
-                {
-                    var state = _engine.ProcessInputs(
-                        physical.Buttons,
-                        physical.LeftStickX, physical.LeftStickY,
-                        physical.RightStickX, physical.RightStickY,
-                        physical.LeftTrigger, physical.RightTrigger);
+                // Keyboard and mouse mappings must keep working without a controller, so every frame is processed
+                physical ??= NoController;
+                var (keys, mouse) = _hook?.Snapshot() ?? (Array.Empty<string>(), Array.Empty<string>());
 
-                    _macroPad?.ApplyTo(state); // macro-driven pad buttons and axes join the frame
-                    _virtualPad.SendReport(state);
-                    _injector.Apply(state);
-                    _macros?.Update(state.ActiveMacros);
-                    FrameProcessed?.Invoke(state);
-                }
-                else
-                {
-                    _injector.ReleaseAll();
-                    _macros?.CancelAll();
-                }
+                var state = _engine.ProcessInputs(
+                    physical.Buttons, keys, mouse,
+                    physical.LeftStickX, physical.LeftStickY,
+                    physical.RightStickX, physical.RightStickY,
+                    physical.LeftTrigger, physical.RightTrigger);
+
+                _macroPad?.ApplyTo(state); // macro-driven pad buttons and axes join the frame
+                _virtualPad.SendReport(state);
+                _injector.Apply(state);
+                _macros?.Update(state.ActiveMacros);
+                FrameProcessed?.Invoke(state);
             }
             catch (Exception)
             {
