@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:ReWASD.UI.ViewModels"
              xmlns:conv="using:ReWASD.UI.Mac.Converters"
+             xmlns:art="using:ReWASD.UI.Mac.Art"
              mc:Ignorable="d" d:DesignHeight="460" d:DesignWidth="700"
              x:Class="ReWASD.UI.Mac.Views.InputSurface">
     <UserControl.Resources>
@@ -70,7 +71,10 @@
     <Grid Background="Transparent">
 
         <!-- The drawing: a fixed 700x440 canvas scaled to whatever room there is -->
-        <Viewbox Stretch="Uniform" Margin="16">
+        <!-- A detailed animated picture, for controllers that have one -->
+        <art:ArtView Margin="16" Scene="{Binding SkinArt}" Sources="{Binding ControllerButtons}" IsVisible="{Binding ShowSkinArt}" />
+
+        <Viewbox Stretch="Uniform" Margin="16" IsVisible="{Binding !ShowSkinArt}">
             <Canvas Width="700" Height="440">
 
                 <!-- Body, wells, touchpad, keyboard plate... -->

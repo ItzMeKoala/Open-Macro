@@ -20,6 +20,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="ReWASD.UI.Mac.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ReWASD.Core\ReWASD.Core.csproj" />
     <ProjectReference Include="..\ReWASD.Engine\ReWASD.Engine.csproj" />
     <ProjectReference Include="..\ReWASD.App\ReWASD.App.csproj" />

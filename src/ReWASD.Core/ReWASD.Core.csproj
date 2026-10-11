@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Skins\Art\*.svg" />
+  </ItemGroup>
+
 </Project>

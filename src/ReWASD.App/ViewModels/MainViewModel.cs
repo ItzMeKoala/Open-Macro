@@ -10,6 +10,7 @@ using ReWASD.Engine.Platform;
 using ReWASD.Engine.Remapper;
 using ReWASD.Engine.VirtualOutput;
 using ReWASD.Core.Skins;
+using ReWASD.Core.Skins.Art;
 
 namespace ReWASD.UI.ViewModels;
 
@@ -73,6 +74,7 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsGamepadTab))]
+    [NotifyPropertyChangedFor(nameof(ShowSkinArt))]
     private InputTab _selectedInputTab = InputTab.Gamepad;
 
     [ObservableProperty]
@@ -338,6 +340,9 @@ public partial class MainViewModel : ObservableObject
         // Start with the A button selected
         var start = ControllerButtons.FirstOrDefault(b => b.Button == ControllerButton.A) ?? ControllerButtons.FirstOrDefault();
         if (start != null) SelectButton(start);
+
+        _constructed = true;
+        AutoSelectSkin();
     }
 
     /// <summary>Brings back configs saved with the save button. A saved config replaces the starter one of the same name.</summary>
@@ -449,6 +454,9 @@ public partial class MainViewModel : ObservableObject
 
     private void PopulateInspectorOptions() => BuildRemapOptions();
 
+    /// <summary>Re-reads the connected controllers, as happens when one is plugged in or out.</summary>
+    internal void RefreshDevicesForTests() => PopulateConnectedDevices();
+
     private void PopulateConnectedDevices()
     {
         ConnectedDevices.Clear();
@@ -459,6 +467,8 @@ public partial class MainViewModel : ObservableObject
             ConnectedDevices.Add($"🎮 {_reader.DescribeSlot(slot)}{tag}");
         }
         if (slots.Count == 0) ConnectedDevices.Add(Platform.NoControllerText);
+
+        AutoSelectSkin();
     }
 
     // ---- Surface: controller picture, keyboard and mouse ---------------------------------------------------------
@@ -471,7 +481,45 @@ public partial class MainViewModel : ObservableObject
 
     public IReadOnlyList<SkinOption> SkinOptions => ControllerSkins.Options;
 
-    partial void OnSelectedSkinChanged(SkinKind value) => ApplySkin(value);
+    /// <summary>The detailed animated drawing of the chosen controller, if it has one (front ends that cannot show it use the outline).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowSkinArt))]
+    private ArtScene? _skinArt;
+
+    /// <summary>True when the detailed drawing replaces the outline: the controller tab is open and the skin has one.</summary>
+    public bool ShowSkinArt => SkinArt != null && SelectedInputTab == InputTab.Gamepad;
+
+    partial void OnSelectedSkinChanged(SkinKind value)
+    {
+        if (!_autoSkin) _skinPinned = true; // the person chose this picture, so a different controller plugged in later won't change it
+        ApplySkin(value);
+    }
+
+    private bool _skinPinned;
+    private bool _autoSkin;
+    private bool _constructed;
+
+    /// <summary>Shows the picture that matches the connected controller (a DualSense gets the PS5 drawing), unless one was chosen by hand.</summary>
+    private void AutoSelectSkin()
+    {
+        if (!_constructed || _skinPinned) return;
+
+        var slots = _reader.ConnectedSlots();
+        if (slots.Count == 0) return;
+
+        int slot = slots.Contains(_reader.ActiveUserIndex) ? _reader.ActiveUserIndex : slots[0];
+        if (ControllerSkins.GuessFromName(_reader.DescribeSlot(slot)) is not { } kind || kind == SelectedSkin) return;
+
+        _autoSkin = true;
+        try
+        {
+            SelectedSkin = kind;
+        }
+        finally
+        {
+            _autoSkin = false;
+        }
+    }
 
     private static string FriendlyPadName(ControllerButton b) =>
         System.Text.RegularExpressions.Regex.Replace(b.ToString(), "(?<=[a-z])(?=[A-Z])", " ");
@@ -501,6 +549,7 @@ public partial class MainViewModel : ObservableObject
     private void ApplySkin(SkinKind kind)
     {
         var skin = ControllerSkins.Get(kind);
+        SkinArt = skin.Art;
 
         foreach (var vm in ControllerButtons)
         {

@@ -41,6 +41,15 @@ Controllers are read through Apple's GameController framework, so any pad macOS 
 macOS to keep delivering controller input while another app has focus. This has not been tried with real controllers
 yet; please report what you see.
 
+## The PlayStation 5 picture
+
+Pick **PlayStation 5** in the picture menu (it is chosen for you when a DualSense is connected) to get a detailed,
+animated DualSense drawing. It follows your real controller: buttons sink and glow while held, triggers pull down
+with the analog value, sticks lean and shrink when clicked, and the button you are editing is outlined in gold.
+Click any part of the drawing to select it. The drawing is `src/ReWASD.Core/Skins/Art/dualsense.svg`; it opens in a
+browser and carries the part names and motion settings as `data-*` attributes (see `SvgArtParser`). Other pictures
+and the Windows app still use the outline drawings.
+
 ## Differences to know about
 
 - Key names in configs are the Windows ones; `Alt` is Option, `Back` is the Delete key, `Delete` is forward delete

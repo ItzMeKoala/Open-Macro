@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="ReWASD.Tests" />
+    <InternalsVisibleTo Include="ReWASD.UI.Mac.Tests" />
   </ItemGroup>
 
   <PropertyGroup>

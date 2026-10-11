@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using ReWASD.Core.Models;
+using ReWASD.Core.Skins.Art;
 
 namespace ReWASD.Core.Skins;
 
@@ -39,6 +40,12 @@ public sealed class ControllerSkin
     public required string Name { get; init; }
     public required IReadOnlyDictionary<ControllerButton, Placement> Layout { get; init; }
     public required IReadOnlyList<DecorShape> Decor { get; init; }
+
+    /// <summary>
+    /// A detailed, animated drawing of the controller, for front ends that can show one. Null means only the outline in
+    /// <see cref="Decor"/> and the buttons in <see cref="Layout"/> are drawn, which every front end can do.
+    /// </summary>
+    public ArtScene? Art { get; init; }
 }
 
 /// <summary>Vector controller pictures drawn for this project. They are generic drawings, not manufacturer artwork.</summary>
@@ -54,6 +61,19 @@ public static class ControllerSkins
         new SkinOption(SkinKind.PlayStation5, "PlayStation 5"),
         new SkinOption(SkinKind.SwitchPro, "Switch Pro")
     };
+
+    /// <summary>The picture that suits a controller by the name it reports (for example "DualSense Wireless Controller"), or null if the name is not recognised.</summary>
+    public static SkinKind? GuessFromName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+
+        string n = name.Trim().ToLowerInvariant();
+        if (n.Contains("dualsense")) return SkinKind.PlayStation5;
+        if (n.Contains("dualshock") || n.Contains("ds4") || n == "wireless controller") return SkinKind.PlayStation4;
+        if (n.Contains("xbox")) return SkinKind.Xbox;
+        if (n.Contains("pro controller") || n.Contains("switch")) return SkinKind.SwitchPro;
+        return null;
+    }
 
     private static readonly Dictionary<SkinKind, ControllerSkin> Cache = new();
 
@@ -319,6 +339,7 @@ public static class ControllerSkins
         {
             Kind = kind,
             Name = ps5 ? "PlayStation 5" : "PlayStation 4",
+            Art = ps5 ? ArtLibrary.TryGetDualSense() : null,
             Layout = WithShoulders(
                 (ControllerButton.View, 230, 130, 58, 22), (ControllerButton.Menu, 470, 130, 64, 22),
                 (ControllerButton.Guide, 350, 220, 36, 36),
