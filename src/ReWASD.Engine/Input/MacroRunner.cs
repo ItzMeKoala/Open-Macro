@@ -32,6 +32,9 @@ public sealed class MacroRunner : IDisposable
     /// <summary>Raised when a macro step that talks to the outside world fails (no network, OBS not running...), so the app can say so.</summary>
     public event Action<string>? ActionFailed;
 
+    /// <summary>Raised each time a macro starts running (for usage counts). May come from the polling thread.</summary>
+    public event Action? MacroStarted;
+
     /// <summary>Everything a single run has pressed or set, so it can be undone however the run ends.</summary>
     private sealed class RunState
     {
@@ -77,6 +80,7 @@ public sealed class MacroRunner : IDisposable
             if (_running.Remove(macro, out var old)) old.Cancel();
             _running[macro] = cts;
         }
+        MacroStarted?.Invoke();
         _ = RunAsync(macro, cts);
     }
 

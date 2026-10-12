@@ -483,3 +483,32 @@ public class MacroSystemStepTests
         }, backend.Events.Take(10));
     }
 }
+
+public class MacroStartedEventTests
+{
+    private sealed class NullBackend : IInputBackend
+    {
+        public void KeyDown(ushort virtualKey) { }
+        public void KeyUp(ushort virtualKey) { }
+        public void MouseDown(MouseButtonKind button) { }
+        public void MouseUp(MouseButtonKind button) { }
+        public void MouseWheel(int delta) { }
+        public void MouseMove(int dx, int dy) { }
+    }
+
+    [Fact]
+    public void EachStartOfAMacro_IsReportedOnce()
+    {
+        using var runner = new MacroRunner(new NullBackend());
+        int started = 0;
+        runner.MacroStarted += () => Interlocked.Increment(ref started);
+        Assert.True(MacroDefinition.TryParseScript("KeyTap:A", MacroRepeatMode.Once, out var macro, out _));
+
+        runner.Update(new[] { macro });
+        runner.Update(new[] { macro });          // still held: not another start
+        runner.Update(Array.Empty<MacroDefinition>());
+        runner.Update(new[] { macro });
+
+        Assert.Equal(2, started);
+    }
+}

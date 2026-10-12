@@ -347,6 +347,7 @@ public partial class MainViewModel : ObservableObject
         _macros.ActionFailed += message => _ui.Post(() => StatusMessage = message);
         _hook = platform.CreateHook(_mappingEngine.IsKeySuppressed, _mappingEngine.IsMouseSuppressed);
         _hook.PanicRequested += OnPanicRequested;
+        _macros.MacroStarted += () => Interlocked.Increment(ref _macroStarts);
         _foreground = platform.Foreground;
         _mappingEngine.LockChanged += locked => _ui.Post(() => OnEngineLockChanged(locked));
         _pipeline = new InputPipeline(_mappingEngine, _reader, _virtualService, _injector, _macros, _macroPad, _hook);
@@ -376,6 +377,7 @@ public partial class MainViewModel : ObservableObject
         LoadAutoSwitchSetting();
         _manualProfile = _selectedProfile;
         RefreshHistory();
+        LoadStats();
         if (AutoCheckUpdates && _updates is not NoUpdates) _ = CheckAfterStartupAsync();
     }
 
@@ -512,6 +514,85 @@ public partial class MainViewModel : ObservableObject
         {
             StatusMessage = $"Could not save config: {ex.Message}";
         }
+    }
+
+    // ---- Presets -------------------------------------------------------------------------------------------------------
+
+    public IReadOnlyList<ProfilePresets.Preset> Presets { get; } = ProfilePresets.All;
+
+    [RelayCommand]
+    private void NewFromPreset(ProfilePresets.Preset? preset)
+    {
+        if (preset == null) return;
+
+        var profile = preset.Create();
+        string baseName = profile.Name;
+        for (int n = 2; Profiles.Any(p => p.Name == profile.Name); n++) profile.Name = $"{baseName} ({n})";
+
+        Profiles.Add(profile);
+        SelectedProfile = profile;
+        UpdateForegroundWatching();
+        UpdateAllButtonDisplays();
+        StatusMessage = $"Created {profile.Name}: {preset.Description}";
+    }
+
+    // ---- Usage counts (this computer only) ------------------------------------------------------------------------------
+
+    private UsageStats _stats = new();
+    private long _macroStarts;
+    private long _statsLastTick;
+    private int _statsTicks;
+
+    private string StatsPath => System.IO.Path.Combine(_profilesDirectory, "usage.cfg");
+
+    [ObservableProperty]
+    private string _usageSummary = string.Empty;
+
+    public ObservableCollection<string> TopButtonLines { get; } = new();
+
+    partial void OnIsRemappingActiveChanged(bool value)
+    {
+        if (value || !_constructed) return;
+        _stats.Save(StatsPath);
+        RefreshStatsDisplay();
+    }
+
+    private void LoadStats()
+    {
+        _stats = UsageStats.Load(StatsPath);
+        RefreshStatsDisplay();
+    }
+
+    private void RefreshStatsDisplay()
+    {
+        UsageSummary = _stats.Summary;
+        TopButtonLines.Clear();
+        foreach (var (button, count) in _stats.Top(5)) TopButtonLines.Add($"{ComboMapping.Names.Friendly(button)}  —  {count:N0}");
+    }
+
+    private void CountUsage(PhysicalState? phys)
+    {
+        long now = System.Diagnostics.Stopwatch.GetTimestamp();
+        double seconds = _statsLastTick == 0 ? 0 : Math.Min(0.25, (now - _statsLastTick) / (double)System.Diagnostics.Stopwatch.Frequency);
+        _statsLastTick = now;
+
+        if (!_pipeline.IsRunning) return;
+
+        _stats.SecondsRemapping += seconds;
+        if (phys != null) _stats.Observe(phys.Buttons);
+        _stats.MacrosRun += Interlocked.Exchange(ref _macroStarts, 0);
+
+        // Look at the numbers about twice a second and write them out every half minute: no more work than that while gaming
+        if (++_statsTicks % 32 == 0) RefreshStatsDisplay();
+        if (_statsTicks % 1900 == 0) _stats.Save(StatsPath);
+    }
+
+    [RelayCommand]
+    private void ResetUsage()
+    {
+        _stats.Reset();
+        _stats.Save(StatsPath);
+        RefreshStatsDisplay();
     }
 
     // ---- Combos: chords and sequences ----------------------------------------------------------------------------------
@@ -1995,6 +2076,7 @@ public partial class MainViewModel : ObservableObject
 
         if (IsRecording && phys != null) _recorder.OnPad(phys.Buttons);
         FeedComboCapture(phys);
+        CountUsage(phys);
 
         foreach (var vm in ControllerButtons)
         {
@@ -2116,6 +2198,7 @@ public partial class MainViewModel : ObservableObject
     /// <summary>Stops polling and releases every held key and the virtual pad. Call when the window closes.</summary>
     public void Shutdown()
     {
+        _stats.Save(StatsPath);
         _foregroundTimer?.Dispose();
         _foregroundTimer = null;
         _pipeline.Stop();
