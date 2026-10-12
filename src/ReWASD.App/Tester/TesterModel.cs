@@ -10,7 +10,7 @@ public sealed record ButtonSnapshot(ControllerButton Button, bool IsDown, long P
 public sealed record StickSnapshot(
     double X, double Y, double Magnitude, double AngleDegrees,
     double PeakMagnitude, double RestX, double RestY, double RestSamples, double WorstRestDrift,
-    double[] Extents, double Coverage, double MinRadius, double MaxRadius, double MeanRadius, double Roundness,
+    double[] Extents, double Coverage, double MinRadius, double MaxRadius, double MeanRadius, double Roundness, double CircularityError,
     (double X, double Y)[] Trail,
     int StepsX, int StepsY)
 {
@@ -22,7 +22,8 @@ public sealed record StickSnapshot(
 public sealed record TriggerSnapshot(double Value, double Peak, double FirstMovement, double HeldMs, long Presses, int Steps, int[] Travel);
 
 /// <summary>How often the controller reported something new, and how evenly.</summary>
-public sealed record RateSnapshot(double ChangesPerSecond, double PeakChangesPerSecond, double AverageIntervalMs, double WorstIntervalMs, long TotalChanges, double JitterMs, double SteadyShare, long[] Histogram);
+public sealed record RateSnapshot(double ChangesPerSecond, double PeakChangesPerSecond, double AverageIntervalMs, double WorstIntervalMs, long TotalChanges, double JitterMs, double SteadyShare, long[] Histogram,
+    double MedianIntervalMs = 0);
 
 public enum ReactionState
 {
@@ -55,7 +56,16 @@ public sealed class TesterModel
     public const int TrailLength = 90;
     public const int ScopeSamples = 600;             // 6 seconds at one sample per 10 ms
     public const double ScopeStepMs = 10;
-    public const double EnoughCoverage = 0.6;
+    public const double EnoughCoverage = 0.75;
+
+    /// <summary>A direction counts as reached when the stick was pushed at least this far that way (not just passing through).</summary>
+    public const double EdgeReach = 0.7;
+
+    /// <summary>A stick has to sit still this long before its position counts as where it rests.</summary>
+    public const double SettleMs = 200;
+
+    /// <summary>Moving further than this from where it settled means the stick is being moved, not resting.</summary>
+    public const double SettleMove = 0.03;
     public const double BounceMs = 30;               // a release and press closer than this is switch chatter, not a person
     public const double RestLimit = 0.2;             // a stick this close to centre is "resting"
     public const int MaxLog = 200;
@@ -106,6 +116,7 @@ public sealed class TesterModel
     {
         public double X, Y, Peak;
         public double RestSumX, RestSumY, RestCount, WorstRest;
+        public double AnchorX = double.NaN, AnchorY, StillSince;
         public readonly double[] Extents = new double[AngleBins];
         public readonly Queue<(double X, double Y)> Trail = new();
         public readonly HashSet<double> StepsX = new(), StepsY = new();
@@ -192,6 +203,7 @@ public sealed class TesterModel
     {
         s.Peak = 0;
         s.RestSumX = s.RestSumY = s.RestCount = s.WorstRest = 0;
+        s.AnchorX = double.NaN;
         Array.Clear(s.Extents);
         s.Trail.Clear();
         s.StepsX.Clear();
@@ -235,8 +247,8 @@ public sealed class TesterModel
             CountChange(state, nowMs);
             UpdateReaction(state, nowMs);
             foreach (var b in ListedButtons) UpdateButton(b, state.Buttons.Contains(b), nowMs);
-            UpdateStick(_left, "Left stick", state.LeftStickX, state.LeftStickY);
-            UpdateStick(_right, "Right stick", state.RightStickX, state.RightStickY);
+            UpdateStick(_left, state.LeftStickX, state.LeftStickY, nowMs);
+            UpdateStick(_right, state.RightStickX, state.RightStickY, nowMs);
             UpdateTrigger(_lt, "Left trigger", state.LeftTrigger, nowMs);
             UpdateTrigger(_rt, "Right trigger", state.RightTrigger, nowMs);
             Sample(state, nowMs);
@@ -351,9 +363,8 @@ public sealed class TesterModel
 
     // ---- sticks -------------------------------------------------------------------------------------------------------
 
-    private static void UpdateStick(StickStat s, string name, double x, double y)
+    private static void UpdateStick(StickStat s, double x, double y, double now)
     {
-        _ = name;
         s.X = x;
         s.Y = y;
         if (s.StepsX.Count < MaxDistinct) s.StepsX.Add(x);
@@ -361,14 +372,23 @@ public sealed class TesterModel
         double mag = Math.Sqrt(x * x + y * y);
         s.Peak = Math.Max(s.Peak, mag);
 
-        if (mag < RestLimit)
+        // Drift is where the stick sits when nobody is touching it: near the centre and still for a moment. Readings taken while the
+        // stick passes through the middle on its way somewhere else are not drift.
+        if (double.IsNaN(s.AnchorX) || Math.Abs(x - s.AnchorX) > SettleMove || Math.Abs(y - s.AnchorY) > SettleMove)
+        {
+            s.AnchorX = x;
+            s.AnchorY = y;
+            s.StillSince = now;
+        }
+        if (mag < RestLimit && now - s.StillSince >= SettleMs)
         {
             s.RestSumX += x;
             s.RestSumY += y;
             s.RestCount++;
             s.WorstRest = Math.Max(s.WorstRest, mag);
         }
-        else
+
+        if (mag >= RestLimit)
         {
             double degrees = Math.Atan2(y, x) * 180.0 / Math.PI;
             if (degrees < 0) degrees += 360;
@@ -390,19 +410,21 @@ public sealed class TesterModel
         double degrees = Math.Atan2(s.Y, s.X) * 180.0 / Math.PI;
         if (degrees < 0) degrees += 360;
 
-        // Only angles the stick actually reached count towards the circle
-        var covered = s.Extents.Where(e => e >= 0.5).ToArray();
+        // Only directions the stick was pushed all the way count towards the circle. The error is how far, on average, the edge it
+        // reached is from a perfect circle of full reach (1.0): falling short and overshooting (the corners of a square gate) both count.
+        var covered = s.Extents.Where(e => e >= EdgeReach).ToArray();
         double coverage = covered.Length / (double)AngleBins;
         double min = covered.Length > 0 ? covered.Min() : 0;
         double max = covered.Length > 0 ? covered.Max() : 0;
         double mean = covered.Length > 0 ? covered.Average() : 0;
-        double roundness = max > 0 ? min / max : 0;
+        double error = covered.Length > 0 ? Math.Sqrt(covered.Average(e => (e - 1) * (e - 1))) : 0;
+        double roundness = covered.Length > 0 ? Math.Max(0, 1 - error) : 0;
 
         return new StickSnapshot(
             s.X, s.Y, mag, mag < 1e-9 ? 0 : degrees,
             s.Peak,
             s.RestCount > 0 ? s.RestSumX / s.RestCount : 0, s.RestCount > 0 ? s.RestSumY / s.RestCount : 0, s.RestCount, s.WorstRest,
-            (double[])s.Extents.Clone(), coverage, min, max, mean, roundness,
+            (double[])s.Extents.Clone(), coverage, min, max, mean, roundness, error,
             s.Trail.ToArray(), s.StepsX.Count, s.StepsY.Count);
     }
 
@@ -493,6 +515,12 @@ public sealed class TesterModel
             // How even the reports are: the spread of the gaps, and the share of gaps within a quarter of the usual one
             double jitter = _recentIntervals.Count > 1 ? Math.Sqrt(_recentIntervals.Average(g => (g - average) * (g - average))) : 0;
             double steady = _recentIntervals.Count > 0 && average > 0 ? _recentIntervals.Count(g => Math.Abs(g - average) <= average * 0.25) / (double)_recentIntervals.Count : 0;
+            double median = 0;
+            if (_recentIntervals.Count > 0)
+            {
+                var sorted = _recentIntervals.OrderBy(g => g).ToArray();
+                median = sorted.Length % 2 == 1 ? sorted[sorted.Length / 2] : (sorted[sorted.Length / 2 - 1] + sorted[sorted.Length / 2]) / 2;
+            }
 
             var scope = _scope.Select(c => c.AsSpan(0, _scopeFilled).ToArray()).ToArray();
 
@@ -500,7 +528,7 @@ public sealed class TesterModel
                 _connected, elapsed,
                 Snapshot(_left), Snapshot(_right),
                 Snapshot(_lt), Snapshot(_rt),
-                buttons, new RateSnapshot(perSecond, _peakRate, average, worst, _totalChanges, jitter, steady, (long[])_intervalBins.Clone()),
+                buttons, new RateSnapshot(perSecond, _peakRate, average, worst, _totalChanges, jitter, steady, (long[])_intervalBins.Clone(), median),
                 _logVersion, _log.ToList(), scope,
                 new ReactionSnapshot(_reaction, _lastReaction, _reactions.Count > 0 ? _reactions.Min() : 0, _reactions.Count > 0 ? _reactions.Average() : 0, _reactions.Count));
         }

@@ -61,26 +61,32 @@ public static class TesterHealth
     {
         if (s.RestSamples < MinRestSamples) return new(name, Grade.Unknown, "Let go of the stick for a moment");
         string detail = $"rests {s.WorstRestDrift:P1} off centre at worst";
-        return new(name, s.WorstRestDrift < 0.03 ? Grade.Good : s.WorstRestDrift < 0.08 ? Grade.Fair : Grade.Poor, detail);
+
+        // Games ignore the middle of a stick (a deadzone of 10 – 25 % is usual), so a stick that rests within a few percent of centre
+        // is fine; one that rests where a game would notice it is drifting
+        return new(name, s.WorstRestDrift < 0.08 ? Grade.Good : s.WorstRestDrift < 0.15 ? Grade.Fair : Grade.Poor, detail);
     }
 
     private static HealthItem Roundness(string name, StickSnapshot s)
     {
-        if (!s.HasCircle) return new(name, Grade.Unknown, "Roll the stick slowly around its edge");
-        string detail = $"{s.Roundness:P0} round, reaches {s.MaxRadius:0.00}";
-        return new(name, s.Roundness >= 0.92 ? Grade.Good : s.Roundness >= 0.85 ? Grade.Fair : Grade.Poor, detail);
+        if (!s.HasCircle) return new(name, Grade.Unknown, "Roll the stick slowly around its edge, all the way out");
+        string detail = $"{s.CircularityError:P1} average error, reaches {s.MinRadius:0.00} – {s.MaxRadius:0.00}";
+
+        // A healthy stick is within about 10 % of a perfect circle all the way round (pads with a square-ish gate overshoot a little
+        // on the diagonals); a worn or damaged one falls well short somewhere
+        return new(name, s.CircularityError <= 0.10 ? Grade.Good : s.CircularityError <= 0.18 ? Grade.Fair : Grade.Poor, detail);
     }
 
     private static HealthItem Triggers(TesterSnapshot s)
     {
         const string name = "Trigger travel";
-        if (s.LeftTrigger.Presses == 0 || s.RightTrigger.Presses == 0) return new(name, Grade.Unknown, "Pull both triggers all the way");
-
         double reach = Math.Min(s.LeftTrigger.Peak, s.RightTrigger.Peak);
+        if (s.LeftTrigger.Presses == 0 || s.RightTrigger.Presses == 0 || reach < 0.6) return new(name, Grade.Unknown, "Pull both triggers all the way");
+
         double start = Math.Max(s.LeftTrigger.FirstMovement, s.RightTrigger.FirstMovement);
         string detail = $"reach {reach:P0}, wake up at {start:P1}";
-        if (reach < 0.9) return new(name, Grade.Poor, detail);
-        return new(name, reach >= 0.97 && start <= 0.06 ? Grade.Good : Grade.Fair, detail);
+        if (reach < 0.9) return new(name, Grade.Fair, detail);
+        return new(name, reach >= 0.97 && start <= 0.08 ? Grade.Good : Grade.Fair, detail);
     }
 
     private static HealthItem Switches(TesterSnapshot s)
@@ -99,11 +105,13 @@ public static class TesterHealth
     {
         const string name = "Report rate";
         var r = s.Rate;
-        if (r.TotalChanges < MinChangesForRate) return new(name, Grade.Unknown, "Move a stick steadily for a few seconds");
+        if (r.TotalChanges < MinChangesForRate || r.MedianIntervalMs <= 0) return new(name, Grade.Unknown, "Move a stick steadily for a few seconds");
 
-        string detail = $"{r.SteadyShare:P0} steady, worst gap {r.WorstIntervalMs:0} ms";
-        if (r.WorstIntervalMs > 100 || r.SteadyShare < 0.5) return new(name, Grade.Poor, detail);
-        return new(name, r.SteadyShare >= 0.8 && r.WorstIntervalMs <= 60 ? Grade.Good : Grade.Fair, detail);
+        // The typical gap between reports while a stick moves. How evenly they come depends as much on the hand as on the pad, so only
+        // the usual gap is graded: 60 a second or more is smooth, under 30 a second is sluggish
+        double perSecond = 1000 / r.MedianIntervalMs;
+        string detail = $"about {perSecond:0} reports a second (usual gap {r.MedianIntervalMs:0.#} ms)";
+        return new(name, r.MedianIntervalMs <= 17 ? Grade.Good : r.MedianIntervalMs <= 34 ? Grade.Fair : Grade.Poor, detail);
     }
 }
 
@@ -145,7 +153,7 @@ public static class TesterReport
 
         var r = s.Rate;
         sb.AppendLine("Reports");
-        sb.AppendLine($"  {r.TotalChanges} changes, peak {r.PeakChangesPerSecond:0} per second, average gap {r.AverageIntervalMs.ToString("0.0", c)} ms, worst {r.WorstIntervalMs.ToString("0.0", c)} ms, jitter {r.JitterMs.ToString("0.0", c)} ms, steady {r.SteadyShare.Pct(0)}");
+        sb.AppendLine($"  {r.TotalChanges} changes, peak {r.PeakChangesPerSecond:0} per second, usual gap {r.MedianIntervalMs.ToString("0.0", c)} ms, average gap {r.AverageIntervalMs.ToString("0.0", c)} ms, worst {r.WorstIntervalMs.ToString("0.0", c)} ms, jitter {r.JitterMs.ToString("0.0", c)} ms, steady {r.SteadyShare.Pct(0)}");
         if (s.Reaction.Attempts > 0)
         {
             sb.AppendLine();
@@ -164,7 +172,7 @@ public static class TesterReport
     {
         sb.AppendLine($"  {name}: peak {s.PeakMagnitude.ToString("0.000", c)}, rest offset x {s.RestX.ToString("+0.000;-0.000;0.000", c)} y {s.RestY.ToString("+0.000;-0.000;0.000", c)} (worst drift {s.WorstRestDrift.ToString("0.000", c)}), {s.StepsX} x steps, {s.StepsY} y steps");
         sb.AppendLine(s.HasCircle
-            ? $"    circle: roundness {s.Roundness.Pct(1)}, coverage {s.Coverage.Pct(0)}, radius min {s.MinRadius.ToString("0.000", c)} mean {s.MeanRadius.ToString("0.000", c)} max {s.MaxRadius.ToString("0.000", c)}"
+            ? $"    circle: average error {s.CircularityError.Pct(1)}, coverage {s.Coverage.Pct(0)}, radius min {s.MinRadius.ToString("0.000", c)} mean {s.MeanRadius.ToString("0.000", c)} max {s.MaxRadius.ToString("0.000", c)}"
             : $"    circle: not measured (coverage {s.Coverage.Pct(0)})");
     }
 

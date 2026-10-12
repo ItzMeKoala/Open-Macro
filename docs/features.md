@@ -104,17 +104,24 @@ Press **Tester** (or **F11**, or **Full tester** under the controller; **Esc** c
 tester:
 
 - **Sticks:** each as a circle with the live position, the path just taken, and the dashed deadzone rings from the config. Roll a stick
-  around its edge and the **circularity test** draws the shape it makes, with *roundness* (smallest radius over largest), *coverage*, min,
-  mean and max radius, peak, angle and the stick's **rest drift** (where it sits when let go, and the worst drift).
+  around its edge, all the way out, and the **circularity test** draws the shape it makes and gives its *circle error*: how far, on
+  average, the edge it reaches is from a perfect circle (under 10 % is healthy; pads with a square-ish gate overshoot a little on the
+  diagonals, which is fine). Directions that were not pushed all the way out are left out rather than counted as short. Also coverage,
+  min, mean and max radius, peak, angle, and the stick's **rest drift**: where it sits when let go and still, not where it passes on the
+  way through the middle.
 - **Triggers:** pressure bars with percent, the 0 – 255 value, peak, the smallest reading above zero (where the trigger "wakes up"),
   how long it is held and how often it was pulled.
 - **Buttons:** every button's state, press count, current and last hold time, shortest and longest hold, and **switch bounce** (a release
   and press under 30 ms apart).
-- **Timing:** how many times a second the pad reports something new, the average and worst gap, jitter and how steady the gaps are, read by a
-  fast thread so the figures are real. A **reaction test** (press any button when the box turns green) keeps best and average.
+- **Timing:** how many times a second the pad reports something new, the usual (median) gap, the average and worst gap and jitter, read by
+  a fast thread so the figures are real. A **reaction test** (press any button when the box turns green) keeps best and average.
 - **Graph** of the last six seconds of all axes, a **timestamped event log**, the animated controller picture, and a **vibration test**
   (left motor, right motor, both) where the system can shake the pad (Windows).
 - **Reset** per stick or for everything. Nothing is read faster than normal unless the tester or the live readings are on screen.
+
+- **Health:** drift is graded against the deadzones games use (under 8 % good, under 15 % fair), roundness by circle error (under 10 %
+  good, under 18 % fair), the report rate by the usual gap (60 a second or more good, 30 or more fair), triggers by how far they reach
+  once pulled hard, and switches by bounce. A check only counts once it has seen enough.
 
 ## Usage counts
 

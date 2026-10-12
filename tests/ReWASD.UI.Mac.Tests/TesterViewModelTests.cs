@@ -85,7 +85,7 @@ public class TesterViewModelTests
         var vm = new TesterViewModel(model);
         model.Feed(Pad(), 0);
         vm.Refresh(model.Snapshot(), "x", null, null);
-        Assert.Equal("Roll the stick slowly around its edge", vm.Left.CircleText);
+        Assert.Equal("Roll the stick slowly around its edge, all the way out", vm.Left.CircleText);
 
         for (int deg = 0; deg < 180; deg += 2)
             model.Feed(Pad(lx: Math.Cos(deg * Math.PI / 180), ly: Math.Sin(deg * Math.PI / 180)), 10 + deg);
@@ -97,7 +97,7 @@ public class TesterViewModelTests
             model.Feed(Pad(lx: Math.Cos(deg * Math.PI / 180), ly: Math.Sin(deg * Math.PI / 180)), 10 + deg);
         vm.Refresh(model.Snapshot(), "x", null, null);
         Assert.Equal("Very round", vm.Left.CircleText);
-        Assert.Equal("100.0%", vm.Left.RoundnessText);
+        Assert.Equal("0.0%", vm.Left.RoundnessText);           // no error from a perfect circle
         Assert.Equal("100%", vm.Left.CoverageText);
         Assert.Contains("max 1.000", vm.Left.RadiusText);
     }
@@ -214,7 +214,7 @@ public class TesterExtrasTests
         Assert.Equal(7, vm.Health.Count);
         Assert.All(vm.Health, r => Assert.True(r.IsUnknown));
 
-        for (int i = 0; i < 80; i++) model.Feed(Pad(lx: 0.002), i * 5);
+        for (int i = 0; i < 200; i++) model.Feed(Pad(lx: 0.002), i * 5);
         vm.Refresh(model.Snapshot(), "x", null, null);
 
         var drift = vm.Health.First(r => r.Name == "Left stick drift");

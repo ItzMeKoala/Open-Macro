@@ -2939,7 +2939,11 @@ public partial class MainViewModel : ObservableObject
         CountUsage(phys);
         UpdatePressedText(phys);
         FeedStickTuning(phys);
-        if ((IsTesterMode || _sampler is { IsRunning: true }) && ++_testerTicks % 2 == 0) RefreshTester();
+        if (IsTesterMode || _sampler is { IsRunning: true })
+        {
+            _testerTicks++;
+            RefreshTester();             // every frame, so the stick moves smoothly
+        }
 
         foreach (var vm in ControllerButtons)
         {

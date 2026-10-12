@@ -93,7 +93,7 @@
                             <DockPanel><TextBlock Text="Y" Classes="cap" VerticalAlignment="Center" /><TextBlock Text="{Binding YText}" Classes="num" HorizontalAlignment="Right" /></DockPanel>
                             <DockPanel><TextBlock Text="PUSH" Classes="cap" VerticalAlignment="Center" /><TextBlock Text="{Binding MagnitudeText}" Classes="num" HorizontalAlignment="Right" /></DockPanel>
                             <DockPanel><TextBlock Text="ANGLE" Classes="cap" VerticalAlignment="Center" /><TextBlock Text="{Binding AngleText}" Classes="num" HorizontalAlignment="Right" /></DockPanel>
-                            <DockPanel ToolTip.Tip="Roll the stick around its edge: how round its reach is"><TextBlock Text="ROUND" Classes="cap" VerticalAlignment="Center" /><TextBlock Text="{Binding RoundnessText}" Classes="num" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" /></DockPanel>
+                            <DockPanel ToolTip.Tip="Roll the stick around its edge: how far its reach is from a perfect circle (under 10 % is healthy)"><TextBlock Text="CIRCLE" Classes="cap" VerticalAlignment="Center" /><TextBlock Text="{Binding RoundnessText}" Classes="num" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" /></DockPanel>
                             <DockPanel ToolTip.Tip="Leave the stick alone: how far it wanders from the centre"><TextBlock Text="DRIFT" Classes="cap" VerticalAlignment="Center" /><TextBlock Text="{Binding DriftText}" Classes="num" HorizontalAlignment="Right" /></DockPanel>
                         </StackPanel>
                     </Grid>
@@ -136,7 +136,7 @@
                             <DockPanel><TextBlock Text="Y" Classes="cap" VerticalAlignment="Center" /><TextBlock Text="{Binding YText}" Classes="num" HorizontalAlignment="Right" /></DockPanel>
                             <DockPanel><TextBlock Text="PUSH" Classes="cap" VerticalAlignment="Center" /><TextBlock Text="{Binding MagnitudeText}" Classes="num" HorizontalAlignment="Right" /></DockPanel>
                             <DockPanel><TextBlock Text="ANGLE" Classes="cap" VerticalAlignment="Center" /><TextBlock Text="{Binding AngleText}" Classes="num" HorizontalAlignment="Right" /></DockPanel>
-                            <DockPanel ToolTip.Tip="Roll the stick around its edge: how round its reach is"><TextBlock Text="ROUND" Classes="cap" VerticalAlignment="Center" /><TextBlock Text="{Binding RoundnessText}" Classes="num" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" /></DockPanel>
+                            <DockPanel ToolTip.Tip="Roll the stick around its edge: how far its reach is from a perfect circle (under 10 % is healthy)"><TextBlock Text="CIRCLE" Classes="cap" VerticalAlignment="Center" /><TextBlock Text="{Binding RoundnessText}" Classes="num" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" /></DockPanel>
                             <DockPanel ToolTip.Tip="Leave the stick alone: how far it wanders from the centre"><TextBlock Text="DRIFT" Classes="cap" VerticalAlignment="Center" /><TextBlock Text="{Binding DriftText}" Classes="num" HorizontalAlignment="Right" /></DockPanel>
                         </StackPanel>
                     </Grid>

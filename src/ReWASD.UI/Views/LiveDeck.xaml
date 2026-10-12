@@ -91,7 +91,7 @@
                     <DockPanel Margin="0,0,0,5"><TextBlock Text="Y" Style="{StaticResource Cap}" /><TextBlock Text="{Binding YText}" Style="{StaticResource Num}" /></DockPanel>
                     <DockPanel Margin="0,0,0,5"><TextBlock Text="PUSH" Style="{StaticResource Cap}" /><TextBlock Text="{Binding MagnitudeText}" Style="{StaticResource Num}" /></DockPanel>
                     <DockPanel Margin="0,0,0,5"><TextBlock Text="ANGLE" Style="{StaticResource Cap}" /><TextBlock Text="{Binding AngleText}" Style="{StaticResource Num}" /></DockPanel>
-                    <DockPanel Margin="0,0,0,5" ToolTip="Roll the stick around its edge: how round its reach is"><TextBlock Text="ROUND" Style="{StaticResource Cap}" /><TextBlock Text="{Binding RoundnessText}" Style="{StaticResource Num}" Foreground="{StaticResource BrushCyan}" /></DockPanel>
+                    <DockPanel Margin="0,0,0,5" ToolTip="Roll the stick around its edge: how far its reach is from a perfect circle (under 10 % is healthy)"><TextBlock Text="CIRCLE" Style="{StaticResource Cap}" /><TextBlock Text="{Binding RoundnessText}" Style="{StaticResource Num}" Foreground="{StaticResource BrushCyan}" /></DockPanel>
                     <DockPanel ToolTip="Leave the stick alone: how far it wanders from the centre"><TextBlock Text="DRIFT" Style="{StaticResource Cap}" /><TextBlock Text="{Binding DriftText}" Style="{StaticResource Num}" /></DockPanel>
                 </StackPanel>
             </Grid>

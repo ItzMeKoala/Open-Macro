@@ -138,7 +138,7 @@ public class TesterModelTests
         var s = _m.Snapshot().Right;
         Assert.Equal(0.03, s.RestX, 6);
         Assert.Equal(-0.015, s.RestY, 6);
-        Assert.Equal(100, s.RestSamples);
+        Assert.Equal(60, s.RestSamples);                     // counted once it has sat still for 200 ms
         Assert.Equal(Math.Sqrt(0.03 * 0.03 + 0.02 * 0.02), s.WorstRestDrift, 6);
     }
 
@@ -158,6 +158,7 @@ public class TesterModelTests
         Assert.Equal(1.0, s.MaxRadius, 3);
         Assert.Equal(1.0, s.MinRadius, 3);
         Assert.Equal(1.0, s.Roundness, 3);
+        Assert.Equal(0, s.CircularityError, 3);
         Assert.Equal(1.0, s.MeanRadius, 3);
     }
 
@@ -176,7 +177,8 @@ public class TesterModelTests
         var s = _m.Snapshot().Left;
         Assert.Equal(1.0, s.MaxRadius, 3);
         Assert.Equal(0.8, s.MinRadius, 3);
-        Assert.Equal(0.8, s.Roundness, 3);
+        Assert.InRange(s.CircularityError, 0.08, 0.15);    // a fifth short on a third of the directions
+        Assert.Equal(1 - s.CircularityError, s.Roundness, 6);
         Assert.InRange(s.MeanRadius, 0.85, 0.95);
     }
 

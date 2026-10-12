@@ -49,7 +49,7 @@ public sealed class StickPlot : Control
         var points = new List<Point>();
         for (int i = 0; i < s.Extents.Length; i++)
         {
-            if (s.Extents[i] < 0.05) continue;
+            if (s.Extents[i] < TesterModel.EdgeReach) continue;     // only directions pushed all the way out
             double angle = (i + 0.5) * (2 * Math.PI / s.Extents.Length);
             points.Add(new Point(centre.X + Math.Cos(angle) * s.Extents[i] * radius, centre.Y - Math.Sin(angle) * s.Extents[i] * radius));
         }

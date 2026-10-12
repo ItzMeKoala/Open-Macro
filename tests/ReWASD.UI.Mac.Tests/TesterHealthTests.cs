@@ -17,7 +17,7 @@ public class TesterHealthTests
         var m = new TesterModel();
         double t = 0;
         m.Feed(Pad(), t);
-        for (int i = 0; i < 80; i++) m.Feed(Pad(lx: 0.004, rx: -0.003), t += 5);                  // resting, tiny drift
+        for (int i = 0; i < 150; i++) m.Feed(Pad(lx: 0.004, rx: -0.003), t += 5);                 // resting, tiny drift
         for (int deg = 0; deg < 360; deg += 2)
         {
             double a = deg * Math.PI / 180;
@@ -60,10 +60,11 @@ public class TesterHealthTests
     [Fact]
     public void ADriftingStick_IsGraded()
     {
-        foreach (var (drift, expected) in new[] { (0.01, Grade.Good), (0.05, Grade.Fair), (0.12, Grade.Poor) })
+        // Within a usual game deadzone is fine; past it, a game would see the stick move by itself
+        foreach (var (drift, expected) in new[] { (0.01, Grade.Good), (0.06, Grade.Good), (0.1, Grade.Fair), (0.18, Grade.Poor) })
         {
             var m = new TesterModel();
-            for (int i = 0; i < 80; i++) m.Feed(Pad(lx: drift), i * 5);
+            for (int i = 0; i < 200; i++) m.Feed(Pad(lx: drift), i * 5);
             var item = Item(TesterHealth.Evaluate(m.Snapshot()), "Left stick drift");
             Assert.Equal(expected, item.Grade);
         }
@@ -84,9 +85,16 @@ public class TesterHealthTests
         }
 
         var item = Item(TesterHealth.Evaluate(m.Snapshot()), "Right stick roundness");
+        Assert.Equal(Grade.Fair, item.Grade);                 // short by a fifth on the diagonals
+        Assert.Contains("average error", item.Detail);
 
-        Assert.Equal(Grade.Poor, item.Grade);
-        Assert.Contains("78% round", item.Detail);
+        var worn = new TesterModel();
+        for (int deg = 0; deg < 360; deg += 2)
+        {
+            double a = deg * Math.PI / 180, r = (deg % 90 is >= 20 and <= 70) ? 0.72 : 1.0;
+            worn.Feed(Pad(rx: r * Math.Cos(a), ry: r * Math.Sin(a)), deg);
+        }
+        Assert.Equal(Grade.Poor, Item(TesterHealth.Evaluate(worn.Snapshot()), "Right stick roundness").Grade);
     }
 
     [Fact]
@@ -97,7 +105,12 @@ public class TesterHealthTests
         m.Feed(Pad(), 1000);
 
         var item = Item(TesterHealth.Evaluate(m.Snapshot()), "Trigger travel");
-        Assert.Equal(Grade.Poor, item.Grade);
+        Assert.Equal(Grade.Fair, item.Grade);
+
+        var light = new TesterModel();
+        for (int i = 0; i <= 40; i++) light.Feed(Pad(lt: i / 100.0, rt: i / 100.0), i * 8);   // a light squeeze is not a test of the travel
+        light.Feed(Pad(), 1000);
+        Assert.Equal(Grade.Unknown, Item(TesterHealth.Evaluate(light.Snapshot()), "Trigger travel").Grade);
 
         var lazy = new TesterModel();
         for (int i = 0; i <= 100; i++) lazy.Feed(Pad(lt: i == 0 ? 0 : 0.08 + i * 0.0092, rt: i / 100.0), i * 8);   // wakes up at 8%
@@ -136,36 +149,77 @@ public class TesterHealthTests
     }
 
     [Fact]
-    public void AnUnevenReportRate_IsGraded()
+    public void TheReportRate_IsGradedByTheUsualGap_NotByHowEvenTheHandIs()
     {
+        static Grade Rate(Func<int, double> gap)
+        {
+            var m = new TesterModel();
+            m.Feed(Pad(), 0);
+            double t = 0;
+            for (int i = 1; i <= 120; i++) m.Feed(Pad(lx: i * 0.001), t += gap(i));
+            return Item(TesterHealth.Evaluate(m.Snapshot()), "Report rate").Grade;
+        }
+
+        Assert.Equal(Grade.Good, Rate(_ => 8));                              // 125 a second
+        Assert.Equal(Grade.Good, Rate(i => i % 3 == 0 ? 14 : 5));           // uneven, as a moving hand makes it, but quick
+        Assert.Equal(Grade.Fair, Rate(_ => 25));                             // 40 a second
+        Assert.Equal(Grade.Poor, Rate(_ => 50));                             // 20 a second
+        Assert.Equal(Grade.Good, Rate(i => i % 20 == 0 ? 500 : 8));         // the person paused: not the pad's fault
+
         var m = new TesterModel();
         m.Feed(Pad(), 0);
+        for (int i = 1; i <= 120; i++) m.Feed(Pad(lx: i * 0.001), i * 8.0);
+        Assert.Contains("about 125 reports a second", Item(TesterHealth.Evaluate(m.Snapshot()), "Report rate").Detail);
+    }
+
+    [Fact]
+    public void MovingTheStickThroughTheMiddle_IsNotDrift()
+    {
+        var m = new TesterModel();
         double t = 0;
-        for (int i = 1; i <= 100; i++) m.Feed(Pad(lx: i * 0.001), t += i % 2 == 0 ? 4 : 30);   // gaps alternate 4 and 30 ms
+        for (int i = 0; i < 100; i++) m.Feed(Pad(), t += 5);                 // resting dead centre
+        for (int lap = 0; lap < 20; lap++)                                     // swinging side to side through the middle
+            for (int k = -10; k <= 10; k++) m.Feed(Pad(lx: k / 10.0), t += 4);
+        for (int i = 0; i < 100; i++) m.Feed(Pad(), t += 5);
 
-        var item = Item(TesterHealth.Evaluate(m.Snapshot()), "Report rate");
+        var left = m.Snapshot().Left;
+        Assert.Equal(0, left.WorstRestDrift, 6);
+        Assert.Equal(Grade.Good, Item(TesterHealth.Evaluate(m.Snapshot()), "Left stick drift").Grade);
+    }
 
-        Assert.Equal(Grade.Poor, item.Grade);                     // half the gaps are far from the usual one
-        Assert.Contains("steady", item.Detail);
+    [Fact]
+    public void ASquareGateOvershootingALittle_IsStillHealthy()
+    {
+        // Many pads report a little past 1.0 on the diagonals; that is how they are made, not wear
+        var m = new TesterModel();
+        for (int deg = 0; deg < 360; deg += 2)
+        {
+            double a = deg * Math.PI / 180, r = 1 + 0.08 * Math.Abs(Math.Sin(2 * a));
+            m.Feed(Pad(lx: r * Math.Cos(a), ly: r * Math.Sin(a)), deg);
+        }
+        Assert.Equal(Grade.Good, Item(TesterHealth.Evaluate(m.Snapshot()), "Left stick roundness").Grade);
+    }
 
-        var stalls = new TesterModel();
-        stalls.Feed(Pad(), 0);
-        double u = 0;
-        for (int i = 1; i <= 100; i++) stalls.Feed(Pad(lx: i * 0.001), u += i == 50 ? 110 : 8);   // steady, but one 110 ms stall
-        Assert.Equal(Grade.Poor, Item(TesterHealth.Evaluate(stalls.Snapshot()), "Report rate").Grade);
-
-        var pauses = new TesterModel();
-        pauses.Feed(Pad(), 0);
-        double v = 0;
-        for (int i = 1; i <= 100; i++) pauses.Feed(Pad(lx: i * 0.001), v += i % 20 == 0 ? 500 : 8);   // the person paused: not the pad's fault
-        Assert.Equal(Grade.Good, Item(TesterHealth.Evaluate(pauses.Snapshot()), "Report rate").Grade);
+    [Fact]
+    public void ALazyLap_DoesNotCountTheDirectionsThatWereNotPushedAllTheWay()
+    {
+        var m = new TesterModel();
+        for (int deg = 0; deg < 360; deg += 2)
+        {
+            double a = deg * Math.PI / 180, r = deg is >= 100 and <= 130 ? 0.5 : 1.0;    // one stretch only half pushed
+            m.Feed(Pad(lx: r * Math.Cos(a), ly: r * Math.Sin(a)), deg);
+        }
+        var s = m.Snapshot().Left;
+        Assert.True(s.HasCircle);
+        Assert.Equal(0, s.CircularityError, 3);                                // the half-pushed directions are left out, not counted as short
+        Assert.True(s.Coverage < 0.95);
     }
 
     [Fact]
     public void TheScore_AveragesOnlyWhatWasChecked()
     {
         var m = new TesterModel();
-        for (int i = 0; i < 80; i++) m.Feed(Pad(lx: 0.05), i * 5);            // one check: fair drift
+        for (int i = 0; i < 200; i++) m.Feed(Pad(lx: 0.1), i * 5);            // one check: fair drift
 
         var report = TesterHealth.Evaluate(m.Snapshot());
 
@@ -244,7 +298,7 @@ public class TesterHealthTests
         Assert.Contains("Date: 2026-03-04 14:05", text);
         Assert.Contains("Health: 100/100 — In great shape (7 of 7 checks done)", text);
         Assert.Contains("[good] Left stick drift", text);
-        Assert.Contains("circle: roundness 100.0%", text);
+        Assert.Contains("circle: average error 0.0%", text);
         Assert.Contains("Triggers", text);
         Assert.Contains("A ", text);
         Assert.Contains("Left bumper", text);

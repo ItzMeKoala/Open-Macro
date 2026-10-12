@@ -50,20 +50,20 @@ public sealed partial class TesterStickViewModel : ObservableObject
         CoverageText = $"{s.Coverage:P0}";
 
         RestText = s.RestSamples < 20
-            ? "Let go of the stick to measure its drift"
+            ? "Let go of the stick for a moment to measure its drift"
             : $"Rest position x {Signed(s.RestX)}  y {Signed(s.RestY)}   worst drift {F(s.WorstRestDrift)}";
 
         if (s.HasCircle)
         {
             RadiusText = $"min {F(s.MinRadius)}   mean {F(s.MeanRadius)}   max {F(s.MaxRadius)}";
-            RoundnessText = $"{s.Roundness:P1}";
-            CircleText = s.Roundness >= 0.95 ? "Very round" : s.Roundness >= 0.88 ? "Slightly uneven" : s.Roundness >= 0.8 ? "Noticeably uneven" : "Far from round";
+            RoundnessText = (s.CircularityError * 100).ToString("0.0", CultureInfo.InvariantCulture) + "%";
+            CircleText = s.CircularityError <= 0.05 ? "Very round" : s.CircularityError <= 0.10 ? "Round" : s.CircularityError <= 0.18 ? "Slightly uneven" : "Uneven";
         }
         else
         {
             RadiusText = "—";
             RoundnessText = "—";
-            CircleText = s.Coverage < 0.05 ? "Roll the stick slowly around its edge" : $"Keep going: {s.Coverage:P0} of the circle so far";
+            CircleText = s.Coverage < 0.05 ? "Roll the stick slowly around its edge, all the way out" : $"Keep going: {s.Coverage:P0} of the circle so far";
         }
     }
 
@@ -249,7 +249,7 @@ public sealed partial class TesterViewModel : ObservableObject
         IntervalText = rate.TotalChanges < 3 ? "—" : $"avg {rate.AverageIntervalMs:0.0} ms   worst {rate.WorstIntervalMs:0.0} ms";
         PeakRateText = rate.TotalChanges < 2 ? "—" : $"peak {rate.PeakChangesPerSecond:0}/s";
         TotalText = $"{rate.TotalChanges:N0} changes";
-        JitterText = rate.TotalChanges < 6 ? "—" : $"jitter {rate.JitterMs:0.0} ms   steady {rate.SteadyShare:P0}";
+        JitterText = rate.TotalChanges < 6 ? "—" : $"usual gap {rate.MedianIntervalMs:0.0} ms   jitter {rate.JitterMs:0.0} ms";
 
         var r = snap.Reaction;
         ReactionState = r.State;

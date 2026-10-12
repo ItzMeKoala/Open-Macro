@@ -183,7 +183,7 @@
                         <TextBlock Text="CIRCULARITY TEST" Classes="col" />
                         <TextBlock Text="{Binding CircleText}" Classes="soft" Margin="0,3,0,8" />
                         <UniformGrid Columns="2">
-                            <StackPanel><TextBlock Text="ROUNDNESS" Classes="col" /><TextBlock Text="{Binding RoundnessText}" Classes="val" Foreground="{StaticResource BrushCyan}" /></StackPanel>
+                            <StackPanel><TextBlock Text="CIRCLE ERROR" ToolTip.Tip="How far the edge the stick reaches is from a perfect circle, on average. Under 10 % is healthy." Classes="col" /><TextBlock Text="{Binding RoundnessText}" Classes="val" Foreground="{StaticResource BrushCyan}" /></StackPanel>
                             <StackPanel><TextBlock Text="COVERAGE" Classes="col" /><TextBlock Text="{Binding CoverageText}" Classes="val" /></StackPanel>
                         </UniformGrid>
                         <TextBlock Text="{Binding RadiusText}" Classes="mono" FontSize="11.5" Margin="0,8,0,0" />
@@ -255,7 +255,7 @@
                         <TextBlock Text="CIRCULARITY TEST" Classes="col" />
                         <TextBlock Text="{Binding CircleText}" Classes="soft" Margin="0,3,0,8" />
                         <UniformGrid Columns="2">
-                            <StackPanel><TextBlock Text="ROUNDNESS" Classes="col" /><TextBlock Text="{Binding RoundnessText}" Classes="val" Foreground="{StaticResource BrushCyan}" /></StackPanel>
+                            <StackPanel><TextBlock Text="CIRCLE ERROR" ToolTip.Tip="How far the edge the stick reaches is from a perfect circle, on average. Under 10 % is healthy." Classes="col" /><TextBlock Text="{Binding RoundnessText}" Classes="val" Foreground="{StaticResource BrushCyan}" /></StackPanel>
                             <StackPanel><TextBlock Text="COVERAGE" Classes="col" /><TextBlock Text="{Binding CoverageText}" Classes="val" /></StackPanel>
                         </UniformGrid>
                         <TextBlock Text="{Binding RadiusText}" Classes="mono" FontSize="11.5" Margin="0,8,0,0" />
