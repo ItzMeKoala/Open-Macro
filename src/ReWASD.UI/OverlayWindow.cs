@@ -29,10 +29,7 @@ public sealed class OverlayWindow : Window
         ResizeMode = ResizeMode.CanResizeWithGrip;
 
         // Clicks drag the window; the drawing itself never reacts to the mouse here
-        Art = new ArtView { IsHitTestVisible = false, ShowEditing = false };
-        Art.SetBinding(ArtView.SceneProperty, new Binding(nameof(MainViewModel.SkinArt)));
-        Art.SetBinding(ArtView.SourcesProperty, new Binding(nameof(MainViewModel.ControllerButtons)));
-        Art.SetBinding(VisibilityProperty, new Binding(nameof(MainViewModel.OverlayHasArt)) { Converter = new BooleanToVisibilityConverter() });
+        Art = new ArtView { IsHitTestVisible = false, ShowEditing = false, Sources = vm.ControllerButtons };
 
         var text = new TextBlock
         {
@@ -44,13 +41,28 @@ public sealed class OverlayWindow : Window
             TextWrapping = TextWrapping.Wrap,
             IsHitTestVisible = false
         };
-        text.SetBinding(TextBlock.TextProperty, new Binding(nameof(MainViewModel.PressedText)));
-        text.SetBinding(VisibilityProperty, new Binding(nameof(MainViewModel.OverlayHasArt)) { Converter = new InverseBooleanToVisibilityConverter() });
 
         var grid = new Grid { Background = Brushes.Transparent };
         grid.Children.Add(Art);
         grid.Children.Add(text);
         Content = grid;
+
+        // Follow the view model directly (rather than through bindings) so the window is right the moment it exists
+        void Refresh()
+        {
+            if (!ReferenceEquals(Art.Scene, vm.SkinArt)) Art.Scene = vm.SkinArt;
+            Art.Visibility = vm.OverlayHasArt ? Visibility.Visible : Visibility.Collapsed;
+            text.Visibility = vm.OverlayHasArt ? Visibility.Collapsed : Visibility.Visible;
+            text.Text = vm.PressedText;
+        }
+
+        System.ComponentModel.PropertyChangedEventHandler onChanged = (_, e) =>
+        {
+            if (e.PropertyName is nameof(MainViewModel.SkinArt) or nameof(MainViewModel.OverlayHasArt) or nameof(MainViewModel.PressedText)) Refresh();
+        };
+        vm.PropertyChanged += onChanged;
+        Closed += (_, _) => vm.PropertyChanged -= onChanged;
+        Refresh();
 
         MouseLeftButtonDown += (_, e) =>
         {
@@ -60,14 +72,5 @@ public sealed class OverlayWindow : Window
                 catch (InvalidOperationException) { /* the button was let go already */ }
             }
         };
-    }
-
-    private sealed class InverseBooleanToVisibilityConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) =>
-            value is true ? Visibility.Collapsed : Visibility.Visible;
-
-        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) =>
-            throw new NotSupportedException();
     }
 }

@@ -23,6 +23,16 @@ jobs:
         run: dotnet build ReWASD.sln --configuration Release
       - name: Test
         run: dotnet test ReWASD.sln --configuration Release --no-build
+      - name: The Windows app opens and stays open
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # Loads the real window, so a mistake in the WPF screens (a missing style, a bad binding target) shows up here, not for a user
+          $exe = Get-ChildItem src/ReWASD.UI/bin/Release -Recurse -Filter ReWASD.UI.exe | Select-Object -First 1
+          $p = Start-Process $exe.FullName -PassThru
+          Start-Sleep -Seconds 10
+          if ($p.HasExited) { throw "ReWASD.UI.exe closed by itself (exit code $($p.ExitCode))" }
+          Stop-Process -Id $p.Id -Force
 
   package-macos:
     runs-on: macos-latest
