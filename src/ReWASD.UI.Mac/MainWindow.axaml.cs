@@ -26,8 +26,15 @@ public partial class MainWindow : Window
         this.FindControl<Button>("TesterButton")!.Click += (_, _) => ToggleFullScreen();
         KeyDown += (_, e) =>
         {
+            var vm = DataContext as MainViewModel;
+            bool command = e.KeyModifiers.HasFlag(KeyModifiers.Meta) || e.KeyModifiers.HasFlag(KeyModifiers.Control);
+
             if (e.Key == Key.F11) { ToggleFullScreen(); e.Handled = true; }
             else if (e.Key == Key.Escape && WindowState == WindowState.FullScreen) { WindowState = WindowState.Normal; e.Handled = true; }
+            else if (e.Key == Key.Escape && vm is { IsPreferencesPage: true }) { vm.ToggleSettingsCommand.Execute(null); e.Handled = true; }
+            else if (command && e.Key == Key.S && vm != null) { vm.SaveProfileCommand.Execute(null); e.Handled = true; }
+            else if (command && e.Key == Key.OemComma && vm != null) { vm.ToggleSettingsCommand.Execute(null); e.Handled = true; }
+            else if (command && e.Key == Key.Enter && vm != null) { vm.ToggleApplyCommand.Execute(null); e.Handled = true; }
         };
         PropertyChanged += (_, e) =>
         {

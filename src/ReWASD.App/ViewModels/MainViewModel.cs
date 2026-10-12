@@ -26,6 +26,17 @@ public enum AppPage
     Preferences
 }
 
+/// <summary>The pages of the settings screen.</summary>
+public enum SettingsSection
+{
+    Sticks,
+    Combos,
+    Configs,
+    Integrations,
+    Window,
+    System
+}
+
 /// <summary>Whether the selected input is remapped to something else, or runs a macro.</summary>
 public enum TargetMode
 {
@@ -392,6 +403,7 @@ public partial class MainViewModel : ObservableObject
         LoadObsSettings();
         LoadAutoSwitchSetting();
         LoadBackgroundSettings();
+        LoadWelcome();
         if (HideDockIcon && CanHideDockIcon) _ui.SetDockIconHidden(true);
         _manualProfile = _selectedProfile;
         _lastSavedJson = CurrentProfileJson();
@@ -868,6 +880,70 @@ public partial class MainViewModel : ObservableObject
             WheelSelectedIndex = index;
             WheelVisible = open;
         });
+    }
+
+    // ---- The settings screen -------------------------------------------------------------------------------------------
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SettingsSectionTitle), nameof(SettingsSectionSummary))]
+    private SettingsSection _settingsSection = SettingsSection.Sticks;
+
+    public string SettingsSectionTitle => SettingsSection switch
+    {
+        SettingsSection.Sticks => "Sticks",
+        SettingsSection.Combos => "Combos and timing",
+        SettingsSection.Configs => "Configs",
+        SettingsSection.Integrations => "Integrations",
+        SettingsSection.Window => "Window",
+        _ => "System"
+    };
+
+    public string SettingsSectionSummary => SettingsSection switch
+    {
+        SettingsSection.Sticks => "What each stick does and how it responds, in the selected config.",
+        SettingsSection.Combos => "Chords, sequences, the command wheel and how long presses take, in the selected config.",
+        SettingsSection.Configs => "Saving, switching by app, locking the controller, and bringing back older copies.",
+        SettingsSection.Integrations => "Connections to other programs.",
+        SettingsSection.Window => "The stream overlay and what happens when you close the window.",
+        _ => "Permissions, drivers, updates and what has been counted."
+    };
+
+    /// <summary>The key that goes with the letters in shortcuts: Cmd on a Mac, Ctrl elsewhere.</summary>
+    public string ModifierKeyName => Platform.Name == "macOS" ? "Cmd" : "Ctrl";
+
+    // ---- Getting started ------------------------------------------------------------------------------------------------
+
+    /// <summary>The short how-to strip, shown until it is dismissed or remapping has been started once.</summary>
+    [ObservableProperty]
+    private bool _showGettingStarted = true;
+
+    private string WelcomePath => System.IO.Path.Combine(_profilesDirectory, "welcome.cfg");
+
+    [RelayCommand]
+    private void DismissGettingStarted()
+    {
+        ShowGettingStarted = false;
+        try
+        {
+            System.IO.Directory.CreateDirectory(_profilesDirectory);
+            System.IO.File.WriteAllText(WelcomePath, "done");
+        }
+        catch (Exception)
+        {
+            // Not being able to remember it just shows the strip once more
+        }
+    }
+
+    private void LoadWelcome()
+    {
+        try
+        {
+            if (System.IO.File.Exists(WelcomePath)) ShowGettingStarted = false;
+        }
+        catch (Exception)
+        {
+            // Unreadable: show it
+        }
     }
 
     // ---- Saving configs by themselves ----------------------------------------------------------------------------------
@@ -2599,6 +2675,7 @@ public partial class MainViewModel : ObservableObject
             }
 
             _pipeline.Start();
+            if (ShowGettingStarted) DismissGettingStarted();
             PopulateConnectedDevices();
             StatusMessage = ok
                 ? $"Remapping is on. Games see a virtual {VirtualControllerOptions.First(o => o.Type == SelectedVirtualController).Name} controller."

@@ -234,7 +234,8 @@
                 </StackPanel>
 
                 <!-- Actions -->
-                <Button Content="SAVE" Command="{Binding SaveCurrentMappingCommand}" Classes="primary" Margin="0,20,0,8" />
+                <Button Content="{Binding SaveButtonText}" Command="{Binding SaveCurrentMappingCommand}" IsEnabled="{Binding IsInspectorDirty}" Classes="primary" Margin="0,20,0,4" />
+                <TextBlock Text="Changes are also saved when you click another button." Foreground="{StaticResource BrushTextMuted}" FontSize="11" HorizontalAlignment="Center" Margin="0,0,0,10" IsVisible="{Binding IsInspectorDirty}" />
                 <Button Content="Reset to default" Command="{Binding ResetCurrentMappingCommand}" Classes="secondary" HorizontalAlignment="Stretch" />
             </StackPanel>
         </ScrollViewer>

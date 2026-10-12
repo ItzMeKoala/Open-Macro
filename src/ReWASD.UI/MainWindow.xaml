@@ -76,6 +76,7 @@
             <RowDefinition Height="48" />   <!-- config bar -->
             <RowDefinition Height="44" />   <!-- layer bar -->
             <RowDefinition Height="38" />   <!-- input-type tabs -->
+            <RowDefinition Height="Auto" /> <!-- getting started -->
             <RowDefinition Height="*" />    <!-- content -->
             <RowDefinition Height="46" />   <!-- device bar -->
             <RowDefinition Height="58" />   <!-- apply bar -->
@@ -101,8 +102,9 @@
                         </StackPanel>
                     </ToggleButton>
 
-                    <Button Style="{StaticResource IconButton}" Content="&#xE74E;" Margin="10,0,0,0" ToolTip="Save config" Command="{Binding SaveProfileCommand}" />
-                    <Button Style="{StaticResource IconButton}" Content="&#xE946;" ToolTip="About" Command="{Binding ShowInfoCommand}" />
+                    <TextBlock Text="{Binding SaveStateText}" Foreground="{StaticResource BrushTextMuted}" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"
+                               ToolTip="Configs save themselves a moment after you change them" />
+                    <Button Style="{StaticResource IconButton}" Content="&#xE74E;" Margin="6,0,0,0" ToolTip="Save this config now" AutomationProperties.Name="Save this config now" Command="{Binding SaveProfileCommand}" />
 
                     <!-- Config switcher -->
                     <Popup x:Name="ConfigPopup" IsOpen="{Binding IsConfigMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=ConfigToggle}"
@@ -110,40 +112,52 @@
                         <Border Width="300" Margin="0,4,0,0" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorderLight}" BorderThickness="1" CornerRadius="8" Padding="10">
                             <StackPanel>
                                 <DockPanel Margin="0,0,0,8" LastChildFill="False">
-                                    <TextBlock DockPanel.Dock="Left" Text="CONFIGS" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" />
-                                    <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xE710;" Width="28" Height="28" ToolTip="New config" Command="{Binding NewProfileCommand}" />
+                                    <TextBlock DockPanel.Dock="Left" Text="YOUR CONFIGS" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" />
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xE710;" Width="28" Height="28" ToolTip="New empty config" AutomationProperties.Name="New empty config" Command="{Binding NewProfileCommand}" />
                                 </DockPanel>
                                 <ListBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}"
                                          ItemTemplate="{StaticResource ProfileItemTemplate}" MaxHeight="220"
                                          Background="Transparent" BorderThickness="0" Foreground="{StaticResource BrushTextPrimary}"
                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
-                                <TextBlock Text="Target process (blank = all)" Foreground="{StaticResource BrushTextSecondary}" FontSize="11" Margin="0,10,0,4" />
+                                <TextBlock Text="USE ONLY IN ONE APP" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,12,0,4" />
                                 <TextBox Text="{Binding SelectedProcessExecutable, UpdateSourceTrigger=PropertyChanged}"
                                          Background="{StaticResource BrushBgCard}" Foreground="{StaticResource BrushTextPrimary}"
-                                         BorderBrush="{StaticResource BrushBorder}" Padding="8,6" />
-                                <TextBlock Text="START FROM A PRESET" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,12,0,6" />
+                                         BorderBrush="{StaticResource BrushBorder}" Padding="8,6"
+                                         ToolTip="While this app is in front, this config takes over. Leave empty to use it everywhere. For example: game.exe" />
+                                <TextBlock Text="Empty means every app. Or type one, like game.exe" Foreground="{StaticResource BrushTextMuted}" FontSize="10" Margin="0,3,0,0" />
+                                <TextBlock Text="NEW FROM A PRESET" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,14,0,6" />
                                 <ItemsControl ItemsSource="{Binding Presets}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Button Content="{Binding Name}" ToolTip="{Binding Description}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="0,0,0,4"
+                                            <Button Content="{Binding Name}" ToolTip="{Binding Description}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,5" Margin="0,0,0,4" HorizontalContentAlignment="Left"
                                                     Command="{Binding DataContext.NewFromPresetCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                    <Button Content="Import…" Command="{Binding ImportProfileCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="0,0,6,0" ToolTip="Open a config file someone sent you" />
-                                    <Button Content="Export…" Command="{Binding ExportProfileCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="0,0,6,0" ToolTip="Save this config to share it" />
-                                    <Button Content="Delete" Command="{Binding DeleteProfileCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" ToolTip="Delete this config (a copy stays in History)" />
-                                </StackPanel>
+                                <Border Height="1" Background="{StaticResource BrushBorder}" Margin="0,10" />
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="Delete config" Command="{Binding DeleteProfileCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Foreground="#FF8A80"
+                                            ToolTip="Delete this config. A copy stays under History in Settings." />
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="Import…" Command="{Binding ImportProfileCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="0,0,6,0" ToolTip="Open a config file someone sent you" />
+                                        <Button Content="Export…" Command="{Binding ExportProfileCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" ToolTip="Save this config to a file to share it" />
+                                    </StackPanel>
+                                </DockPanel>
                             </StackPanel>
                         </Border>
                     </Popup>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button x:Name="TesterButton" Style="{StaticResource SecondaryButtonStyle}" Content="Tester" Padding="12,5" Margin="0,0,8,0" VerticalAlignment="Center"
-                            ToolTip="Controller tester: full screen (F11)" />
-                    <Button Style="{StaticResource IconButton}" Content="&#xE713;" ToolTip="Preferences" Command="{Binding ToggleSettingsCommand}" />
+                    <Button x:Name="TesterButton" Style="{StaticResource BarButtonStyle}" Content="Tester" VerticalAlignment="Center"
+                            ToolTip="Test your controller full screen (F11)" AutomationProperties.Name="Controller tester" />
+                    <Button Style="{StaticResource BarButtonStyle}" Margin="6,0,0,0" VerticalAlignment="Center" ToolTip="Settings" AutomationProperties.Name="Settings"
+                            Command="{Binding ToggleSettingsCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE713;" FontFamily="{StaticResource IconFont}" FontSize="14" Margin="0,0,7,0" VerticalAlignment="Center" />
+                            <TextBlock Text="Settings" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>
@@ -220,8 +234,22 @@
             </StackPanel>
         </Border>
 
+        <!-- GETTING STARTED: three plain steps, shown until dismissed or remapping has been started once -->
+        <Border Grid.Row="3" Background="#1E1B12" BorderBrush="#3A3220" BorderThickness="0,1,0,1" Padding="20,10"
+                Visibility="{Binding ShowGettingStarted, Converter={StaticResource BoolToVisibility}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock VerticalAlignment="Center" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" TextWrapping="Wrap"
+                           Text="New here?  1. Click a button on the controller.   2. Choose what it should do on the right, then press Save.   3. Press Start remapping." />
+                <Button Grid.Column="1" Content="Got it" Command="{Binding DismissGettingStartedCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="12,5" Margin="16,0,0,0" />
+            </Grid>
+        </Border>
+
         <!-- 4. CONTENT: visualizer | inspector | icon rail -->
-        <Grid Grid.Row="3">
+        <Grid Grid.Row="4">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" MinWidth="420" />
                 <ColumnDefinition Width="Auto" />
@@ -237,383 +265,439 @@
                 <views:MappingPanel />
             </Border>
 
-            <!-- Preferences page: covers the visualizer and inspector -->
-            <Border Grid.Column="0" Grid.ColumnSpan="2" Background="{StaticResource BrushBgDeep}" Padding="32"
-                    Visibility="{Binding IsPreferencesPage, Converter={StaticResource BoolToVisibility}}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel MaxWidth="520" HorizontalAlignment="Left">
-                    <TextBlock Text="Preferences" Foreground="{StaticResource BrushTextPrimary}" FontSize="22" FontWeight="Bold" Margin="0,0,0,20" />
-
-                    <TextBlock Text="DRIVERS" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
-                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock Text="{Binding DriverStatusText}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                            <TextBlock Text="Required to present a virtual Xbox 360 controller to games." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" Margin="0,2,0,10" />
-                            <TextBlock Text="{Binding HidHideStatusText}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                            <TextBlock Text="Optional. Hides the physical controller so games only see the virtual one (the toggle switch in the bottom bar)." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0" />
-                            <TextBlock Text="{Binding HideStatusText}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0" />
-                            <Button Content="Show HidHide diagnostics" Command="{Binding ShowHidHideDiagnosticsCommand}" Style="{StaticResource SecondaryButtonStyle}"
-                                    HorizontalAlignment="Left" Padding="12,5" Margin="0,8,0,0" ToolTip="Prints what HidHide has configured in the status bar" />
-                        </StackPanel>
-                    </Border>
-
-                    <TextBlock Text="UPDATES" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
-                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock Text="{Binding BuildText, StringFormat='This build: {0}'}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                            <TextBlock Text="{Binding UpdateStatusText}" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" />
-                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                <Button Content="Check now" Command="{Binding CheckForUpdatesCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="12,5" />
-                                <Button Content="Update now" Command="{Binding InstallUpdateCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="12,5" Margin="8,0,0,0"
-                                        Visibility="{Binding ShowUpdateButton, Converter={StaticResource BoolToVisibility}}" />
-                            </StackPanel>
-                            <ProgressBar Minimum="0" Maximum="1" Value="{Binding UpdateProgress, Mode=OneWay}" Height="6" Margin="0,10,0,0"
-                                         Visibility="{Binding IsUpdating, Converter={StaticResource BoolToVisibility}}" />
-                            <CheckBox Content="Check for updates when ReWASD starts" IsChecked="{Binding AutoCheckUpdates}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" Margin="0,10,0,0" />
-                        </StackPanel>
-                    </Border>
-
-                    <TextBlock Text="LEFT STICK (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
-                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16" DataContext="{Binding LeftStickSettings}">
-                        <StackPanel>
-                            <ComboBox ItemsSource="{x:Static vm:StickViewModel.ModeNames}" SelectedIndex="{Binding ModeIndex}" />
-                            <StackPanel Margin="0,10,0,0" Visibility="{Binding IsMouse, Converter={StaticResource BoolToVisibility}}">
-                                <DockPanel>
-                                    <TextBlock Text="Cursor speed" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                    <TextBlock Text="{Binding MouseSpeed, StringFormat='{}{0:0} px/s'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                                </DockPanel>
-                                <Slider Minimum="100" Maximum="4000" SmallChange="50" LargeChange="200" Value="{Binding MouseSpeed}" Margin="0,4,0,0" />
-                            </StackPanel>
-                            <StackPanel Margin="0,10,0,0" Visibility="{Binding IsScroll, Converter={StaticResource BoolToVisibility}}">
-                                <DockPanel>
-                                    <TextBlock Text="Scroll speed" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                    <TextBlock Text="{Binding ScrollSpeed, StringFormat='{}{0:0} /s'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                                </DockPanel>
-                                <Slider Minimum="2" Maximum="60" SmallChange="1" LargeChange="5" Value="{Binding ScrollSpeed}" Margin="0,4,0,0" />
-                            </StackPanel>
-                            <StackPanel Margin="0,10,0,0" Visibility="{Binding IsKeys, Converter={StaticResource BoolToVisibility}}">
-                                <TextBlock Text="Keys" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,0,0,4" />
-                                <ComboBox ItemsSource="{x:Static vm:StickViewModel.KeyPresetNames}" SelectedIndex="{Binding KeyPresetIndex}" />
-                                <DockPanel Margin="0,10,0,0">
-                                    <TextBlock Text="Push this far to press" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                    <TextBlock Text="{Binding KeyThreshold, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                                </DockPanel>
-                                <Slider Minimum="0.1" Maximum="0.95" SmallChange="0.05" LargeChange="0.1" Value="{Binding KeyThreshold}" Margin="0,4,0,0" />
-                            </StackPanel>
-                            <StackPanel Margin="0,10,0,0" Visibility="{Binding CanBePrecise, Converter={StaticResource BoolToVisibility}}">
-                                <TextBlock Text="Slow down while holding" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,0,0,4" />
-                                <ComboBox ItemsSource="{x:Static vm:StickViewModel.PrecisionNames}" SelectedIndex="{Binding PrecisionIndex}" />
-                                <DockPanel Margin="0,10,0,0">
-                                    <TextBlock Text="Speed while slowed" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                    <TextBlock Text="{Binding PrecisionFactor, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                                </DockPanel>
-                                <Slider Minimum="0.05" Maximum="1" SmallChange="0.05" LargeChange="0.1" Value="{Binding PrecisionFactor}" Margin="0,4,0,0" />
-                            </StackPanel>
-
-                            <TextBlock Text="RESPONSE" Foreground="{StaticResource BrushTextMuted}" FontSize="10" FontWeight="Bold" Margin="0,14,0,6" />
-                            <TextBlock Text="{Binding LiveText}" Foreground="{StaticResource BrushCyan}" FontSize="11" FontFamily="Consolas" />
-                            <DockPanel Margin="0,8,0,0">
-                                <TextBlock Text="Deadzone (ignore drift below)" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                <TextBlock Text="{Binding DeadzoneMin, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                            </DockPanel>
-                            <Slider Minimum="0" Maximum="0.6" SmallChange="0.01" LargeChange="0.05" Value="{Binding DeadzoneMin}" Margin="0,4,0,0" />
-                            <DockPanel Margin="0,6,0,0">
-                                <TextBlock Text="Full push reached at" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                <TextBlock Text="{Binding DeadzoneMax, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                            </DockPanel>
-                            <Slider Minimum="0.3" Maximum="1" SmallChange="0.01" LargeChange="0.05" Value="{Binding DeadzoneMax}" Margin="0,4,0,0" />
-                            <TextBlock Text="Curve" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,8,0,4" />
-                            <ComboBox ItemsSource="{x:Static vm:StickViewModel.CurveNames}" SelectedIndex="{Binding CurveIndex}" />
-                            <DockPanel Margin="0,8,0,0">
-                                <TextBlock Text="Sensitivity" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                <TextBlock Text="{Binding Sensitivity, StringFormat='{}{0:0.00}x'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                            </DockPanel>
-                            <Slider Minimum="0.3" Maximum="2" SmallChange="0.05" LargeChange="0.2" Value="{Binding Sensitivity}" Margin="0,4,0,0" />
-                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                <CheckBox Content="Flip left / right" IsChecked="{Binding InvertX}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" Margin="0,0,16,0" />
-                                <CheckBox Content="Flip up / down" IsChecked="{Binding InvertY}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                <Button Content="Measure drift" Command="{Binding CalibrateRestCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="0,0,6,0" ToolTip="Leave the stick alone: sets the deadzone just above its drift" />
-                                <Button Content="Measure reach" Command="{Binding CalibrateRangeCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="0,0,6,0" ToolTip="Roll the stick around its edge: sets where a full push counts" />
-                                <Button Content="Reset" Command="{Binding ResetTuningCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" />
-                            </StackPanel>
-                            <ProgressBar Minimum="0" Maximum="1" Value="{Binding CalibrationProgress, Mode=OneWay}" Height="6" Margin="0,8,0,0" Visibility="{Binding IsCalibrating, Converter={StaticResource BoolToVisibility}}" />
-                            <TextBlock Text="{Binding CalibrationText}" Foreground="{StaticResource BrushOrange}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0" />
-                        </StackPanel>
-                    </Border>
-
-                    <TextBlock Text="RIGHT STICK (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
-                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16" DataContext="{Binding RightStickSettings}">
-                        <StackPanel>
-                            <ComboBox ItemsSource="{x:Static vm:StickViewModel.ModeNames}" SelectedIndex="{Binding ModeIndex}" />
-                            <StackPanel Margin="0,10,0,0" Visibility="{Binding IsMouse, Converter={StaticResource BoolToVisibility}}">
-                                <DockPanel>
-                                    <TextBlock Text="Cursor speed" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                    <TextBlock Text="{Binding MouseSpeed, StringFormat='{}{0:0} px/s'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                                </DockPanel>
-                                <Slider Minimum="100" Maximum="4000" SmallChange="50" LargeChange="200" Value="{Binding MouseSpeed}" Margin="0,4,0,0" />
-                            </StackPanel>
-                            <StackPanel Margin="0,10,0,0" Visibility="{Binding IsScroll, Converter={StaticResource BoolToVisibility}}">
-                                <DockPanel>
-                                    <TextBlock Text="Scroll speed" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                    <TextBlock Text="{Binding ScrollSpeed, StringFormat='{}{0:0} /s'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                                </DockPanel>
-                                <Slider Minimum="2" Maximum="60" SmallChange="1" LargeChange="5" Value="{Binding ScrollSpeed}" Margin="0,4,0,0" />
-                            </StackPanel>
-                            <StackPanel Margin="0,10,0,0" Visibility="{Binding IsKeys, Converter={StaticResource BoolToVisibility}}">
-                                <TextBlock Text="Keys" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,0,0,4" />
-                                <ComboBox ItemsSource="{x:Static vm:StickViewModel.KeyPresetNames}" SelectedIndex="{Binding KeyPresetIndex}" />
-                                <DockPanel Margin="0,10,0,0">
-                                    <TextBlock Text="Push this far to press" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                    <TextBlock Text="{Binding KeyThreshold, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                                </DockPanel>
-                                <Slider Minimum="0.1" Maximum="0.95" SmallChange="0.05" LargeChange="0.1" Value="{Binding KeyThreshold}" Margin="0,4,0,0" />
-                            </StackPanel>
-                            <StackPanel Margin="0,10,0,0" Visibility="{Binding CanBePrecise, Converter={StaticResource BoolToVisibility}}">
-                                <TextBlock Text="Slow down while holding" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,0,0,4" />
-                                <ComboBox ItemsSource="{x:Static vm:StickViewModel.PrecisionNames}" SelectedIndex="{Binding PrecisionIndex}" />
-                                <DockPanel Margin="0,10,0,0">
-                                    <TextBlock Text="Speed while slowed" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                    <TextBlock Text="{Binding PrecisionFactor, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                                </DockPanel>
-                                <Slider Minimum="0.05" Maximum="1" SmallChange="0.05" LargeChange="0.1" Value="{Binding PrecisionFactor}" Margin="0,4,0,0" />
-                            </StackPanel>
-
-                            <TextBlock Text="RESPONSE" Foreground="{StaticResource BrushTextMuted}" FontSize="10" FontWeight="Bold" Margin="0,14,0,6" />
-                            <TextBlock Text="{Binding LiveText}" Foreground="{StaticResource BrushCyan}" FontSize="11" FontFamily="Consolas" />
-                            <DockPanel Margin="0,8,0,0">
-                                <TextBlock Text="Deadzone (ignore drift below)" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                <TextBlock Text="{Binding DeadzoneMin, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                            </DockPanel>
-                            <Slider Minimum="0" Maximum="0.6" SmallChange="0.01" LargeChange="0.05" Value="{Binding DeadzoneMin}" Margin="0,4,0,0" />
-                            <DockPanel Margin="0,6,0,0">
-                                <TextBlock Text="Full push reached at" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                <TextBlock Text="{Binding DeadzoneMax, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                            </DockPanel>
-                            <Slider Minimum="0.3" Maximum="1" SmallChange="0.01" LargeChange="0.05" Value="{Binding DeadzoneMax}" Margin="0,4,0,0" />
-                            <TextBlock Text="Curve" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,8,0,4" />
-                            <ComboBox ItemsSource="{x:Static vm:StickViewModel.CurveNames}" SelectedIndex="{Binding CurveIndex}" />
-                            <DockPanel Margin="0,8,0,0">
-                                <TextBlock Text="Sensitivity" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                <TextBlock Text="{Binding Sensitivity, StringFormat='{}{0:0.00}x'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                            </DockPanel>
-                            <Slider Minimum="0.3" Maximum="2" SmallChange="0.05" LargeChange="0.2" Value="{Binding Sensitivity}" Margin="0,4,0,0" />
-                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                <CheckBox Content="Flip left / right" IsChecked="{Binding InvertX}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" Margin="0,0,16,0" />
-                                <CheckBox Content="Flip up / down" IsChecked="{Binding InvertY}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                <Button Content="Measure drift" Command="{Binding CalibrateRestCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="0,0,6,0" ToolTip="Leave the stick alone: sets the deadzone just above its drift" />
-                                <Button Content="Measure reach" Command="{Binding CalibrateRangeCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="0,0,6,0" ToolTip="Roll the stick around its edge: sets where a full push counts" />
-                                <Button Content="Reset" Command="{Binding ResetTuningCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" />
-                            </StackPanel>
-                            <ProgressBar Minimum="0" Maximum="1" Value="{Binding CalibrationProgress, Mode=OneWay}" Height="6" Margin="0,8,0,0" Visibility="{Binding IsCalibrating, Converter={StaticResource BoolToVisibility}}" />
-                            <TextBlock Text="{Binding CalibrationText}" Foreground="{StaticResource BrushOrange}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0" />
-                        </StackPanel>
-                    </Border>
-
-                    <TextBlock Text="OBS STUDIO (for Obs: macro steps)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
-                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock Text="In OBS: Tools, then WebSocket Server Settings, then Enable. Kept on this computer only." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" />
-                            <Grid Margin="0,8,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="80" />
-                                </Grid.ColumnDefinitions>
-                                <TextBox Text="{Binding ObsHost, UpdateSourceTrigger=LostFocus}" Margin="0,0,6,0" Padding="6,4" />
-                                <TextBox Grid.Column="1" Text="{Binding ObsPort, UpdateSourceTrigger=LostFocus}" Padding="6,4" />
-                            </Grid>
-                            <TextBlock Text="Password (if you set one)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" Margin="0,8,0,2" />
-                            <TextBox x:Name="ObsPasswordBox" Padding="6,4" Text="{Binding ObsPassword, UpdateSourceTrigger=LostFocus}" />
-                        </StackPanel>
-                    </Border>
-
-                    <TextBlock Text="PROFILES AND LOCK" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
-                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
-                        <StackPanel>
-                            <CheckBox Content="Switch profile to match the app in front" IsChecked="{Binding AutoSwitchProfiles}" IsEnabled="{Binding CanAutoSwitch, Mode=OneTime}"
-                                      Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                            <TextBlock Text="Give a profile a target app (the box under the profile list, e.g. game.exe) and it takes over while that app is in front." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,12" />
-
-                            <TextBlock Text="Lock the controller by holding" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,0,0,4" />
-                            <ComboBox ItemsSource="{x:Static vm:MainViewModel.LockChordNames}" SelectedIndex="{Binding LockChordIndex}" />
-                            <TextBlock Text="Hold them for a second to lock; again to unlock. While locked the controller does nothing." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,8" />
-                            <ToggleButton Content="Controller locked" IsChecked="{Binding IsControllerLocked, Mode=OneWay}" Command="{Binding ToggleLockCommand}" HorizontalAlignment="Left" Padding="12,5" />
-                        </StackPanel>
-                    </Border>
-
-                    <TextBlock Text="HISTORY" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
-                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock Text="{Binding HistoryHint}" Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" />
-                            <ItemsControl ItemsSource="{Binding HistoryEntries}" Margin="0,8,0,0">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <DockPanel Margin="0,0,0,6">
-                                            <Button DockPanel.Dock="Right" Content="Restore" Style="{StaticResource SecondaryButtonStyle}" Padding="10,3" FontSize="11"
-                                                    Command="{Binding DataContext.RestoreHistoryEntryCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
-                                            <TextBlock Text="{Binding Description}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,8,0" />
-                                        </DockPanel>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </Border>
-
-                    <TextBlock Text="COMBOS (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
-                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock Text="A chord is buttons pressed together; a sequence is buttons pressed in order. Each does an action of its own." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" />
-                            <ItemsControl ItemsSource="{Binding Combos}" Margin="0,8,0,0">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <DockPanel Margin="0,0,0,6">
-                                            <Button DockPanel.Dock="Right" Content="Remove" Style="{StaticResource SecondaryButtonStyle}" Padding="10,3" FontSize="11"
-                                                    Command="{Binding DataContext.RemoveComboCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
-                                            <TextBlock Text="{Binding Description}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                        </DockPanel>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-
-                            <TextBlock Text="New combo" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,10,0,4" />
-                            <ComboBox ItemsSource="{x:Static vm:MainViewModel.ComboKindNames}" SelectedIndex="{Binding NewComboKindIndex}" />
-                            <Grid Margin="0,6,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBox Text="{Binding NewComboButtons, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0" Padding="6,4" ToolTip="Buttons, e.g. A + B   or   Up Up Down Down" />
-                                <Button Grid.Column="1" Content="Capture" Command="{Binding CaptureComboButtonsCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,5" ToolTip="Press the buttons on your controller instead of typing them" />
-                            </Grid>
-                            <TextBlock Text="Action, written like a macro (KeyTap:Space, Obs:record, ...)" Foreground="{StaticResource BrushTextMuted}" FontSize="10" Margin="0,6,0,2" />
-                            <TextBox Text="{Binding NewComboAction, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" />
-                            <ComboBox ItemsSource="{x:Static vm:MainViewModel.ComboRepeatNames}" SelectedIndex="{Binding NewComboRepeatIndex}" Margin="0,6,0,0" />
-                            <Button Content="Add combo" Command="{Binding AddComboCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="12,5" Margin="0,8,0,0" HorizontalAlignment="Left" />
-                            <TextBlock Text="{Binding ComboMessage}" Foreground="{StaticResource BrushOrange}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0" />
-
-                            <DockPanel Margin="0,12,0,0">
-                                <TextBlock Text="Chord window" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                <TextBlock Text="{Binding ChordWindowMs, StringFormat='{}{0} ms'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                            </DockPanel>
-                            <Slider Minimum="30" Maximum="400" SmallChange="5" LargeChange="20" Value="{Binding ChordWindowMs}" Margin="0,4,0,0" />
-                            <TextBlock Text="Buttons that are part of a chord wait this long before acting alone." Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-
-                    <TextBlock Text="USAGE (this computer only)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
-                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock Text="{Binding UsageSummary}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" TextWrapping="Wrap" />
-                            <ItemsControl ItemsSource="{Binding TopButtonLines}" Margin="0,8,0,0">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding}" Foreground="{StaticResource BrushCyan}" FontSize="12" FontFamily="Consolas" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            <TextBlock Text="Counted only on this computer; nothing is ever sent anywhere." Foreground="{StaticResource BrushTextMuted}" FontSize="10" Margin="0,8,0,0" />
-                            <Button Content="Reset counts" Command="{Binding ResetUsageCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="0,8,0,0" HorizontalAlignment="Left" />
-                        </StackPanel>
-                    </Border>
-
-                    <TextBlock Text="OVERLAY (for streams)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
-                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
-                        <StackPanel>
-                            <ToggleButton Content="Show the controller overlay" IsChecked="{Binding ShowOverlay}" HorizontalAlignment="Left" Padding="12,5" />
-                            <TextBlock Text="A small window that stays on top and shows your controller moving. Drag it where you want it and resize it from its corner; capture it with a window capture in OBS. Turn it off here." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0" />
-                        </StackPanel>
-                    </Border>
-
-                    <TextBlock Text="BACKGROUND" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
-                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
-                        <StackPanel>
-                            <CheckBox Content="Keep running when the window is closed" IsChecked="{Binding KeepRunningInBackground}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                            <TextBlock Text="The close button hides the window and ReWASD stays in the notification area (next to the clock); use its icon to open the window or quit." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0" />
-                        </StackPanel>
-                    </Border>
-
-                    <TextBlock Text="COMMAND WHEEL (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
-                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock Text="Hold a button, point a stick at a slice, let go of the button to run it. Opens on top of your game without taking focus." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" />
-                            <TextBlock Text="Open it by holding" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,10,0,4" />
-                            <ComboBox ItemsSource="{x:Static vm:MainViewModel.WheelButtonNames}" SelectedIndex="{Binding WheelButtonIndex}" />
-                            <TextBlock Text="Point with" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,8,0,4" />
-                            <ComboBox ItemsSource="{x:Static vm:MainViewModel.WheelStickNames}" SelectedIndex="{Binding WheelStickIndex}" />
-                            <DockPanel Margin="0,8,0,0">
-                                <TextBlock Text="Push this far to choose" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                <TextBlock Text="{Binding WheelThreshold, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                            </DockPanel>
-                            <Slider Minimum="0.2" Maximum="0.9" SmallChange="0.05" LargeChange="0.1" Value="{Binding WheelThreshold}" Margin="0,4,0,0" />
-
-                            <ItemsControl ItemsSource="{Binding WheelItems}" Margin="0,10,0,0">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <DockPanel Margin="0,0,0,6">
-                                            <Button DockPanel.Dock="Right" Content="Remove" Style="{StaticResource SecondaryButtonStyle}" Padding="10,3" FontSize="11"
-                                                    Command="{Binding DataContext.RemoveWheelItemCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
-                                            <TextBlock Text="{Binding Label}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                        </DockPanel>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            <TextBlock Text="Slice name, e.g. Browser" Foreground="{StaticResource BrushTextMuted}" FontSize="10" Margin="0,6,0,2" />
-                            <TextBox Text="{Binding NewWheelLabel, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" />
-                            <TextBlock Text="Action, e.g. LaunchApp:Chrome" Foreground="{StaticResource BrushTextMuted}" FontSize="10" Margin="0,6,0,2" />
-                            <TextBox Text="{Binding NewWheelAction, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" />
-                            <Button Content="Add slice" Command="{Binding AddWheelItemCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="12,5" Margin="0,8,0,0" HorizontalAlignment="Left" />
-                            <TextBlock Text="{Binding WheelMessage}" Foreground="{StaticResource BrushOrange}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0" />
-                        </StackPanel>
-                    </Border>
-
-                    <TextBlock Text="ACTIVATOR TIMING (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
-                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
-                        <StackPanel>
-                            <DockPanel>
-                                <TextBlock Text="Long press after" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                <TextBlock Text="{Binding LongPressMs, StringFormat='{}{0} ms'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                            </DockPanel>
-                            <Slider Minimum="150" Maximum="1500" SmallChange="10" LargeChange="50" Value="{Binding LongPressMs}" Margin="0,4,0,12" />
-
-                            <DockPanel>
-                                <TextBlock Text="Double / triple press window" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                <TextBlock Text="{Binding MultiPressWindowMs, StringFormat='{}{0} ms'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                            </DockPanel>
-                            <Slider Minimum="80" Maximum="800" SmallChange="10" LargeChange="50" Value="{Binding MultiPressWindowMs}" Margin="0,4,0,12" />
-
-                            <DockPanel>
-                                <TextBlock Text="One-time pulse length" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                <TextBlock Text="{Binding PulseMs, StringFormat='{}{0} ms'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                            </DockPanel>
-                            <Slider Minimum="10" Maximum="300" SmallChange="5" LargeChange="20" Value="{Binding PulseMs}" Margin="0,4,0,0" />
-                        </StackPanel>
-                    </Border>
-
-                    <TextBlock Text="SAFETY" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
-                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock Text="Panic key: Ctrl + Alt + Shift + F12" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                            <TextBlock Text="Stops remapping immediately and gives every key and mouse button back, even if a mapping has taken over something you need." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0" />
-                        </StackPanel>
-                    </Border>
-
-                    <TextBlock Text="OUTPUT" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
-                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
-                        <StackPanel>
-                            <TextBlock Text="Virtual controller: Xbox 360" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                            <TextBlock Text="Other output types are not implemented yet." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" Margin="0,2,0,0" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-                </ScrollViewer>
-            </Border>
         </Grid>
 
+            <!-- Settings page: its own list of sections on the left; covers the layer bar, the tabs and the editor -->
+            <Grid Grid.Row="1" Grid.RowSpan="3" Background="{StaticResource BrushBgDeep}" Visibility="{Binding IsPreferencesPage, Converter={StaticResource BoolToVisibility}}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="224" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,1,0" Padding="12,20">
+                    <StackPanel>
+                        <TextBlock Text="Settings" Foreground="{StaticResource BrushTextPrimary}" FontSize="18" FontWeight="Bold" Margin="10,0,0,14" />
+                        <RadioButton Style="{StaticResource NavButtonStyle}" Content="Sticks" GroupName="SettingsNav" IsChecked="{Binding SettingsSection, Converter={StaticResource EnumToBool}, ConverterParameter=Sticks}" />
+                        <RadioButton Style="{StaticResource NavButtonStyle}" Content="Combos and timing" GroupName="SettingsNav" IsChecked="{Binding SettingsSection, Converter={StaticResource EnumToBool}, ConverterParameter=Combos}" />
+                        <RadioButton Style="{StaticResource NavButtonStyle}" Content="Configs" GroupName="SettingsNav" IsChecked="{Binding SettingsSection, Converter={StaticResource EnumToBool}, ConverterParameter=Configs}" />
+                        <RadioButton Style="{StaticResource NavButtonStyle}" Content="Integrations" GroupName="SettingsNav" IsChecked="{Binding SettingsSection, Converter={StaticResource EnumToBool}, ConverterParameter=Integrations}" />
+                        <RadioButton Style="{StaticResource NavButtonStyle}" Content="Window" GroupName="SettingsNav" IsChecked="{Binding SettingsSection, Converter={StaticResource EnumToBool}, ConverterParameter=Window}" />
+                        <RadioButton Style="{StaticResource NavButtonStyle}" Content="System" GroupName="SettingsNav" IsChecked="{Binding SettingsSection, Converter={StaticResource EnumToBool}, ConverterParameter=System}" />
+                        <Button Content="Back to mapping" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding ToggleSettingsCommand}" Margin="0,18,0,0" Padding="10,7" />
+                    </StackPanel>
+                </Border>
+                <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel MaxWidth="680" HorizontalAlignment="Left" Margin="40,28,40,40">
+                        <TextBlock Text="{Binding SettingsSectionTitle}" Foreground="{StaticResource BrushTextPrimary}" FontSize="22" FontWeight="Bold" />
+                        <TextBlock Text="{Binding SettingsSectionSummary}" Foreground="{StaticResource BrushTextSecondary}" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,22" />
+                        <StackPanel>
+                            <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding SettingsSection}" Value="Sticks"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                            <TextBlock Text="LEFT STICK (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                            <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16" DataContext="{Binding LeftStickSettings}">
+                                <StackPanel>
+                                    <ComboBox ItemsSource="{x:Static vm:StickViewModel.ModeNames}" SelectedIndex="{Binding ModeIndex}" />
+                                    <StackPanel Margin="0,10,0,0" Visibility="{Binding IsMouse, Converter={StaticResource BoolToVisibility}}">
+                                        <DockPanel>
+                                            <TextBlock Text="Cursor speed" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                            <TextBlock Text="{Binding MouseSpeed, StringFormat='{}{0:0} px/s'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                                        </DockPanel>
+                                        <Slider Minimum="100" Maximum="4000" SmallChange="50" LargeChange="200" Value="{Binding MouseSpeed}" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                    <StackPanel Margin="0,10,0,0" Visibility="{Binding IsScroll, Converter={StaticResource BoolToVisibility}}">
+                                        <DockPanel>
+                                            <TextBlock Text="Scroll speed" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                            <TextBlock Text="{Binding ScrollSpeed, StringFormat='{}{0:0} /s'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                                        </DockPanel>
+                                        <Slider Minimum="2" Maximum="60" SmallChange="1" LargeChange="5" Value="{Binding ScrollSpeed}" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                    <StackPanel Margin="0,10,0,0" Visibility="{Binding IsKeys, Converter={StaticResource BoolToVisibility}}">
+                                        <TextBlock Text="Keys" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,0,0,4" />
+                                        <ComboBox ItemsSource="{x:Static vm:StickViewModel.KeyPresetNames}" SelectedIndex="{Binding KeyPresetIndex}" />
+                                        <DockPanel Margin="0,10,0,0">
+                                            <TextBlock Text="Push this far to press" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                            <TextBlock Text="{Binding KeyThreshold, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                                        </DockPanel>
+                                        <Slider Minimum="0.1" Maximum="0.95" SmallChange="0.05" LargeChange="0.1" Value="{Binding KeyThreshold}" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                    <StackPanel Margin="0,10,0,0" Visibility="{Binding CanBePrecise, Converter={StaticResource BoolToVisibility}}">
+                                        <TextBlock Text="Slow down while holding" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,0,0,4" />
+                                        <ComboBox ItemsSource="{x:Static vm:StickViewModel.PrecisionNames}" SelectedIndex="{Binding PrecisionIndex}" />
+                                        <DockPanel Margin="0,10,0,0">
+                                            <TextBlock Text="Speed while slowed" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                            <TextBlock Text="{Binding PrecisionFactor, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                                        </DockPanel>
+                                        <Slider Minimum="0.05" Maximum="1" SmallChange="0.05" LargeChange="0.1" Value="{Binding PrecisionFactor}" Margin="0,4,0,0" />
+                                    </StackPanel>
+
+                                    <TextBlock Text="RESPONSE" Foreground="{StaticResource BrushTextMuted}" FontSize="10" FontWeight="Bold" Margin="0,14,0,6" />
+                                    <TextBlock Text="{Binding LiveText}" Foreground="{StaticResource BrushCyan}" FontSize="11" FontFamily="Consolas" />
+                                    <DockPanel Margin="0,8,0,0">
+                                        <TextBlock Text="Deadzone (ignore drift below)" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                        <TextBlock Text="{Binding DeadzoneMin, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                                    </DockPanel>
+                                    <Slider Minimum="0" Maximum="0.6" SmallChange="0.01" LargeChange="0.05" Value="{Binding DeadzoneMin}" Margin="0,4,0,0" />
+                                    <DockPanel Margin="0,6,0,0">
+                                        <TextBlock Text="Full push reached at" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                        <TextBlock Text="{Binding DeadzoneMax, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                                    </DockPanel>
+                                    <Slider Minimum="0.3" Maximum="1" SmallChange="0.01" LargeChange="0.05" Value="{Binding DeadzoneMax}" Margin="0,4,0,0" />
+                                    <TextBlock Text="Curve" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,8,0,4" />
+                                    <ComboBox ItemsSource="{x:Static vm:StickViewModel.CurveNames}" SelectedIndex="{Binding CurveIndex}" />
+                                    <DockPanel Margin="0,8,0,0">
+                                        <TextBlock Text="Sensitivity" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                        <TextBlock Text="{Binding Sensitivity, StringFormat='{}{0:0.00}x'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                                    </DockPanel>
+                                    <Slider Minimum="0.3" Maximum="2" SmallChange="0.05" LargeChange="0.2" Value="{Binding Sensitivity}" Margin="0,4,0,0" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                        <CheckBox Content="Flip left / right" IsChecked="{Binding InvertX}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" Margin="0,0,16,0" />
+                                        <CheckBox Content="Flip up / down" IsChecked="{Binding InvertY}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                        <Button Content="Measure drift" Command="{Binding CalibrateRestCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="0,0,6,0" ToolTip="Leave the stick alone: sets the deadzone just above its drift" />
+                                        <Button Content="Measure reach" Command="{Binding CalibrateRangeCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="0,0,6,0" ToolTip="Roll the stick around its edge: sets where a full push counts" />
+                                        <Button Content="Reset" Command="{Binding ResetTuningCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" />
+                                    </StackPanel>
+                                    <ProgressBar Minimum="0" Maximum="1" Value="{Binding CalibrationProgress, Mode=OneWay}" Height="6" Margin="0,8,0,0" Visibility="{Binding IsCalibrating, Converter={StaticResource BoolToVisibility}}" />
+                                    <TextBlock Text="{Binding CalibrationText}" Foreground="{StaticResource BrushOrange}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="RIGHT STICK (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                            <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16" DataContext="{Binding RightStickSettings}">
+                                <StackPanel>
+                                    <ComboBox ItemsSource="{x:Static vm:StickViewModel.ModeNames}" SelectedIndex="{Binding ModeIndex}" />
+                                    <StackPanel Margin="0,10,0,0" Visibility="{Binding IsMouse, Converter={StaticResource BoolToVisibility}}">
+                                        <DockPanel>
+                                            <TextBlock Text="Cursor speed" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                            <TextBlock Text="{Binding MouseSpeed, StringFormat='{}{0:0} px/s'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                                        </DockPanel>
+                                        <Slider Minimum="100" Maximum="4000" SmallChange="50" LargeChange="200" Value="{Binding MouseSpeed}" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                    <StackPanel Margin="0,10,0,0" Visibility="{Binding IsScroll, Converter={StaticResource BoolToVisibility}}">
+                                        <DockPanel>
+                                            <TextBlock Text="Scroll speed" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                            <TextBlock Text="{Binding ScrollSpeed, StringFormat='{}{0:0} /s'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                                        </DockPanel>
+                                        <Slider Minimum="2" Maximum="60" SmallChange="1" LargeChange="5" Value="{Binding ScrollSpeed}" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                    <StackPanel Margin="0,10,0,0" Visibility="{Binding IsKeys, Converter={StaticResource BoolToVisibility}}">
+                                        <TextBlock Text="Keys" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,0,0,4" />
+                                        <ComboBox ItemsSource="{x:Static vm:StickViewModel.KeyPresetNames}" SelectedIndex="{Binding KeyPresetIndex}" />
+                                        <DockPanel Margin="0,10,0,0">
+                                            <TextBlock Text="Push this far to press" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                            <TextBlock Text="{Binding KeyThreshold, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                                        </DockPanel>
+                                        <Slider Minimum="0.1" Maximum="0.95" SmallChange="0.05" LargeChange="0.1" Value="{Binding KeyThreshold}" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                    <StackPanel Margin="0,10,0,0" Visibility="{Binding CanBePrecise, Converter={StaticResource BoolToVisibility}}">
+                                        <TextBlock Text="Slow down while holding" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,0,0,4" />
+                                        <ComboBox ItemsSource="{x:Static vm:StickViewModel.PrecisionNames}" SelectedIndex="{Binding PrecisionIndex}" />
+                                        <DockPanel Margin="0,10,0,0">
+                                            <TextBlock Text="Speed while slowed" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                            <TextBlock Text="{Binding PrecisionFactor, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                                        </DockPanel>
+                                        <Slider Minimum="0.05" Maximum="1" SmallChange="0.05" LargeChange="0.1" Value="{Binding PrecisionFactor}" Margin="0,4,0,0" />
+                                    </StackPanel>
+
+                                    <TextBlock Text="RESPONSE" Foreground="{StaticResource BrushTextMuted}" FontSize="10" FontWeight="Bold" Margin="0,14,0,6" />
+                                    <TextBlock Text="{Binding LiveText}" Foreground="{StaticResource BrushCyan}" FontSize="11" FontFamily="Consolas" />
+                                    <DockPanel Margin="0,8,0,0">
+                                        <TextBlock Text="Deadzone (ignore drift below)" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                        <TextBlock Text="{Binding DeadzoneMin, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                                    </DockPanel>
+                                    <Slider Minimum="0" Maximum="0.6" SmallChange="0.01" LargeChange="0.05" Value="{Binding DeadzoneMin}" Margin="0,4,0,0" />
+                                    <DockPanel Margin="0,6,0,0">
+                                        <TextBlock Text="Full push reached at" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                        <TextBlock Text="{Binding DeadzoneMax, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                                    </DockPanel>
+                                    <Slider Minimum="0.3" Maximum="1" SmallChange="0.01" LargeChange="0.05" Value="{Binding DeadzoneMax}" Margin="0,4,0,0" />
+                                    <TextBlock Text="Curve" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,8,0,4" />
+                                    <ComboBox ItemsSource="{x:Static vm:StickViewModel.CurveNames}" SelectedIndex="{Binding CurveIndex}" />
+                                    <DockPanel Margin="0,8,0,0">
+                                        <TextBlock Text="Sensitivity" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                        <TextBlock Text="{Binding Sensitivity, StringFormat='{}{0:0.00}x'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                                    </DockPanel>
+                                    <Slider Minimum="0.3" Maximum="2" SmallChange="0.05" LargeChange="0.2" Value="{Binding Sensitivity}" Margin="0,4,0,0" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                        <CheckBox Content="Flip left / right" IsChecked="{Binding InvertX}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" Margin="0,0,16,0" />
+                                        <CheckBox Content="Flip up / down" IsChecked="{Binding InvertY}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                        <Button Content="Measure drift" Command="{Binding CalibrateRestCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="0,0,6,0" ToolTip="Leave the stick alone: sets the deadzone just above its drift" />
+                                        <Button Content="Measure reach" Command="{Binding CalibrateRangeCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="0,0,6,0" ToolTip="Roll the stick around its edge: sets where a full push counts" />
+                                        <Button Content="Reset" Command="{Binding ResetTuningCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" />
+                                    </StackPanel>
+                                    <ProgressBar Minimum="0" Maximum="1" Value="{Binding CalibrationProgress, Mode=OneWay}" Height="6" Margin="0,8,0,0" Visibility="{Binding IsCalibrating, Converter={StaticResource BoolToVisibility}}" />
+                                    <TextBlock Text="{Binding CalibrationText}" Foreground="{StaticResource BrushOrange}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                        </StackPanel>
+                        <StackPanel>
+                            <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding SettingsSection}" Value="Combos"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                            <TextBlock Text="ACTIVATOR TIMING (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                            <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <TextBlock Text="Long press after" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                        <TextBlock Text="{Binding LongPressMs, StringFormat='{}{0} ms'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                                    </DockPanel>
+                                    <Slider Minimum="150" Maximum="1500" SmallChange="10" LargeChange="50" Value="{Binding LongPressMs}" Margin="0,4,0,12" />
+
+                                    <DockPanel>
+                                        <TextBlock Text="Double / triple press window" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                        <TextBlock Text="{Binding MultiPressWindowMs, StringFormat='{}{0} ms'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                                    </DockPanel>
+                                    <Slider Minimum="80" Maximum="800" SmallChange="10" LargeChange="50" Value="{Binding MultiPressWindowMs}" Margin="0,4,0,12" />
+
+                                    <DockPanel>
+                                        <TextBlock Text="One-time pulse length" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                        <TextBlock Text="{Binding PulseMs, StringFormat='{}{0} ms'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                                    </DockPanel>
+                                    <Slider Minimum="10" Maximum="300" SmallChange="5" LargeChange="20" Value="{Binding PulseMs}" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="COMBOS (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                            <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="A chord is buttons pressed together; a sequence is buttons pressed in order. Each does an action of its own." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" />
+                                    <ItemsControl ItemsSource="{Binding Combos}" Margin="0,8,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Margin="0,0,0,6">
+                                                    <Button DockPanel.Dock="Right" Content="Remove" Style="{StaticResource SecondaryButtonStyle}" Padding="10,3" FontSize="11"
+                                                            Command="{Binding DataContext.RemoveComboCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                                                    <TextBlock Text="{Binding Description}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <TextBlock Text="New combo" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,10,0,4" />
+                                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.ComboKindNames}" SelectedIndex="{Binding NewComboKindIndex}" />
+                                    <Grid Margin="0,6,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Text="{Binding NewComboButtons, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0" Padding="6,4" ToolTip="Buttons, e.g. A + B   or   Up Up Down Down" />
+                                        <Button Grid.Column="1" Content="Capture" Command="{Binding CaptureComboButtonsCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,5" ToolTip="Press the buttons on your controller instead of typing them" />
+                                    </Grid>
+                                    <TextBlock Text="Action, written like a macro (KeyTap:Space, Obs:record, ...)" Foreground="{StaticResource BrushTextMuted}" FontSize="10" Margin="0,6,0,2" />
+                                    <TextBox Text="{Binding NewComboAction, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" />
+                                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.ComboRepeatNames}" SelectedIndex="{Binding NewComboRepeatIndex}" Margin="0,6,0,0" />
+                                    <Button Content="Add combo" Command="{Binding AddComboCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="12,5" Margin="0,8,0,0" HorizontalAlignment="Left" />
+                                    <TextBlock Text="{Binding ComboMessage}" Foreground="{StaticResource BrushOrange}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0" />
+
+                                    <DockPanel Margin="0,12,0,0">
+                                        <TextBlock Text="Chord window" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                        <TextBlock Text="{Binding ChordWindowMs, StringFormat='{}{0} ms'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                                    </DockPanel>
+                                    <Slider Minimum="30" Maximum="400" SmallChange="5" LargeChange="20" Value="{Binding ChordWindowMs}" Margin="0,4,0,0" />
+                                    <TextBlock Text="Buttons that are part of a chord wait this long before acting alone." Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="COMMAND WHEEL (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                            <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="Hold a button, point a stick at a slice, let go of the button to run it. Opens on top of your game without taking focus." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" />
+                                    <TextBlock Text="Open it by holding" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,10,0,4" />
+                                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.WheelButtonNames}" SelectedIndex="{Binding WheelButtonIndex}" />
+                                    <TextBlock Text="Point with" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,8,0,4" />
+                                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.WheelStickNames}" SelectedIndex="{Binding WheelStickIndex}" />
+                                    <DockPanel Margin="0,8,0,0">
+                                        <TextBlock Text="Push this far to choose" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                        <TextBlock Text="{Binding WheelThreshold, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
+                                    </DockPanel>
+                                    <Slider Minimum="0.2" Maximum="0.9" SmallChange="0.05" LargeChange="0.1" Value="{Binding WheelThreshold}" Margin="0,4,0,0" />
+
+                                    <ItemsControl ItemsSource="{Binding WheelItems}" Margin="0,10,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Margin="0,0,0,6">
+                                                    <Button DockPanel.Dock="Right" Content="Remove" Style="{StaticResource SecondaryButtonStyle}" Padding="10,3" FontSize="11"
+                                                            Command="{Binding DataContext.RemoveWheelItemCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                                                    <TextBlock Text="{Binding Label}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Text="Slice name, e.g. Browser" Foreground="{StaticResource BrushTextMuted}" FontSize="10" Margin="0,6,0,2" />
+                                    <TextBox Text="{Binding NewWheelLabel, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" />
+                                    <TextBlock Text="Action, e.g. LaunchApp:Chrome" Foreground="{StaticResource BrushTextMuted}" FontSize="10" Margin="0,6,0,2" />
+                                    <TextBox Text="{Binding NewWheelAction, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" />
+                                    <Button Content="Add slice" Command="{Binding AddWheelItemCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="12,5" Margin="0,8,0,0" HorizontalAlignment="Left" />
+                                    <TextBlock Text="{Binding WheelMessage}" Foreground="{StaticResource BrushOrange}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                        </StackPanel>
+                        <StackPanel>
+                            <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding SettingsSection}" Value="Configs"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                            <TextBlock Text="SAVING" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                            <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <CheckBox Content="Save configs automatically" IsChecked="{Binding AutoSaveProfiles}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                    <TextBlock Text="A config is written a moment after you change it, and when you switch config or close the app. Older copies are kept under History." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                    <TextBlock Text="{Binding SaveStateText, StringFormat='This config: {0}'}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" Margin="0,10,0,0" />
+                                </StackPanel>
+                            </Border>
+                            <TextBlock Text="PROFILES AND LOCK" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                            <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <CheckBox Content="Switch profile to match the app in front" IsChecked="{Binding AutoSwitchProfiles}" IsEnabled="{Binding CanAutoSwitch, Mode=OneTime}"
+                                              Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                    <TextBlock Text="Give a profile a target app (the box under the profile list, e.g. game.exe) and it takes over while that app is in front." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,12" />
+
+                                    <TextBlock Text="Lock the controller by holding" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,0,0,4" />
+                                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.LockChordNames}" SelectedIndex="{Binding LockChordIndex}" />
+                                    <TextBlock Text="Hold them for a second to lock; again to unlock. While locked the controller does nothing." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,8" />
+                                    <ToggleButton Content="Controller locked" IsChecked="{Binding IsControllerLocked, Mode=OneWay}" Command="{Binding ToggleLockCommand}" HorizontalAlignment="Left" Padding="12,5" />
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="HISTORY" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                            <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding HistoryHint}" Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" />
+                                    <ItemsControl ItemsSource="{Binding HistoryEntries}" Margin="0,8,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Margin="0,0,0,6">
+                                                    <Button DockPanel.Dock="Right" Content="Restore" Style="{StaticResource SecondaryButtonStyle}" Padding="10,3" FontSize="11"
+                                                            Command="{Binding DataContext.RestoreHistoryEntryCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                                                    <TextBlock Text="{Binding Description}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,8,0" />
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+
+                        </StackPanel>
+                        <StackPanel>
+                            <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding SettingsSection}" Value="Integrations"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                            <TextBlock Text="OBS STUDIO (for Obs: macro steps)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                            <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="In OBS: Tools, then WebSocket Server Settings, then Enable. Kept on this computer only." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" />
+                                    <Grid Margin="0,8,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="80" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Text="{Binding ObsHost, UpdateSourceTrigger=LostFocus}" Margin="0,0,6,0" Padding="6,4" />
+                                        <TextBox Grid.Column="1" Text="{Binding ObsPort, UpdateSourceTrigger=LostFocus}" Padding="6,4" />
+                                    </Grid>
+                                    <TextBlock Text="Password (if you set one)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" Margin="0,8,0,2" />
+                                    <TextBox x:Name="ObsPasswordBox" Padding="6,4" Text="{Binding ObsPassword, UpdateSourceTrigger=LostFocus}" />
+                                </StackPanel>
+                            </Border>
+
+                        </StackPanel>
+                        <StackPanel>
+                            <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding SettingsSection}" Value="Window"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                            <TextBlock Text="OVERLAY (for streams)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                            <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <ToggleButton Content="Show the controller overlay" IsChecked="{Binding ShowOverlay}" HorizontalAlignment="Left" Padding="12,5" />
+                                    <TextBlock Text="A small window that stays on top and shows your controller moving. Drag it where you want it and resize it from its corner; capture it with a window capture in OBS. Turn it off here." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="BACKGROUND" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                            <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <CheckBox Content="Keep running when the window is closed" IsChecked="{Binding KeepRunningInBackground}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                    <TextBlock Text="The close button hides the window and ReWASD stays in the notification area (next to the clock); use its icon to open the window or quit." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                        </StackPanel>
+                        <StackPanel>
+                            <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding SettingsSection}" Value="System"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                            <TextBlock Text="DRIVERS" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                            <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding DriverStatusText}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                    <TextBlock Text="Required to present a virtual Xbox 360 controller to games." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" Margin="0,2,0,10" />
+                                    <TextBlock Text="{Binding HidHideStatusText}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                    <TextBlock Text="Optional. Hides the physical controller so games only see the virtual one (the toggle switch in the bottom bar)." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                    <TextBlock Text="{Binding HideStatusText}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0" />
+                                    <Button Content="Show HidHide diagnostics" Command="{Binding ShowHidHideDiagnosticsCommand}" Style="{StaticResource SecondaryButtonStyle}"
+                                            HorizontalAlignment="Left" Padding="12,5" Margin="0,8,0,0" ToolTip="Prints what HidHide has configured in the status bar" />
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="UPDATES" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                            <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding BuildText, StringFormat='This build: {0}'}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                    <TextBlock Text="{Binding UpdateStatusText}" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                        <Button Content="Check now" Command="{Binding CheckForUpdatesCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="12,5" />
+                                        <Button Content="Update now" Command="{Binding InstallUpdateCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="12,5" Margin="8,0,0,0"
+                                                Visibility="{Binding ShowUpdateButton, Converter={StaticResource BoolToVisibility}}" />
+                                    </StackPanel>
+                                    <ProgressBar Minimum="0" Maximum="1" Value="{Binding UpdateProgress, Mode=OneWay}" Height="6" Margin="0,10,0,0"
+                                                 Visibility="{Binding IsUpdating, Converter={StaticResource BoolToVisibility}}" />
+                                    <CheckBox Content="Check for updates when ReWASD starts" IsChecked="{Binding AutoCheckUpdates}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" Margin="0,10,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="SAFETY" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                            <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="Panic key: Ctrl + Alt + Shift + F12" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                    <TextBlock Text="Stops remapping immediately and gives every key and mouse button back, even if a mapping has taken over something you need." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="OUTPUT" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                            <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
+                                <StackPanel>
+                                    <TextBlock Text="Virtual controller: Xbox 360" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                    <TextBlock Text="Other output types are not implemented yet." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+                            <TextBlock Text="USAGE (this computer only)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                            <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding UsageSummary}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" TextWrapping="Wrap" />
+                                    <ItemsControl ItemsSource="{Binding TopButtonLines}" Margin="0,8,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" Foreground="{StaticResource BrushCyan}" FontSize="12" FontFamily="Consolas" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Text="Counted only on this computer; nothing is ever sent anywhere." Foreground="{StaticResource BrushTextMuted}" FontSize="10" Margin="0,8,0,0" />
+                                    <Button Content="Reset counts" Command="{Binding ResetUsageCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="0,8,0,0" HorizontalAlignment="Left" />
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="KEYBOARD SHORTCUTS" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                            <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Text="{Binding ModifierKeyName, StringFormat='{}{0} + S'}" FontFamily="Consolas" FontSize="12" Foreground="{StaticResource BrushTextPrimary}" Margin="0,0,16,6" />
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Save this config now" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" />
+                                    <TextBlock Grid.Row="1" Text="{Binding ModifierKeyName, StringFormat='{}{0} + ,'}" FontFamily="Consolas" FontSize="12" Foreground="{StaticResource BrushTextPrimary}" Margin="0,0,16,6" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Open or close settings" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" />
+                                    <TextBlock Grid.Row="2" Text="{Binding ModifierKeyName, StringFormat='{}{0} + Enter'}" FontFamily="Consolas" FontSize="12" Foreground="{StaticResource BrushTextPrimary}" Margin="0,0,16,6" />
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Start or stop remapping" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" />
+                                    <TextBlock Grid.Row="3" Text="F11" FontFamily="Consolas" FontSize="12" Foreground="{StaticResource BrushTextPrimary}" Margin="0,0,16,6" />
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Full screen: the controller tester" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" />
+                                    <TextBlock Grid.Row="4" Text="Esc" FontFamily="Consolas" FontSize="12" Foreground="{StaticResource BrushTextPrimary}" Margin="0,0,16,6" />
+                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="Leave settings or full screen" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" />
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+
         <!-- 5. DEVICE BAR -->
-        <Border Grid.Row="4" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0" Padding="14,0">
+        <Border Grid.Row="5" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0" Padding="14,0">
             <Grid>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="&#xE7FC;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource BrushCyan}" Margin="0,0,10,0" VerticalAlignment="Center" />
@@ -649,7 +733,7 @@
         </Border>
 
         <!-- 6. APPLY BAR -->
-        <Border Grid.Row="5" Background="{StaticResource BrushBgDeep}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0" Padding="14,0">
+        <Border Grid.Row="6" Background="{StaticResource BrushBgDeep}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0" Padding="14,0">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -658,25 +742,21 @@
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <!-- Start / stop remapping -->
-                    <Button Command="{Binding ToggleApplyCommand}" Style="{StaticResource ApplyButtonStyle}" MinWidth="150" Height="42">
-                        <TextBlock FontWeight="Bold" FontSize="14">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Text" Value="APPLY" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsRemappingActive}" Value="True">
-                                            <Setter Property="Text" Value="STOP" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                    <Button Command="{Binding ToggleApplyCommand}" Style="{StaticResource ApplyButtonRunningStyle}" MinWidth="170" Height="42"
+                            ToolTip="Start or stop remapping" AutomationProperties.Name="Start or stop remapping">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="9" Height="9" Fill="#2EF2A0" Margin="0,0,9,0" VerticalAlignment="Center"
+                                     Visibility="{Binding IsRemappingActive, Converter={StaticResource BoolToVisibility}}" />
+                            <TextBlock FontWeight="Bold" FontSize="14" Text="{Binding ApplyButtonText}" />
+                        </StackPanel>
                     </Button>
 
                     <!-- Slot -->
+                    <TextBlock Text="Slot" Foreground="{StaticResource BrushTextMuted}" FontSize="12" VerticalAlignment="Center" Margin="14,0,6,0"
+                               ToolTip="Which controller slot (1 to 4) the virtual controller takes" />
                     <ComboBox ItemsSource="{Binding SlotNumbers}" SelectedItem="{Binding ActiveSlot, Mode=TwoWay}"
-                              Width="96" Height="42" FontSize="15" FontWeight="SemiBold" Margin="8,0,14,0" VerticalAlignment="Center"
-                              ToolTip="Slot" />
+                              Width="80" Height="42" FontSize="14" FontWeight="SemiBold" Margin="0,0,14,0" VerticalAlignment="Center"
+                              ToolTip="Which controller slot (1 to 4) the virtual controller takes" />
 
                     <!-- Virtual controller: which controller games will see -->
                     <ToggleButton x:Name="OutputToggle" Style="{StaticResource IconToggle}" Content="&#xE7FC;" Width="46" Height="42" Margin="0,0,6,0"
@@ -744,6 +824,6 @@
 
 
         <!-- The full-screen tester, created only while the window is full screen -->
-        <ContentControl x:Name="TesterHost" Grid.RowSpan="5" Visibility="Collapsed" Panel.ZIndex="100" />
+        <ContentControl x:Name="TesterHost" Grid.RowSpan="6" Visibility="Collapsed" Panel.ZIndex="100" />
     </Grid>
 </Window>

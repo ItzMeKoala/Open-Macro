@@ -172,7 +172,7 @@
 
     <!-- APPLY / STOP -->
     <Style Selector="Button.apply">
-        <Setter Property="Background" Value="{StaticResource BrushYellow}" />
+        <Setter Property="Background" Value="{StaticResource BrushCyan}" />
         <Setter Property="Foreground" Value="#101318" />
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="FontSize" Value="13" />
@@ -188,10 +188,43 @@
         </Setter>
     </Style>
     <Style Selector="Button.apply:pointerover /template/ Border#Bd">
-        <Setter Property="Background" Value="#FFE040" />
+        <Setter Property="Background" Value="{StaticResource BrushCyanHover}" />
     </Style>
     <Style Selector="Button.apply:pressed /template/ Border#Bd">
-        <Setter Property="Background" Value="#E6B800" />
+        <Setter Property="Background" Value="{StaticResource BrushCyanDark}" />
+    </Style>
+
+    <!-- Start remapping is the one gold action; while remapping it turns into a quiet Stop with a green dot -->
+    <Style Selector="Button.apply.on">
+        <Setter Property="Background" Value="#2A2D35" />
+        <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+    </Style>
+    <Style Selector="Button.apply.on:pointerover /template/ Border#Bd">
+        <Setter Property="Background" Value="#363A44" />
+    </Style>
+
+    <!-- Labelled buttons in the top bar -->
+    <Style Selector="Button.bar">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="10,7" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.bar:pointerover /template/ Border#Bd">
+        <Setter Property="Background" Value="#18FFFFFF" />
+    </Style>
+    <Style Selector="Button.bar:pointerover">
+        <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
     </Style>
 
     <!-- SAVE (the gold call to action in the inspector) -->
@@ -210,6 +243,12 @@
                 </Border>
             </ControlTemplate>
         </Setter>
+    </Style>
+    <Style Selector="Button.primary:disabled /template/ Border#Bd">
+        <Setter Property="Background" Value="#26262A" />
+    </Style>
+    <Style Selector="Button.primary:disabled">
+        <Setter Property="Foreground" Value="#6B7587" />
     </Style>
     <Style Selector="Button.primary:pointerover /template/ Border#Bd">
         <Setter Property="Background" Value="{StaticResource BrushCyanHover}" />
@@ -272,6 +311,36 @@
     </Style>
     <Style Selector="RadioButton.tab:checked /template/ Border#Bd">
         <Setter Property="BorderBrush" Value="{StaticResource BrushCyan}" />
+    </Style>
+
+    <!-- A list of sections down the side of a page -->
+    <Style Selector="RadioButton.nav">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="12,9" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="Bd" Background="{TemplateBinding Background}" BorderThickness="3,0,0,0" BorderBrush="Transparent"
+                        CornerRadius="0,6,6,0" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                                      HorizontalAlignment="Left" VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="RadioButton.nav:pointerover /template/ Border#Bd">
+        <Setter Property="Background" Value="#14FFFFFF" />
+    </Style>
+    <Style Selector="RadioButton.nav:checked">
+        <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+    </Style>
+    <Style Selector="RadioButton.nav:checked /template/ Border#Bd">
+        <Setter Property="BorderBrush" Value="{StaticResource BrushCyan}" />
+        <Setter Property="Background" Value="#1AE9C46A" />
     </Style>
 
     <!-- Lists and inputs -->

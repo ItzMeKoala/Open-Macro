@@ -93,8 +93,15 @@ public partial class MainWindow : Window
         if (Environment.GetEnvironmentVariable("REWASD_START_TESTER") == "1") Loaded += (_, _) => SetFullScreen(true);
         PreviewKeyDown += (_, e) =>
         {
+            var vm = DataContext as ViewModels.MainViewModel;
+            bool control = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+
             if (e.Key == Key.F11) { SetFullScreen(!_fullScreen); e.Handled = true; }
             else if (e.Key == Key.Escape && _fullScreen) { SetFullScreen(false); e.Handled = true; }
+            else if (e.Key == Key.Escape && vm is { IsPreferencesPage: true }) { vm.ToggleSettingsCommand.Execute(null); e.Handled = true; }
+            else if (control && e.Key == Key.S && vm != null) { vm.SaveProfileCommand.Execute(null); e.Handled = true; }
+            else if (control && e.Key == Key.OemComma && vm != null) { vm.ToggleSettingsCommand.Execute(null); e.Handled = true; }
+            else if (control && e.Key == Key.Enter && vm != null) { vm.ToggleApplyCommand.Execute(null); e.Handled = true; }
         };
 
         try

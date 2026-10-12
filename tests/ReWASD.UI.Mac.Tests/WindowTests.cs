@@ -110,6 +110,7 @@ public class WindowTests
         var window = Show(vm);
 
         vm.ToggleSettingsCommand.Execute(null);
+        vm.SettingsSection = SettingsSection.System;
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
         var texts = window.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text).ToList();

@@ -23,7 +23,7 @@
 
     <!-- ReWASD Apply Button (Glowing Yellow/Cyan Action Button) -->
     <Style x:Key="ApplyButtonStyle" TargetType="Button">
-        <Setter Property="Background" Value="{StaticResource BrushYellow}" />
+        <Setter Property="Background" Value="{StaticResource BrushCyan}" />
         <Setter Property="Foreground" Value="#101318" />
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="FontSize" Value="13" />
@@ -38,10 +38,10 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#FFE040" />
+                            <Setter TargetName="border" Property="Opacity" Value="0.92" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#E6B800" />
+                            <Setter TargetName="border" Property="Opacity" Value="0.8" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -70,6 +70,69 @@
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="{StaticResource BrushBgPanel}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- While remapping is on, the gold Start button becomes a quiet Stop -->
+    <Style x:Key="ApplyButtonRunningStyle" TargetType="Button" BasedOn="{StaticResource ApplyButtonStyle}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsRemappingActive}" Value="True">
+                <Setter Property="Background" Value="#2A2D35" />
+                <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Labelled buttons in the top bar -->
+    <Style x:Key="BarButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="10,7" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="#18FFFFFF" />
+                            <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A list of sections down the side of a page -->
+    <Style x:Key="NavButtonStyle" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="12,9" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="bd" Background="Transparent" BorderBrush="Transparent" BorderThickness="3,0,0,0" CornerRadius="0,6,6,0" Padding="{TemplateBinding Padding}" Margin="0,0,0,2">
+                        <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="#14FFFFFF" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource BrushCyan}" />
+                            <Setter TargetName="bd" Property="Background" Value="#1AE9C46A" />
+                            <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

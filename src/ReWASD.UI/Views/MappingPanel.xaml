@@ -213,7 +213,7 @@
                 </StackPanel>
 
                 <!-- Actions -->
-                <Button Content="SAVE" Command="{Binding SaveCurrentMappingCommand}"
+                <Button Content="{Binding SaveButtonText}" Command="{Binding SaveCurrentMappingCommand}" IsEnabled="{Binding IsInspectorDirty}"
                         Background="{StaticResource BrushCyan}" Foreground="#101318"
                         FontWeight="Bold" FontSize="13"
                         HorizontalAlignment="Stretch" Height="38" Margin="0,20,0,8" Cursor="Hand">
@@ -229,10 +229,16 @@
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter TargetName="border" Property="Background" Value="{StaticResource BrushCyanDark}" />
                                 </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="border" Property="Background" Value="#26262A" />
+                                    <Setter Property="Foreground" Value="#6B7587" />
+                                </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Button.Template>
                 </Button>
+                <TextBlock Text="Changes are also saved when you click another button." Foreground="{StaticResource BrushTextMuted}" FontSize="11" HorizontalAlignment="Center" Margin="0,0,0,10"
+                           Visibility="{Binding IsInspectorDirty, Converter={StaticResource BoolToVisibility}}" />
 
                 <Button Content="Reset to default" Command="{Binding ResetCurrentMappingCommand}"
                         Style="{StaticResource SecondaryButtonStyle}"
