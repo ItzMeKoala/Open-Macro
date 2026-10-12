@@ -106,9 +106,10 @@ public sealed class JintScriptRunner : IScriptRunner
                 string now = engine.Evaluate("JSON.stringify(state)").AsString();
                 lock (_gate) _state[key] = now;
             }
-            catch (Exception ex) when (ex is Jint.Runtime.JavaScriptException or InvalidOperationException)
+            catch (Exception ex) when (ex is Jint.Runtime.JavaScriptException or InvalidOperationException or Jint.Runtime.ExecutionCanceledException)
             {
-                // A script that made its state something that cannot be saved just starts fresh next time
+                // A script that made its state something that cannot be saved just starts fresh next time; and a cancelled engine
+                // cannot run even this last line, which must not hide the cancellation that is being reported
             }
         }
     }
