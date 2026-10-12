@@ -171,6 +171,7 @@ public class ArtViewTests
         void Click(double x, double y)
         {
             var p = Screen(window, view, x, y);
+            window.MouseMove(p);   // settle hover on the new spot first, so a slow machine cannot press at the previous one
             window.MouseDown(p, Avalonia.Input.MouseButton.Left);
             window.MouseUp(p, Avalonia.Input.MouseButton.Left);
         }
