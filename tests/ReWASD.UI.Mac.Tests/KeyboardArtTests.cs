@@ -185,6 +185,7 @@ public class KeyboardArtTests
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
         var view = window.GetVisualDescendants().OfType<ArtView>().Single(v => v.Name == "KeyboardArt");
+        ToolTip.SetServiceEnabled(window, false);       // a slow machine could show a key's tooltip over the next key
         var scene = ArtLibrary.Keyboard;
         foreach (var name in new[] { "Escape", "Q", "Enter", "Space", "Left", "PageDown" })
         {

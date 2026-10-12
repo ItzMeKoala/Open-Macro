@@ -87,6 +87,9 @@ public class WindowTests
                 window.MouseUp(point, Avalonia.Input.MouseButton.Left);
             }
 
+            // A slow machine would have time to show a part's tooltip over the next part before it is clicked
+            ToolTip.SetServiceEnabled(window, false);
+
             // The middle of each button's own clickable area, read from the drawing
             var scene = ReWASD.Core.Skins.Art.ArtLibrary.Mouse;
             foreach (var name in new[] { "Left Click", "Right Click", "Wheel Up", "Middle Click", "Wheel Down", "Mouse Button 5", "Mouse Button 4" })
