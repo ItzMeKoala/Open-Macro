@@ -17,6 +17,15 @@ public interface IPlatformUi
     /// <summary>Closes the application (after an update has been staged).</summary>
     void RequestExit();
 
+    /// <summary>Asks for a profile file to open. Null when the person cancels.</summary>
+    Task<string?> PickOpenFileAsync(string title);
+
+    /// <summary>Asks where to save a profile file. Null when the person cancels.</summary>
+    Task<string?> PickSaveFileAsync(string title, string suggestedName);
+
+    /// <summary>Asks a yes/no question. False when the person says no or closes the question.</summary>
+    Task<bool> ConfirmAsync(string title, string message);
+
     /// <summary>A collection view of <paramref name="source"/> grouped by a property, or null if the toolkit has no grouped views.</summary>
     IEnumerable? CreateGroupedView(IEnumerable source, string groupProperty);
 }
@@ -56,6 +65,10 @@ public sealed class SynchronizationContextUi : IPlatformUi
     public bool ExitRequested { get; private set; }
 
     public void RequestExit() => ExitRequested = true;
+
+    public Task<string?> PickOpenFileAsync(string title) => Task.FromResult<string?>(null);
+    public Task<string?> PickSaveFileAsync(string title, string suggestedName) => Task.FromResult<string?>(null);
+    public Task<bool> ConfirmAsync(string title, string message) => Task.FromResult(false);
 
     public IEnumerable? CreateGroupedView(IEnumerable source, string groupProperty) => null;
 }

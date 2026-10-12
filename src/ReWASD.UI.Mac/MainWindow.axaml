@@ -56,6 +56,11 @@
                                          Background="Transparent" BorderThickness="0" />
                                 <TextBlock Text="Target process (blank = all)" Foreground="{StaticResource BrushTextSecondary}" FontSize="11" Margin="0,10,0,4" />
                                 <TextBox Text="{Binding SelectedProcessExecutable}" Padding="8,6" />
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0" Spacing="6">
+                                    <Button Content="Import…" Command="{Binding ImportProfileCommand}" Classes="secondary" Padding="10,4" ToolTip.Tip="Open a config file someone sent you" />
+                                    <Button Content="Export…" Command="{Binding ExportProfileCommand}" Classes="secondary" Padding="10,4" ToolTip.Tip="Save this config to share it" />
+                                    <Button Content="Delete" Command="{Binding DeleteProfileCommand}" Classes="secondary" Padding="10,4" ToolTip.Tip="Delete this config (a copy stays in History)" />
+                                </StackPanel>
                             </StackPanel>
                         </Border>
                     </Popup>
@@ -318,6 +323,24 @@
                                 <ComboBox ItemsSource="{x:Static vm:MainViewModel.LockChordNames}" SelectedIndex="{Binding LockChordIndex}" HorizontalAlignment="Stretch" />
                                 <TextBlock Text="Hold them for a second to lock; again to unlock. While locked the controller does nothing." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,8" />
                                 <ToggleButton Content="Controller locked" IsChecked="{Binding IsControllerLocked, Mode=OneWay}" Command="{Binding ToggleLockCommand}" HorizontalAlignment="Left" Padding="12,5" />
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="HISTORY" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                        <Border Classes="card">
+                            <StackPanel>
+                                <TextBlock Text="{Binding HistoryHint}" Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" />
+                                <ItemsControl ItemsSource="{Binding HistoryEntries}" Margin="0,8,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel Margin="0,0,0,6">
+                                                <Button DockPanel.Dock="Right" Content="Restore" Classes="secondary" Padding="10,3" FontSize="11"
+                                                        Command="{Binding $parent[ItemsControl].DataContext.RestoreHistoryEntryCommand}" CommandParameter="{Binding}" />
+                                                <TextBlock Text="{Binding Description}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,8,0" />
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
                         </Border>
 

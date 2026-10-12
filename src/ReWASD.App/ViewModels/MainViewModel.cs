@@ -5,6 +5,7 @@ using ReWASD.Core.Models;
 using ReWASD.Core.Serialization;
 using ReWASD.Engine;
 using ReWASD.Engine.Actions;
+using ReWASD.UI.Profiles;
 using ReWASD.Engine.Foreground;
 using ReWASD.Engine.HidHide;
 using ReWASD.Engine.Input;
@@ -44,6 +45,7 @@ public partial class MainViewModel : ObservableObject
     private const string ScrollDownLabel = "Scroll Down";
 
     private readonly PlatformBackends _platform;
+    private readonly ProfileHistory _history;
     private readonly Func<ForegroundApp?>? _foreground;
     private System.Threading.Timer? _foregroundTimer;
     private Profile? _manualProfile;
@@ -325,6 +327,7 @@ public partial class MainViewModel : ObservableObject
         _platform = platform;
         _ui = ui;
         _profilesDirectory = profilesDirectory;
+        _history = new ProfileHistory(profilesDirectory);
         _updates = updates ?? new NoUpdates();
         _installer = installer ?? new UpdateInstaller();
         _reader = platform.Reader;
@@ -372,6 +375,7 @@ public partial class MainViewModel : ObservableObject
         LoadObsSettings();
         LoadAutoSwitchSetting();
         _manualProfile = _selectedProfile;
+        RefreshHistory();
         if (AutoCheckUpdates && _updates is not NoUpdates) _ = CheckAfterStartupAsync();
     }
 
@@ -494,14 +498,173 @@ public partial class MainViewModel : ObservableObject
 
             lock (_mappingEngine.SyncRoot)
             {
+                KeepCopyOfSavedFile(path);
                 ProfileSerializer.SaveToFile(SelectedProfile, path);
             }
+            RefreshHistory();
             StatusMessage = $"Saved config to {path}";
         }
         catch (Exception ex)
         {
             StatusMessage = $"Could not save config: {ex.Message}";
         }
+    }
+
+    // ---- Config files: delete, import, export, and the history that undoes them -------------------------------------
+
+    public ObservableCollection<HistoryEntry> HistoryEntries { get; } = new();
+
+    [ObservableProperty]
+    private string _historyHint = "Copies of configs are kept here before they are deleted or replaced, so you can bring them back.";
+
+    private void RefreshHistory()
+    {
+        HistoryEntries.Clear();
+        foreach (var entry in _history.List()) HistoryEntries.Add(entry);
+    }
+
+    private string SavedPathFor(Profile profile)
+    {
+        var invalid = System.IO.Path.GetInvalidFileNameChars();
+        string fileName = string.Concat(profile.Name.Select(c => invalid.Contains(c) ? '_' : c)) + ".json";
+        return System.IO.Path.Combine(_profilesDirectory, fileName);
+    }
+
+    // The file about to be overwritten is kept first, unless the save changes nothing
+    private void KeepCopyOfSavedFile(string path)
+    {
+        try
+        {
+            if (!System.IO.File.Exists(path)) return;
+            var before = ProfileSerializer.LoadFromFile(path);
+            if (ProfileSerializer.ToJson(before) == ProfileSerializer.ToJson(SelectedProfile)) return;
+            _history.Snapshot(before, "replaced by a save");
+        }
+        catch (Exception)
+        {
+            // An unreadable old file just means there is nothing to keep
+        }
+    }
+
+    [RelayCommand]
+    private void DeleteProfile()
+    {
+        var doomed = SelectedProfile;
+        _history.Snapshot(doomed, "deleted");
+
+        // Move the selection off the doomed config first: removing the selected item would leave the list with nothing selected
+        int index = Profiles.IndexOf(doomed);
+        if (Profiles.Count == 1) Profiles.Add(Profile.CreateDefault("Default Controller Profile"));
+        var next = Profiles.Where(p => !ReferenceEquals(p, doomed)).ElementAt(Math.Min(index, Profiles.Count - 2));
+        _manualProfile = next;
+        SelectedProfile = next;
+        Profiles.Remove(doomed);
+        try
+        {
+            string path = SavedPathFor(doomed);
+            if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
+        }
+        catch (Exception)
+        {
+            // If the file cannot be removed the config comes back next start; the copy in History is still there
+        }
+        UpdateForegroundWatching();
+        RefreshHistory();
+        StatusMessage = $"Deleted {doomed.Name} — bring it back from History in Preferences";
+    }
+
+    [RelayCommand]
+    private async Task ExportProfile()
+    {
+        string? path = await _ui.PickSaveFileAsync("Export this config", System.IO.Path.GetFileName(SavedPathFor(SelectedProfile)));
+        if (string.IsNullOrEmpty(path)) return;
+
+        try
+        {
+            lock (_mappingEngine.SyncRoot) ProfileSerializer.SaveToFile(SelectedProfile, path);
+            StatusMessage = $"Exported {SelectedProfile.Name} to {path}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Could not export: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task ImportProfile()
+    {
+        string? path = await _ui.PickOpenFileAsync("Import a config");
+        if (string.IsNullOrEmpty(path)) return;
+
+        Profile imported;
+        try
+        {
+            imported = ProfileSerializer.FromJson(System.IO.File.ReadAllText(path));
+            if (!imported.ShiftLayers.ContainsKey(0)) throw new FormatException("it has no main layer");
+        }
+        catch (Exception ex) when (ex is System.Text.Json.JsonException or IOException or FormatException or UnauthorizedAccessException)
+        {
+            StatusMessage = $"Could not import {System.IO.Path.GetFileName(path)}: {ex.Message}";
+            return;
+        }
+
+        // A config from somebody else can run commands and contact servers: show what, and ask first
+        var risky = ProfileSafety.FindRiskyActions(imported);
+        if (risky.Count > 0)
+        {
+            string list = string.Join("\n", risky.Take(12)) + (risky.Count > 12 ? $"\n…and {risky.Count - 12} more" : "");
+            bool allowed = await _ui.ConfirmAsync("This config can run things on your computer",
+                $"\"{imported.Name}\" does more than press keys. When you press the buttons it is set up for, it will:\n\n{list}\n\nOnly continue if you trust where this config came from.");
+            if (!allowed)
+            {
+                StatusMessage = "Import cancelled";
+                return;
+            }
+        }
+
+        imported.Id = Guid.NewGuid();
+        string baseName = string.IsNullOrWhiteSpace(imported.Name) ? "Imported config" : imported.Name;
+        string name = baseName;
+        for (int n = 2; Profiles.Any(p => p.Name == name); n++) name = $"{baseName} ({n})";
+        imported.Name = name;
+
+        Profiles.Add(imported);
+        SelectedProfile = imported;
+        UpdateForegroundWatching();
+        StatusMessage = $"Imported {name}";
+    }
+
+    [RelayCommand]
+    private void RestoreHistoryEntry(HistoryEntry? entry)
+    {
+        if (entry == null) return;
+        var restored = _history.Load(entry);
+        if (restored == null)
+        {
+            StatusMessage = "That copy could not be read";
+            RefreshHistory();
+            return;
+        }
+
+        var existing = Profiles.FirstOrDefault(p => p.Id == restored.Id);
+        if (existing != null)
+        {
+            _history.Snapshot(existing, "replaced by a restore");   // restoring is itself undoable
+            if (ReferenceEquals(_manualProfile, existing)) _manualProfile = restored;
+            Profiles.Insert(Profiles.IndexOf(existing), restored);
+            SelectedProfile = restored;                 // off the old one before it goes, so the list is never left with nothing selected
+            Profiles.Remove(existing);
+        }
+        else
+        {
+            if (Profiles.Any(p => p.Name == restored.Name)) restored.Name += " (restored)";
+            Profiles.Add(restored);
+        }
+
+        SelectedProfile = restored;
+        UpdateForegroundWatching();
+        RefreshHistory();
+        StatusMessage = $"Restored {restored.Name}";
     }
 
     private void PopulateInspectorOptions() => BuildRemapOptions();
@@ -720,7 +883,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _obsPassword = string.Empty;
 
-    private string ObsSettingsPath => System.IO.Path.Combine(_profilesDirectory, "obs.json");
+    private string ObsSettingsPath => System.IO.Path.Combine(_profilesDirectory, "obs-settings.cfg");
 
     partial void OnObsHostChanged(string value) => SaveObsSettings();
     partial void OnObsPortChanged(int value) => SaveObsSettings();

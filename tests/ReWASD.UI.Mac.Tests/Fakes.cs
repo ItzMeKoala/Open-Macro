@@ -48,6 +48,13 @@ internal static class Fakes
     {
         public bool ExitRequested;
         public void RequestExit() => ExitRequested = true;
+        public string? OpenPath;
+        public string? SavePath;
+        public bool Confirmation;
+        public readonly List<string> Questions = new();
+        public Task<string?> PickOpenFileAsync(string title) => Task.FromResult(OpenPath);
+        public Task<string?> PickSaveFileAsync(string title, string suggestedName) => Task.FromResult(SavePath);
+        public Task<bool> ConfirmAsync(string title, string message) { Questions.Add(message); return Task.FromResult(Confirmation); }
         public void Post(Action action) => action();
         public IDisposable StartTimer(TimeSpan interval, Action tick) => new Nop();
         public System.Collections.IEnumerable? CreateGroupedView(System.Collections.IEnumerable source, string groupProperty) => null;

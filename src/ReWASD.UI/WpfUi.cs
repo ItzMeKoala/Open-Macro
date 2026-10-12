@@ -20,6 +20,29 @@ internal sealed class WpfUi : IPlatformUi
 
     public void RequestExit() => Application.Current?.Dispatcher.BeginInvoke(() => Application.Current?.Shutdown());
 
+    private const string Filter = "ReWASD profile (*.json)|*.json|All files (*.*)|*.*";
+
+    public Task<string?> PickOpenFileAsync(string title)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog { Title = title, Filter = Filter, CheckFileExists = true };
+        return Task.FromResult(dialog.ShowDialog(Application.Current?.MainWindow) == true ? dialog.FileName : null);
+    }
+
+    public Task<string?> PickSaveFileAsync(string title, string suggestedName)
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog { Title = title, Filter = Filter, FileName = suggestedName, DefaultExt = ".json", AddExtension = true };
+        return Task.FromResult(dialog.ShowDialog(Application.Current?.MainWindow) == true ? dialog.FileName : null);
+    }
+
+    public Task<bool> ConfirmAsync(string title, string message)
+    {
+        var owner = Application.Current?.MainWindow;
+        var answer = owner != null
+            ? MessageBox.Show(owner, message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No)
+            : MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+        return Task.FromResult(answer == MessageBoxResult.Yes);
+    }
+
     public IEnumerable? CreateGroupedView(IEnumerable source, string groupProperty)
     {
         var view = new ListCollectionView((IList)source);
