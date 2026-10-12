@@ -49,6 +49,13 @@ dotnet build ReWASD.sln     # works on Windows and macOS
 dotnet test ReWASD.sln
 ```
 
+### What it can do
+
+Remap a controller, keyboard or mouse to keys, mouse buttons, scrolling, macros, scripts and a virtual controller (Windows); sticks that
+drive the mouse, wheel or keys; chords and sequences; shift layers; a command wheel; profiles that follow the app in front; import,
+export and history; a stream overlay; a lock; usage counts; macro steps that open pages, start apps, run commands, call webhooks and
+control OBS. See [docs/features.md](docs/features.md) for all of it, and what is not included.
+
 ### Project Structure
 - `.agents/skills/reverse-engineer-anything/` — REA workflow instructions and references for agent assistants.
 - `src/` — `ReWASD.Core` (models), `ReWASD.Engine` (remapping, input, platform backends), `ReWASD.App` (shared view models), `ReWASD.UI` (WPF, Windows), `ReWASD.UI.Mac` (Avalonia, macOS).

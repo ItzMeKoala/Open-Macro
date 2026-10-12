@@ -16,6 +16,10 @@ To build it yourself instead: `./build.sh` (needs the .NET 9 SDK) puts `ReWASD.a
 replaces the app and reopens it. The app keeps one identity across updates, so macOS should not ask for the permissions below
 again (if it does, allow them once more). A copy run from source cannot replace itself: pull and rebuild instead.
 
+**Menu bar.** ReWASD puts an icon in the menu bar (show the window, start or stop remapping, lock, overlay, quit). Turn on
+**Keep running when the window is closed** in Preferences to make the red close button only hide the window, and **Hide the Dock icon**
+to live in the menu bar alone. Quit from the menu bar icon (or Cmd+Q) to end the app.
+
 ## Permissions
 
 macOS only lets an app watch the keyboard and mouse, or press keys for you, after you allow it. Open
@@ -39,6 +43,7 @@ the app. The `.app` build is ad-hoc signed, so rebuilding it may ask for the per
 | Virtual Xbox 360 / DualShock 4 controller | **No.** macOS has no driver that can present one, so a mapping to another pad button does nothing |
 | Hiding the physical controller from other apps (HidHide) | **No** |
 | Vibration macro steps | **No** |
+| Everything in [features.md](features.md): stick modes, combos, scripts, command wheel, per-app profiles, overlay… | Yes |
 
 Controllers are read through Apple's GameController framework, so any pad macOS lists under
 **System Settings → Game Controllers** works (Xbox, DualShock 4, DualSense, Switch Pro and MFi pads). The app asks
