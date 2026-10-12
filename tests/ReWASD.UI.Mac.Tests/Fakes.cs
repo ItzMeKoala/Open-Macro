@@ -54,7 +54,7 @@ internal static class Fakes
         private sealed class Nop : IDisposable { public void Dispose() { } }
     }
 
-    public static PlatformBackends Platform(PlatformInfo info, Pad? pad = null, Backend? backend = null, Hook? hook = null) => new()
+    public static PlatformBackends Platform(PlatformInfo info, Pad? pad = null, Backend? backend = null, Hook? hook = null, Func<ReWASD.Engine.Foreground.ForegroundApp?>? foreground = null) => new()
     {
         Info = info,
         Reader = pad ?? new Pad(),
@@ -62,7 +62,8 @@ internal static class Fakes
         Rumble = new NullRumbleOutput(),
         VirtualPad = new NullVirtualGamepad(),
         CreateHook = (_, _) => hook ?? new Hook(),
-        MissingPermissions = () => null
+        MissingPermissions = () => null,
+        Foreground = foreground
     };
 
     public static string TempProfiles() => Path.Combine(Path.GetTempPath(), "rewasd-tests-" + Guid.NewGuid().ToString("N"));

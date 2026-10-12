@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
+using ReWASD.Engine.Foreground;
 using ReWASD.Engine.Input;
 using ReWASD.Engine.Platform.MacOS;
 using ReWASD.Engine.VirtualOutput;
@@ -31,6 +32,9 @@ public sealed class PlatformBackends : IDisposable
 
     /// <summary>Words for the permissions that still need granting, or null when none are missing.</summary>
     public Func<string?> MissingPermissions { get; init; } = () => null;
+
+    /// <summary>Which application is in front right now; null when this platform cannot tell. Cheap enough to call twice a second.</summary>
+    public Func<ForegroundApp?>? Foreground { get; init; }
 
     /// <summary>Asks the system to show its permission prompts.</summary>
     public Action RequestPermissions { get; init; } = () => { };
@@ -74,7 +78,8 @@ public static class PlatformServices
             InputBackend = new Win32InputBackend(),
             Rumble = new XInputRumbleOutput(reader),
             VirtualPad = new VirtualGamepadService(),
-            CreateHook = (key, mouse) => new LowLevelInputHook(key, mouse)
+            CreateHook = (key, mouse) => new LowLevelInputHook(key, mouse),
+            Foreground = WindowsForeground.Current
         };
     }
 
@@ -91,6 +96,7 @@ public static class PlatformServices
             Rumble = new NullRumbleOutput(),
             VirtualPad = new NullVirtualGamepad(),
             CreateHook = (key, mouse) => hook = new MacInputHook(key, mouse),
+            Foreground = MacForeground.Current,
             MissingPermissions = MacPermissions.DescribeMissing,
             RequestPermissions = MacPermissions.Request
         };

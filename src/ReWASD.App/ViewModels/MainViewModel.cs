@@ -5,6 +5,7 @@ using ReWASD.Core.Models;
 using ReWASD.Core.Serialization;
 using ReWASD.Engine;
 using ReWASD.Engine.Actions;
+using ReWASD.Engine.Foreground;
 using ReWASD.Engine.HidHide;
 using ReWASD.Engine.Input;
 using ReWASD.Engine.Platform;
@@ -43,6 +44,10 @@ public partial class MainViewModel : ObservableObject
     private const string ScrollDownLabel = "Scroll Down";
 
     private readonly PlatformBackends _platform;
+    private readonly Func<ForegroundApp?>? _foreground;
+    private System.Threading.Timer? _foregroundTimer;
+    private Profile? _manualProfile;
+    private bool _autoSwitching;
     private readonly IUpdateService _updates;
     private readonly UpdateInstaller _installer;
     private UpdateInfo? _pendingUpdate;
@@ -339,6 +344,8 @@ public partial class MainViewModel : ObservableObject
         _macros.ActionFailed += message => _ui.Post(() => StatusMessage = message);
         _hook = platform.CreateHook(_mappingEngine.IsKeySuppressed, _mappingEngine.IsMouseSuppressed);
         _hook.PanicRequested += OnPanicRequested;
+        _foreground = platform.Foreground;
+        _mappingEngine.LockChanged += locked => _ui.Post(() => OnEngineLockChanged(locked));
         _pipeline = new InputPipeline(_mappingEngine, _reader, _virtualService, _injector, _macros, _macroPad, _hook);
         _recordKey = _recorder.OnKey;
         _recordMouse = _recorder.OnMouse;
@@ -363,6 +370,8 @@ public partial class MainViewModel : ObservableObject
         AutoSelectSkin();
         LoadUpdateSetting();
         LoadObsSettings();
+        LoadAutoSwitchSetting();
+        _manualProfile = _selectedProfile;
         if (AutoCheckUpdates && _updates is not NoUpdates) _ = CheckAfterStartupAsync();
     }
 
@@ -408,6 +417,9 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnSelectedProfileChanged(Profile value)
     {
+        // A profile picked by hand becomes the one to come back to; one picked because of the app in front does not
+        if (!_autoSwitching) _manualProfile = value;
+
         // Keep the engine on the profile being edited
         _mappingEngine.CurrentProfile = value;
         if (!value.ShiftLayers.ContainsKey(ActiveShiftLayer)) ActiveShiftLayer = 0;
@@ -432,6 +444,7 @@ public partial class MainViewModel : ObservableObject
 
     private void LoadProfileSettings(Profile profile)
     {
+        LoadLockChord(profile);
         profile.LeftStick ??= new StickSettings();
         profile.RightStick ??= new StickSettings();
         LeftStickSettings.Load(profile.LeftStick);
@@ -451,6 +464,7 @@ public partial class MainViewModel : ObservableObject
     partial void OnSelectedProcessExecutableChanged(string value)
     {
         SelectedProfile.ProcessExecutable = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        if (_constructed) UpdateForegroundWatching();
     }
 
     partial void OnLongPressMsChanged(int value) => SelectedProfile.Timings.LongPressMs = value;
@@ -538,6 +552,160 @@ public partial class MainViewModel : ObservableObject
         if (template == null) return;
         string current = (MacroScript ?? string.Empty).Trim().TrimEnd(';').TrimEnd();
         MacroScript = current.Length == 0 ? template.Script : current + "; " + template.Script;
+    }
+
+    // ---- Profiles that follow the app in front ------------------------------------------------------------------------
+
+    /// <summary>Switch to the profile linked to the application in front (see "Target process"), and back when it is left.</summary>
+    [ObservableProperty]
+    private bool _autoSwitchProfiles = true;
+
+    /// <summary>True on a platform that can tell which application is in front.</summary>
+    public bool CanAutoSwitch => _foreground != null;
+
+    private string AutoSwitchSettingPath => System.IO.Path.Combine(_profilesDirectory, "autoswitch.txt");
+
+    partial void OnAutoSwitchProfilesChanged(bool value)
+    {
+        if (!_constructed) return;
+        try
+        {
+            System.IO.Directory.CreateDirectory(_profilesDirectory);
+            System.IO.File.WriteAllText(AutoSwitchSettingPath, value ? "on" : "off");
+        }
+        catch (Exception)
+        {
+            // Not being able to remember the setting must not get in the way
+        }
+        UpdateForegroundWatching();
+        if (!value) ReturnToManualProfile();
+    }
+
+    private void LoadAutoSwitchSetting()
+    {
+        try
+        {
+            if (System.IO.File.Exists(AutoSwitchSettingPath)) AutoSwitchProfiles = !System.IO.File.ReadAllText(AutoSwitchSettingPath).Trim().Equals("off", StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception)
+        {
+            // An unreadable file just means the default
+        }
+        UpdateForegroundWatching();
+    }
+
+    // Look twice a second, and only while at least one profile is linked to an app: a plain setup never asks the system anything
+    private void UpdateForegroundWatching()
+    {
+        bool wanted = _foreground != null && AutoSwitchProfiles && Profiles.Any(p => !string.IsNullOrWhiteSpace(p.ProcessExecutable));
+        if (wanted && _foregroundTimer == null)
+        {
+            _foregroundTimer = new System.Threading.Timer(_ => _ui.Post(CheckForeground), null, 500, 500);
+        }
+        else if (!wanted && _foregroundTimer != null)
+        {
+            _foregroundTimer.Dispose();
+            _foregroundTimer = null;
+        }
+    }
+
+    /// <summary>Looks at the application in front and switches to the profile linked to it. Called by the timer; public so it can be tested.</summary>
+    public void CheckForeground()
+    {
+        if (_foreground == null || !AutoSwitchProfiles) return;
+
+        ForegroundApp? app;
+        try
+        {
+            app = _foreground();
+        }
+        catch (Exception)
+        {
+            return;
+        }
+
+        var manual = _manualProfile ?? SelectedProfile;
+        var chosen = AppMatcher.Choose(Profiles, app, Environment.ProcessId, manual, SelectedProfile);
+        if (chosen == null || ReferenceEquals(chosen, SelectedProfile)) return;
+
+        _autoSwitching = true;
+        try
+        {
+            SelectedProfile = chosen;
+        }
+        finally
+        {
+            _autoSwitching = false;
+        }
+        StatusMessage = ReferenceEquals(chosen, manual) ? $"Back to {chosen.Name}" : $"Switched to {chosen.Name} for {app?.Name}";
+    }
+
+    private void ReturnToManualProfile()
+    {
+        if (_manualProfile == null || ReferenceEquals(_manualProfile, SelectedProfile) || !Profiles.Contains(_manualProfile)) return;
+        _autoSwitching = true;
+        try
+        {
+            SelectedProfile = _manualProfile;
+        }
+        finally
+        {
+            _autoSwitching = false;
+        }
+    }
+
+    // ---- Controller lock --------------------------------------------------------------------------------------------
+
+    public static IReadOnlyList<string> LockChordNames { get; } = new[]
+    {
+        "Off", "View + Menu", "Guide", "Both stick clicks", "Both bumpers + View"
+    };
+
+    private static readonly ControllerButton[][] LockChords =
+    {
+        Array.Empty<ControllerButton>(),
+        new[] { ControllerButton.View, ControllerButton.Menu },
+        new[] { ControllerButton.Guide },
+        new[] { ControllerButton.LeftStickClick, ControllerButton.RightStickClick },
+        new[] { ControllerButton.LeftBumper, ControllerButton.RightBumper, ControllerButton.View }
+    };
+
+    [ObservableProperty]
+    private int _lockChordIndex;
+
+    /// <summary>The controller is locked: nothing it does has any effect until it is unlocked.</summary>
+    [ObservableProperty]
+    private bool _isControllerLocked;
+
+    partial void OnLockChordIndexChanged(int value)
+    {
+        if (_loadingProfile || value < 0 || value >= LockChords.Length) return;
+        lock (_mappingEngine.SyncRoot) SelectedProfile.LockChord = LockChords[value].ToList();
+    }
+
+    [RelayCommand]
+    private void ToggleLock() => _mappingEngine.SetLocked(!_mappingEngine.IsLocked);
+
+    private void OnEngineLockChanged(bool locked)
+    {
+        IsControllerLocked = locked;
+        StatusMessage = locked ? "Controller locked — hold the lock buttons again to unlock" : "Controller unlocked";
+    }
+
+    private bool _loadingProfile;
+
+    private void LoadLockChord(Profile profile)
+    {
+        _loadingProfile = true;
+        try
+        {
+            int index = Array.FindIndex(LockChords, c => c.SequenceEqual(profile.LockChord ?? new List<ControllerButton>()));
+            LockChordIndex = Math.Max(0, index);
+        }
+        finally
+        {
+            _loadingProfile = false;
+        }
     }
 
     // ---- OBS connection ---------------------------------------------------------------------------------------------
@@ -1651,6 +1819,8 @@ public partial class MainViewModel : ObservableObject
     /// <summary>Stops polling and releases every held key and the virtual pad. Call when the window closes.</summary>
     public void Shutdown()
     {
+        _foregroundTimer?.Dispose();
+        _foregroundTimer = null;
         _pipeline.Stop();
         _hidHide.Restore();
         _virtualService.DisconnectVirtual();

@@ -12,6 +12,14 @@ public class Profile
 
     public ActivatorTimings Timings { get; set; } = new();
 
+    /// <summary>
+    /// Buttons that lock and unlock the controller when all are held together for <see cref="LockHoldMs"/>.
+    /// While locked, no button, stick or trigger does anything. Empty turns the chord off.
+    /// </summary>
+    public List<ControllerButton> LockChord { get; set; } = new();
+
+    public int LockHoldMs { get; set; } = 1000;
+
     public StickSettings LeftStick { get; set; } = new();
     public StickSettings RightStick { get; set; } = new();
 

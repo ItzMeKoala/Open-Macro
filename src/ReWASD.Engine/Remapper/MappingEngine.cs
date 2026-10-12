@@ -53,6 +53,13 @@ public class MappingEngine
     public bool IsActive { get; set; } = false;
     public int ActiveShiftLayerIndex { get; private set; } = 0;
 
+    /// <summary>While true the controller does nothing (see <see cref="Profile.LockChord"/>). Raised on the thread that processes input.</summary>
+    public bool IsLocked { get; private set; }
+    public event Action<bool>? LockChanged;
+
+    private long _lockChordSince = -1;
+    private bool _lockChordSpent;
+
     /// <summary>
     /// Held while a frame is processed. Callers that edit the profile's mappings from another
     /// thread must lock on this so the polling loop never sees a half-updated dictionary.
@@ -204,6 +211,14 @@ public class MappingEngine
         long now = _clockMs();
         var timings = CurrentProfile.Timings ?? new ActivatorTimings();
 
+        // Locked: the pad is ignored (everything it held is let go on this frame); keyboard and mouse mappings carry on
+        pressedButtons = ApplyLock(pressedButtons, now);
+        if (IsLocked)
+        {
+            pressedButtons = new HashSet<ControllerButton>();
+            rawLeftStickX = rawLeftStickY = rawRightStickX = rawRightStickY = rawLeftTrigger = rawRightTrigger = 0;
+        }
+
         // 1. Pick the active layer (and note which buttons were spent on switching it)
         var consumed = new HashSet<ControllerButton>();
         var layer = ResolveLayer(pressedButtons, consumed);
@@ -303,6 +318,39 @@ public class MappingEngine
         result.RightTrigger = IsRemappedAway(layer, ControllerButton.RightTrigger) ? 0.0 : rawRightTrigger;
 
         return result;
+    }
+
+    // Holding the lock chord long enough flips the lock once; the chord's buttons never reach the mappings while it is held
+    private HashSet<ControllerButton> ApplyLock(HashSet<ControllerButton> pressed, long now)
+    {
+        var chord = CurrentProfile.LockChord;
+        if (chord == null || chord.Count == 0 || !chord.All(pressed.Contains))
+        {
+            _lockChordSince = -1;
+            _lockChordSpent = false;
+            return pressed;
+        }
+
+        if (_lockChordSince < 0) _lockChordSince = now;
+        if (!_lockChordSpent && now - _lockChordSince >= Math.Max(200, CurrentProfile.LockHoldMs))
+        {
+            _lockChordSpent = true;
+            IsLocked = !IsLocked;
+            LockChanged?.Invoke(IsLocked);
+        }
+
+        return pressed.Where(b => !chord.Contains(b)).ToHashSet();
+    }
+
+    /// <summary>Locks or unlocks by hand (the window's lock button).</summary>
+    public void SetLocked(bool locked)
+    {
+        lock (SyncRoot)
+        {
+            if (IsLocked == locked) return;
+            IsLocked = locked;
+        }
+        LockChanged?.Invoke(locked);
     }
 
     /// <summary>Runs one stick through its deadzone and curve, then hands it to the virtual pad, the cursor, the wheel or the keys.</summary>
