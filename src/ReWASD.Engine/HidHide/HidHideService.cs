@@ -155,7 +155,10 @@ public sealed class HidHideService
         var failed = new List<string>();
         foreach (var path in paths)
         {
-            if (_runner.Run(new[] { "--dev-hide", path }) != null) _hidden.Add(path);
+            if (_runner.Run(new[] { "--dev-hide", path }) != null)
+            {
+                if (!_hidden.Contains(path, StringComparer.OrdinalIgnoreCase)) _hidden.Add(path);
+            }
             else failed.Add(path);
         }
 

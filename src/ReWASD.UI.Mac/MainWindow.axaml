@@ -164,7 +164,7 @@
                                     <TextBlock Text="{Binding DriverStatusText}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
                                     <TextBlock Text="Required to present a virtual Xbox 360 controller to games." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" Margin="0,2,0,10" />
                                     <TextBlock Text="{Binding HidHideStatusText}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
-                                    <TextBlock Text="Optional. Hides the physical controller so games only see the virtual one (the eye button next to the slot box)." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                    <TextBlock Text="Optional. Hides the physical controller so games only see the virtual one (the toggle switch in the bottom bar)." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0" />
                                     <TextBlock Text="{Binding HideStatusText}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0" />
                                     <Button Content="Show HidHide diagnostics" Command="{Binding ShowHidHideDiagnosticsCommand}" Classes="secondary"
                                             HorizontalAlignment="Left" Padding="12,5" Margin="0,8,0,0" ToolTip.Tip="Prints what HidHide has configured in the status bar" />
@@ -324,16 +324,17 @@
                     </Popup>
 
                     <!-- Hide the original controller from games (HidHide, Windows only) -->
-                    <ToggleButton Classes="icon" Width="46" Height="42" IsVisible="{Binding SupportsDeviceHiding}"
-                                  IsChecked="{Binding HideInputDevice, Mode=TwoWay}" IsEnabled="{Binding IsHidHideAvailable}">
-                        <PathIcon Data="{StaticResource IconEyeOff}" Width="20" Height="20" />
+                    <ToggleSwitch IsVisible="{Binding SupportsDeviceHiding}"
+                                  IsChecked="{Binding HideInputDevice, Mode=TwoWay}" IsEnabled="{Binding IsHidHideAvailable}"
+                                  OnContent="Hide Physical Device" OffContent="Hide Physical Device"
+                                  Height="42" Margin="6,0,0,0" VerticalAlignment="Center">
                         <ToolTip.Tip>
                             <StackPanel>
-                                <TextBlock Text="Hide the original controller from games" FontWeight="SemiBold" />
+                                <TextBlock Text="Hide the original controller from games (HidHide)" FontWeight="SemiBold" />
                                 <TextBlock Text="{Binding HideStatusText}" Foreground="#999999" />
                             </StackPanel>
                         </ToolTip.Tip>
-                    </ToggleButton>
+                    </ToggleSwitch>
 
                     <!-- macOS: shown while a permission is missing -->
                     <Button Content="Allow access…" Command="{Binding RequestPermissionsCommand}" Classes="secondary" Height="42" Margin="14,0,0,0"

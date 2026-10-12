@@ -193,6 +193,21 @@ public class HidHideTests
     }
 
     [Fact]
+    public void Hide_CalledMultipleTimes_DoesNotDuplicateHiddenList()
+    {
+        var runner = new FakeRunner();
+        var service = new HidHideService(runner, @"C:\app\ReWASD.UI.exe");
+
+        var first = service.Hide(new[] { "dev1" });
+        Assert.True(first.Success);
+        Assert.Single(first.Hidden);
+
+        var second = service.Hide(new[] { "dev1" });
+        Assert.True(second.Success);
+        Assert.Single(second.Hidden);
+    }
+
+    [Fact]
     public void Diagnostics_ReportsEachCommand()
     {
         var text = new HidHideService(new FakeRunner(), @"C:\app\x.exe").Diagnostics();

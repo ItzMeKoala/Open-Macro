@@ -1273,7 +1273,8 @@ public partial class MainViewModel : ObservableObject
             var before = _reader.ConnectedSlots();
 
             // Find the physical controller's devices before the virtual pad exists, so the virtual pad is never hidden
-            _physicalDevices = _hidHide.IsAvailable ? _hidHide.GetPhysicalControllerDevices() : Array.Empty<string>();
+            var currentDevices = _hidHide.IsAvailable ? _hidHide.GetPhysicalControllerDevices() : Array.Empty<string>();
+            if (currentDevices.Count > 0) _physicalDevices = currentDevices;
 
             bool ok = _virtualService.Connect(SelectedVirtualController);
 
@@ -1281,11 +1282,18 @@ public partial class MainViewModel : ObservableObject
             _reader.ExcludedUserIndex = ok && SelectedVirtualController == ControllerType.Xbox360 ? FindNewSlot(before) : -1;
 
             bool wantMute = HideInputDevice || AnyMappingMuted();
-            HideResult? hide = !wantMute ? null
-                : !SupportsDeviceHiding ? HideResult.Fail($"Hiding a controller from other apps is not possible on {Platform.Name}.")
-                : ok ? _hidHide.Hide(_physicalDevices)
-                : HideResult.Fail("Hiding needs the virtual controller, which is not connected.");
-            HideStatusText = hide?.Message ?? "Physical controller is not hidden";
+            HideResult? hide = null;
+            if (wantMute)
+            {
+                hide = !SupportsDeviceHiding ? HideResult.Fail($"Hiding a controller from other apps is not possible on {Platform.Name}.")
+                    : _hidHide.Hide(_physicalDevices);
+                HideStatusText = hide.Message;
+            }
+            else if (_hidHide.IsHiding)
+            {
+                _hidHide.Restore();
+                HideStatusText = "Physical controller is not hidden";
+            }
 
             _pipeline.Start();
             PopulateConnectedDevices();
@@ -1310,8 +1318,15 @@ public partial class MainViewModel : ObservableObject
         }
         else
         {
-            Shutdown();
-            HideStatusText = "Physical controller is not hidden";
+            _pipeline.Stop();
+            _virtualService.DisconnectVirtual();
+            _reader.ExcludedUserIndex = -1;
+
+            if (!HideInputDevice)
+            {
+                _hidHide.Restore();
+                HideStatusText = "Physical controller is not hidden";
+            }
             StatusMessage = "⚪ REMAPPING PAUSED — Emulation Disconnected";
 
             // The driver removes the virtual pad asynchronously; refreshing immediately would still list it
@@ -1320,23 +1335,46 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    // Switch hiding on or off straight away when a checkbox changes while remapping is running
+    // Switch hiding on or off straight away when the toggle changes
     private void ApplyHidingNow()
     {
-        if (!IsRemappingActive) return;
-
-        bool want = HideInputDevice || AnyMappingMuted();
-        if (want && !_hidHide.IsHiding)
+        if (!SupportsDeviceHiding)
         {
+            HideStatusText = $"Hiding a controller from other apps is not possible on {Platform.Name}.";
+            return;
+        }
+
+        if (!_hidHide.IsAvailable)
+        {
+            HideStatusText = "HidHide is not installed.";
+            return;
+        }
+
+        bool want = HideInputDevice || (IsRemappingActive && AnyMappingMuted());
+        if (want)
+        {
+            if (_physicalDevices.Count == 0 || !IsRemappingActive)
+            {
+                var detected = _hidHide.GetPhysicalControllerDevices();
+                if (detected.Count > 0) _physicalDevices = detected;
+            }
+
             var result = _hidHide.Hide(_physicalDevices);
             HideStatusText = result.Message;
-            StatusMessage = result.Success ? "Physical controller hidden" : $"NOT hidden: {result.Message}";
+            StatusMessage = result.Success ? "🟢 Physical controller hidden from other apps" : $"⚠️ NOT hidden: {result.Message}";
         }
-        else if (!want && _hidHide.IsHiding)
+        else
         {
-            _hidHide.Restore();
-            HideStatusText = "Physical controller is not hidden";
-            StatusMessage = "Physical controller visible again";
+            if (_hidHide.IsHiding)
+            {
+                _hidHide.Restore();
+                HideStatusText = "Physical controller is not hidden";
+                StatusMessage = "Physical controller visible to all apps";
+            }
+            else
+            {
+                HideStatusText = "Physical controller is not hidden";
+            }
         }
     }
 
@@ -1358,6 +1396,10 @@ public partial class MainViewModel : ObservableObject
         {
             _hadController = phys != null;
             PopulateConnectedDevices();
+            if (HideInputDevice && _hadController)
+            {
+                ApplyHidingNow();
+            }
         }
 
         if (IsRecording && phys != null) _recorder.OnPad(phys.Buttons);

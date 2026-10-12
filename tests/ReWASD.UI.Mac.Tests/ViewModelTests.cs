@@ -115,5 +115,14 @@ public class ViewModelTests
         Assert.EndsWith("Library/Application Support/ReWASD-OpenSource/profiles", AppPaths.ProfilesDirectory);
     }
 
+    [Fact]
+    public void TogglingHideInputDevice_WhenNotSupported_ReportsStatus()
+    {
+        var vm = New();
+        vm.HideInputDevice = true;
+
+        Assert.Equal("Hiding a controller from other apps is not possible on macOS.", vm.HideStatusText);
+    }
+
     private static bool SpinUntil(Func<bool> condition, int timeoutMs = 3000) => SpinWait.SpinUntil(condition, timeoutMs);
 }
