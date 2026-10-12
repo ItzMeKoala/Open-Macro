@@ -2938,12 +2938,45 @@ public partial class MainViewModel : ObservableObject
             }
         }
 
-        // Keys and mouse buttons are only watched while the hook runs (remapping or recording)
+        // Keys and mouse buttons are watched everywhere while the hook runs (remapping or recording); otherwise the keys the window
+        // itself receives still move the keyboard drawing
         IReadOnlyCollection<string> keys = Array.Empty<string>(), mouse = Array.Empty<string>();
         if (_hook.IsInstalled) (keys, mouse) = _hook.Snapshot();
 
-        foreach (var vm in KeyboardSources) vm.IsPressed = keys.Contains(vm.SourceName, StringComparer.OrdinalIgnoreCase);
+        foreach (var vm in KeyboardSources)
+            vm.IsPressed = keys.Contains(vm.SourceName, StringComparer.OrdinalIgnoreCase) || _windowKeys.Contains(vm.SourceName);
         foreach (var vm in MouseSources) vm.IsPressed = mouse.Contains(vm.SourceName, StringComparer.OrdinalIgnoreCase);
+    }
+
+    // Keys held down in this window, by profile name
+    private readonly HashSet<string> _windowKeys = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// A key went down or up in the app's own window (its name in the toolkit's key list). Shown on the keyboard drawing straight away,
+    /// so the drawing follows the real keyboard even when remapping is off.
+    /// </summary>
+    public void NoteWindowKey(string uiKey, bool down)
+    {
+        string? name = WindowKeys.ToSourceName(uiKey);
+        if (name == null) return;
+        if (down) _windowKeys.Add(name);
+        else _windowKeys.Remove(name);
+
+        var source = KeyboardSources.FirstOrDefault(k => string.Equals(k.SourceName, name, StringComparison.OrdinalIgnoreCase));
+        if (source != null) source.IsPressed = down || (_hook.IsInstalled && _hook.Snapshot().Keys.Contains(name, StringComparer.OrdinalIgnoreCase));
+    }
+
+    /// <summary>The window lost focus: the key-ups will not reach it, so let go of everything it saw held.</summary>
+    public void ReleaseWindowKeys()
+    {
+        if (_windowKeys.Count == 0) return;
+        var held = _windowKeys.ToList();
+        _windowKeys.Clear();
+        foreach (var name in held)
+        {
+            var source = KeyboardSources.FirstOrDefault(k => string.Equals(k.SourceName, name, StringComparison.OrdinalIgnoreCase));
+            if (source != null) source.IsPressed = _hook.IsInstalled && _hook.Snapshot().Keys.Contains(name, StringComparer.OrdinalIgnoreCase);
+        }
     }
 
     [RelayCommand]

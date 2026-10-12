@@ -231,3 +231,20 @@ public class KeyboardArtViewTests
         Assert.Null(view.KeyAt(root.TransformToAncestor(view).Transform(new Point(10, 10))));
     });
 }
+
+/// <summary>WPF's key names reach every key of the keyboard drawing.</summary>
+public class WpfWindowKeyTests
+{
+    [Fact]
+    public void EveryKeyOnTheDrawing_CanBeReachedFromAWpfKey()
+    {
+        var drawn = ReWASD.Core.Skins.InputLayouts.Keyboard.Select(k => k.Name).ToHashSet();
+        var reachable = Enum.GetNames<System.Windows.Input.Key>().Select(WindowKeys.ToSourceName).Where(n => n != null).ToHashSet();
+
+        Assert.All(drawn, n => Assert.Contains(n, reachable));
+        Assert.All(reachable, n => Assert.Contains(n!, drawn));
+        Assert.Equal("Enter", WindowKeys.ToSourceName(System.Windows.Input.Key.Return.ToString()));
+        Assert.Equal("PageUp", WindowKeys.ToSourceName(System.Windows.Input.Key.PageUp.ToString()));
+        Assert.Equal("PageDown", WindowKeys.ToSourceName(System.Windows.Input.Key.PageDown.ToString()));
+    }
+}

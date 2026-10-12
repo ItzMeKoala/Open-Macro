@@ -101,6 +101,14 @@ public partial class MainWindow : Window
         if (Environment.GetEnvironmentVariable("REWASD_START_TESTER") == "1") Loaded += (_, _) => SetFullScreen(true);
         // `REWASD_START_MAXIMIZED=1` opens maximised, which shows the live readings under the controller (the build checks they load)
         if (Environment.GetEnvironmentVariable("REWASD_START_MAXIMIZED") == "1") Loaded += (_, _) => WindowState = WindowState.Maximized;
+        // Keys pressed while this window is in front move the keyboard drawing, even with remapping off. Alt (and F10) arrive as
+        // "System" keys, with the real key alongside.
+        AddHandler(PreviewKeyDownEvent, new KeyEventHandler((_, e) =>
+            (DataContext as ViewModels.MainViewModel)?.NoteWindowKey((e.Key == Key.System ? e.SystemKey : e.Key).ToString(), true)), handledEventsToo: true);
+        AddHandler(PreviewKeyUpEvent, new KeyEventHandler((_, e) =>
+            (DataContext as ViewModels.MainViewModel)?.NoteWindowKey((e.Key == Key.System ? e.SystemKey : e.Key).ToString(), false)), handledEventsToo: true);
+        Deactivated += (_, _) => (DataContext as ViewModels.MainViewModel)?.ReleaseWindowKeys();
+
         PreviewKeyDown += (_, e) =>
         {
             var vm = DataContext as ViewModels.MainViewModel;

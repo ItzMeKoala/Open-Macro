@@ -37,6 +37,14 @@ public partial class MainWindow : Window
             else if (command && e.Key == Key.OemComma && vm != null) { vm.ToggleSettingsCommand.Execute(null); e.Handled = true; }
             else if (command && e.Key == Key.Enter && vm != null) { vm.ToggleApplyCommand.Execute(null); e.Handled = true; }
         };
+        // Keys pressed while this window is in front move the keyboard drawing, even with remapping off. Seen before anything else
+        // handles them, and even if something does.
+        AddHandler(KeyDownEvent, (_, e) => (DataContext as MainViewModel)?.NoteWindowKey(e.Key.ToString(), true),
+            Avalonia.Interactivity.RoutingStrategies.Tunnel, handledEventsToo: true);
+        AddHandler(KeyUpEvent, (_, e) => (DataContext as MainViewModel)?.NoteWindowKey(e.Key.ToString(), false),
+            Avalonia.Interactivity.RoutingStrategies.Tunnel, handledEventsToo: true);
+        Deactivated += (_, _) => (DataContext as MainViewModel)?.ReleaseWindowKeys();
+
         PropertyChanged += (_, e) =>
         {
             if (e.Property == WindowStateProperty && WindowState != WindowState.FullScreen) ShowTester(false);

@@ -181,3 +181,102 @@ public class KeyboardArtTests
         window.CaptureRenderedFrame()?.Save(Path.Combine(dir, name + ".png"));
     }
 }
+
+/// <summary>The keyboard drawing follows the real keyboard while ReWASD is the active window, with remapping off.</summary>
+public class WindowKeyTests
+{
+    private static MainViewModel New() => new(Fakes.Platform(PlatformServices.MacOSInfo), new Fakes.Ui(), Fakes.TempProfiles());
+    private static ButtonViewModel Key(MainViewModel vm, string name) => vm.KeyboardSources.First(k => k.SourceName == name);
+
+    [Theory]
+    [InlineData("W", "W")]
+    [InlineData("D1", "1")]
+    [InlineData("D0", "0")]
+    [InlineData("F12", "F12")]
+    [InlineData("Escape", "Escape")]
+    [InlineData("Return", "Enter")]
+    [InlineData("Enter", "Enter")]
+    [InlineData("Back", "Back")]
+    [InlineData("LeftShift", "ShiftKey")]
+    [InlineData("LeftCtrl", "ControlKey")]
+    [InlineData("LeftAlt", "Alt")]
+    [InlineData("Prior", "PageUp")]
+    [InlineData("Next", "PageDown")]
+    [InlineData("Space", "Space")]
+    [InlineData("Left", "Left")]
+    public void ToolkitKeys_BecomeTheDrawingsKeys(string uiKey, string name) => Assert.Equal(name, WindowKeys.ToSourceName(uiKey));
+
+    [Theory]
+    [InlineData("RightShift")]
+    [InlineData("F13")]
+    [InlineData("OemComma")]
+    [InlineData("LWin")]
+    [InlineData("NumPad5")]
+    public void KeysTheDrawingDoesNotHave_AreIgnored(string uiKey) => Assert.Null(WindowKeys.ToSourceName(uiKey));
+
+    [Fact]
+    public void EveryKeyTheWindowCanReport_IsOnTheDrawing()
+    {
+        var vm = New();
+        var names = vm.KeyboardSources.Select(k => k.SourceName).ToHashSet();
+        foreach (var uiKey in Enum.GetNames<Avalonia.Input.Key>())
+        {
+            string? name = WindowKeys.ToSourceName(uiKey);
+            if (name != null) Assert.Contains(name, names);
+        }
+        // and every key on the drawing can be reached from the window
+        var reachable = Enum.GetNames<Avalonia.Input.Key>().Select(WindowKeys.ToSourceName).Where(n => n != null).ToHashSet();
+        Assert.All(names, n => Assert.Contains(n, reachable));
+    }
+
+    [Fact]
+    public void AKeyHeldInTheWindow_StaysDownThroughTheLiveDisplay_UntilItIsLetGo()
+    {
+        var vm = New();
+        vm.NoteWindowKey("W", true);
+        Assert.True(Key(vm, "W").IsPressed);
+
+        vm.LiveTickForTests();                              // the live display does not let go of it (no hook runs)
+        Assert.True(Key(vm, "W").IsPressed);
+
+        vm.NoteWindowKey("W", false);
+        Assert.False(Key(vm, "W").IsPressed);
+        vm.LiveTickForTests();
+        Assert.False(Key(vm, "W").IsPressed);
+        vm.Shutdown();
+    }
+
+    [Fact]
+    public void LeavingTheWindow_LetsGoOfEverything()
+    {
+        var vm = New();
+        vm.NoteWindowKey("LeftShift", true);
+        vm.NoteWindowKey("A", true);
+        vm.ReleaseWindowKeys();
+        Assert.False(Key(vm, "ShiftKey").IsPressed);
+        Assert.False(Key(vm, "A").IsPressed);
+        vm.LiveTickForTests();
+        Assert.False(Key(vm, "A").IsPressed);
+        vm.Shutdown();
+    }
+
+    [AvaloniaFact]
+    public void PressingAKeyOnTheWindow_SinksItOnTheDrawing()
+    {
+        var vm = New();
+        var window = new MainWindow { DataContext = vm, Width = 1300, Height = 800 };
+        window.Show();
+        vm.SelectedInputTab = InputTab.Keyboard;
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        var view = window.GetVisualDescendants().OfType<ArtView>().Single(v => v.Name == "KeyboardArt");
+
+        window.KeyPressQwerty(Avalonia.Input.PhysicalKey.W, Avalonia.Input.RawInputModifiers.None);
+        Assert.True(Key(vm, "W").IsPressed);
+        view.Settle();
+        Assert.True(view.Inspect("W")!.Value.Transform.M32 > 2);
+
+        window.KeyReleaseQwerty(Avalonia.Input.PhysicalKey.W, Avalonia.Input.RawInputModifiers.None);
+        Assert.False(Key(vm, "W").IsPressed);
+        vm.Shutdown();
+    }
+}
