@@ -5,8 +5,7 @@
 #   scripts/package-macos.sh osx-x64      # Intel
 #   scripts/package-macos.sh osx-arm64    # Apple silicon
 #
-# The app is ad-hoc signed, which is enough to run it on the Mac that built it. macOS ties the Accessibility and
-# Input Monitoring permissions to the app's signature, so after rebuilding you may have to allow it again.
+# The app is ad-hoc signed, which is enough to run it on the Mac that built it.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -57,7 +56,10 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 
 chmod +x "$APP/Contents/MacOS/ReWASD"
-codesign --force --deep --sign - "$APP"
+# Ad-hoc signing (no developer account needed). The requirement below names the app by its identifier instead of by the
+# exact build, so macOS can keep treating a rebuilt or updated copy as the same app and keep its Accessibility and
+# Input Monitoring permissions.
+codesign --force --deep --sign - --requirements '=designated => identifier "org.rewasd.opensource"' "$APP"
 
 echo
 echo "Built $APP"

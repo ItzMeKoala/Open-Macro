@@ -25,14 +25,24 @@ Inspect the target binary [path/to/binary.dll] and explain how virtual gamepad b
 
 The agent will automatically invoke REA's MCP tools (or the `rea` CLI) to decompile, map imports/exports, trace call trees, and extract clean implementation specifications.
 
-### Running it
+### Get the app
 
-Pull the latest and run it; the scripts rebuild first and close any older copy, so you always see the newest build.
+**Easiest:** open the [latest release](https://github.com/ItzMeKoala/ReWASD-Open-Source/releases/tag/latest) and download
 
-- **Windows** (needs the .NET 9 SDK): `git pull` then `.\scripts\run-windows.ps1`. A virtual controller needs the ViGEmBus driver; hiding the pad needs HidHide.
-- **macOS** (needs the .NET 9 SDK): `git pull && scripts/run-macos.sh`. See [docs/macos.md](docs/macos.md).
+- Windows: `ReWASD-win-x64.exe` — double-click it (nothing to install).
+- Mac: `ReWASD-osx-arm64.zip` (Apple silicon) or `ReWASD-osx-x64.zip` (Intel) — unzip it and open `ReWASD.app` (the first time: right-click, then Open).
 
-The bottom bar of the Mac app shows the version and git commit it was built from, so you can tell whether you are looking at the latest build.
+The release is rebuilt automatically after every change to `main`. An installed copy checks for a newer build when it starts and shows
+an **Update available** button; one click downloads it, replaces the app and restarts it (Preferences has a switch for the check).
+
+**Or build it yourself** (needs the .NET 9 SDK):
+
+- Windows: double-click `Build.cmd` (or run `.\build.ps1`) → `dist\ReWASD.exe`.
+- Mac: run `./build.sh` → `dist/ReWASD.app`.
+- `./build.sh windows` makes the Windows exe from a Mac too.
+
+The bottom bar shows the version and git commit a build was made from, so you can tell whether you are on the latest. A virtual controller
+on Windows needs the ViGEmBus driver; hiding the pad needs HidHide. See [docs/macos.md](docs/macos.md) for the Mac.
 
 ```sh
 dotnet build ReWASD.sln     # works on Windows and macOS

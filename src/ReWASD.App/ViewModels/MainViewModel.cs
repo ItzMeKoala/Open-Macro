@@ -7,6 +7,7 @@ using ReWASD.Engine;
 using ReWASD.Engine.HidHide;
 using ReWASD.Engine.Input;
 using ReWASD.Engine.Platform;
+using ReWASD.UI.Updates;
 using ReWASD.Engine.Remapper;
 using ReWASD.Engine.VirtualOutput;
 using ReWASD.Core.Skins;
@@ -41,6 +42,9 @@ public partial class MainViewModel : ObservableObject
     private const string ScrollDownLabel = "Scroll Down";
 
     private readonly PlatformBackends _platform;
+    private readonly IUpdateService _updates;
+    private readonly UpdateInstaller _installer;
+    private UpdateInfo? _pendingUpdate;
     private readonly IPlatformUi _ui;
     private readonly string _profilesDirectory;
     private readonly MappingEngine _mappingEngine;
@@ -300,15 +304,18 @@ public partial class MainViewModel : ObservableObject
 
     /// <summary>Creates the view model for the operating system it runs on, hosted by the toolkit that registered itself in <see cref="UiHost"/>.</summary>
     public MainViewModel()
-        : this(PlatformServices.Create(), UiHost.Current ?? new SynchronizationContextUi(), AppPaths.ProfilesDirectory)
+        : this(PlatformServices.Create(), UiHost.Current ?? new SynchronizationContextUi(), AppPaths.ProfilesDirectory, new UpdateService(), new UpdateInstaller())
     {
     }
 
-    public MainViewModel(PlatformBackends platform, IPlatformUi ui, string profilesDirectory)
+    /// <param name="updates">Where to look for newer builds; the default never finds any, so tests and tools make no network calls.</param>
+    public MainViewModel(PlatformBackends platform, IPlatformUi ui, string profilesDirectory, IUpdateService? updates = null, UpdateInstaller? installer = null)
     {
         _platform = platform;
         _ui = ui;
         _profilesDirectory = profilesDirectory;
+        _updates = updates ?? new NoUpdates();
+        _installer = installer ?? new UpdateInstaller();
         _reader = platform.Reader;
         _inputBackend = platform.InputBackend;
         VirtualControllerOptions = BuildVirtualControllerOptions(platform.Info);
@@ -347,6 +354,8 @@ public partial class MainViewModel : ObservableObject
         _constructed = true;
         LoadSkinChoice();
         AutoSelectSkin();
+        LoadUpdateSetting();
+        if (AutoCheckUpdates && _updates is not NoUpdates) _ = CheckAfterStartupAsync();
     }
 
     /// <summary>Brings back configs saved with the save button. A saved config replaces the starter one of the same name.</summary>
@@ -473,6 +482,138 @@ public partial class MainViewModel : ObservableObject
         if (slots.Count == 0) ConnectedDevices.Add(Platform.NoControllerText);
 
         AutoSelectSkin();
+    }
+
+    // ---- Updates --------------------------------------------------------------------------------------------------
+
+    /// <summary>What the last look for a newer build found, in words for the person using the app.</summary>
+    [ObservableProperty]
+    private string _updateStatusText = string.Empty;
+
+    /// <summary>A newer build is waiting.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowUpdateButton))]
+    private bool _isUpdateAvailable;
+
+    /// <summary>The update is downloading or being swapped in.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowUpdateButton))]
+    private bool _isUpdating;
+
+    /// <summary>Download progress, 0 to 1.</summary>
+    [ObservableProperty]
+    private double _updateProgress;
+
+    /// <summary>Whether the app looks for a newer build by itself when it starts.</summary>
+    [ObservableProperty]
+    private bool _autoCheckUpdates = true;
+
+    public bool ShowUpdateButton => IsUpdateAvailable && !IsUpdating;
+
+    private string UpdateSettingPath => System.IO.Path.Combine(_profilesDirectory, "updates.txt");
+
+    partial void OnAutoCheckUpdatesChanged(bool value)
+    {
+        if (!_constructed) return;
+        try
+        {
+            System.IO.Directory.CreateDirectory(_profilesDirectory);
+            System.IO.File.WriteAllText(UpdateSettingPath, value ? "on" : "off");
+        }
+        catch (Exception)
+        {
+            // Not being able to remember the setting must never get in the way of using the app
+        }
+    }
+
+    private void LoadUpdateSetting()
+    {
+        try
+        {
+            if (System.IO.File.Exists(UpdateSettingPath)) AutoCheckUpdates = !System.IO.File.ReadAllText(UpdateSettingPath).Trim().Equals("off", StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception)
+        {
+            // An unreadable file just means the default
+        }
+    }
+
+    private async Task CheckAfterStartupAsync()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(4)); // let the window appear first
+        await RunUpdateCheckAsync(manual: false);
+    }
+
+    [RelayCommand]
+    private Task CheckForUpdates() => RunUpdateCheckAsync(manual: true);
+
+    private async Task RunUpdateCheckAsync(bool manual)
+    {
+        if (IsUpdating) return;
+        if (manual) UpdateStatusText = "Looking for updates…";
+
+        UpdateCheck result;
+        try
+        {
+            result = await _updates.CheckAsync(BuildInfo.Revision);
+        }
+        catch (Exception ex)
+        {
+            result = new UpdateCheck.Unknown(ex.Message);
+        }
+
+        _ui.Post(() =>
+        {
+            switch (result)
+            {
+                case UpdateCheck.Available a:
+                    _pendingUpdate = a.Update;
+                    IsUpdateAvailable = true;
+                    UpdateStatusText = $"A newer build is ready ({a.Update.Revision}). You have {BuildInfo.Text}.";
+                    if (!manual) StatusMessage = $"Update available: build {a.Update.Revision}";
+                    break;
+                case UpdateCheck.UpToDate:
+                    _pendingUpdate = null;
+                    IsUpdateAvailable = false;
+                    UpdateStatusText = "You have the latest build.";
+                    break;
+                case UpdateCheck.Unknown u:
+                    if (manual) UpdateStatusText = "Could not check for updates: " + u.Reason;
+                    break;
+            }
+        });
+    }
+
+    /// <summary>Downloads the waiting update, swaps it in for this app, and restarts.</summary>
+    [RelayCommand]
+    private async Task InstallUpdate()
+    {
+        if (_pendingUpdate is not { } update || IsUpdating) return;
+
+        if (!_installer.CanSelfUpdate)
+        {
+            UpdateStatusText = "This copy was not made by the build script, so it cannot replace itself. Pull the latest and run the build script (build.sh or Build.cmd) instead.";
+            return;
+        }
+
+        IsUpdating = true;
+        UpdateProgress = 0;
+        UpdateStatusText = "Downloading the update…";
+        try
+        {
+            var progress = new Progress<double>(p => _ui.Post(() => UpdateProgress = p));
+            string file = await _installer.DownloadAsync(update, progress);
+
+            UpdateStatusText = "Installing… ReWASD will restart.";
+            Shutdown(); // stop remapping and give every key back before the app closes
+            _installer.Install(file);
+            _ui.RequestExit();
+        }
+        catch (Exception ex)
+        {
+            IsUpdating = false;
+            UpdateStatusText = "The update could not be installed: " + ex.Message;
+        }
     }
 
     // ---- Surface: controller picture, keyboard and mouse ---------------------------------------------------------

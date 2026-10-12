@@ -5,12 +5,16 @@ engine and the same saved configs as Windows.
 
 ## Install and run
 
-```sh
-scripts/package-macos.sh          # builds artifacts/macos/<cpu>/ReWASD.app (the .NET runtime is bundled)
-open artifacts/macos/osx-arm64/ReWASD.app
-```
+Download `ReWASD-osx-arm64.zip` (Apple silicon) or `ReWASD-osx-x64.zip` (Intel) from the
+[latest release](https://github.com/ItzMeKoala/ReWASD-Open-Source/releases/tag/latest), unzip it, and open `ReWASD.app`
+(the first time: right-click, then Open, because the app is not signed by a paid developer account).
 
-To run from source instead: `dotnet run --project src/ReWASD.UI.Mac` (needs the .NET 9 SDK).
+To build it yourself instead: `./build.sh` (needs the .NET 9 SDK) puts `ReWASD.app` in `dist/`. To run from source:
+`dotnet run --project src/ReWASD.UI.Mac`.
+
+**Updates.** The app looks for a newer build when it starts and shows **Update available**; one click downloads it,
+replaces the app and reopens it. The app keeps one identity across updates, so macOS should not ask for the permissions below
+again (if it does, allow them once more). A copy run from source cannot replace itself: pull and rebuild instead.
 
 ## Permissions
 

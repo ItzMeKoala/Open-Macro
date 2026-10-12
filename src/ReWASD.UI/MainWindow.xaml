@@ -236,6 +236,22 @@
                         </StackPanel>
                     </Border>
 
+                    <TextBlock Text="UPDATES" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="{Binding BuildText, StringFormat='This build: {0}'}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                            <TextBlock Text="{Binding UpdateStatusText}" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" />
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                <Button Content="Check now" Command="{Binding CheckForUpdatesCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="12,5" />
+                                <Button Content="Update now" Command="{Binding InstallUpdateCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="12,5" Margin="8,0,0,0"
+                                        Visibility="{Binding ShowUpdateButton, Converter={StaticResource BoolToVisibility}}" />
+                            </StackPanel>
+                            <ProgressBar Minimum="0" Maximum="1" Value="{Binding UpdateProgress, Mode=OneWay}" Height="6" Margin="0,10,0,0"
+                                         Visibility="{Binding IsUpdating, Converter={StaticResource BoolToVisibility}}" />
+                            <CheckBox Content="Check for updates when ReWASD starts" IsChecked="{Binding AutoCheckUpdates}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" Margin="0,10,0,0" />
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Text="ACTIVATOR TIMING (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
                     <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
                         <StackPanel>
@@ -391,6 +407,12 @@
                             </StackPanel>
                         </ToggleButton.ToolTip>
                     </ToggleButton>
+
+                    <!-- A newer build is ready: one click downloads it and restarts into it -->
+                    <Button Content="Update available" Command="{Binding InstallUpdateCommand}" Style="{StaticResource SecondaryButtonStyle}" Height="42" Padding="14,0" Margin="14,0,0,0"
+                            Visibility="{Binding ShowUpdateButton, Converter={StaticResource BoolToVisibility}}" ToolTip="{Binding UpdateStatusText}" />
+                    <ProgressBar Minimum="0" Maximum="1" Value="{Binding UpdateProgress, Mode=OneWay}" Width="120" Height="8" Margin="14,0,0,0" VerticalAlignment="Center"
+                                 Visibility="{Binding IsUpdating, Converter={StaticResource BoolToVisibility}}" />
                 </StackPanel>
 
                 <TextBlock Grid.Column="1" Text="{Binding StatusMessage}" Foreground="{StaticResource BrushTextSecondary}" FontSize="12"

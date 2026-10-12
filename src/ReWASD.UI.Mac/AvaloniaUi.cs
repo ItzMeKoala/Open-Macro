@@ -1,4 +1,6 @@
 using System.Collections;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 
 namespace ReWASD.UI.Mac;
@@ -15,6 +17,9 @@ public sealed class AvaloniaUi : IPlatformUi
         timer.Start();
         return new TimerStopper(timer);
     }
+
+    public void RequestExit() =>
+        Dispatcher.UIThread.Post(() => (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown());
 
     // Avalonia has no grouped collection views; the view model also offers RemapGroups, which the menu uses
     public IEnumerable? CreateGroupedView(IEnumerable source, string groupProperty) => null;

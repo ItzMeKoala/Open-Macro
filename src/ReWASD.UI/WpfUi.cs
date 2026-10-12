@@ -18,6 +18,8 @@ internal sealed class WpfUi : IPlatformUi
         return new TimerStopper(timer);
     }
 
+    public void RequestExit() => Application.Current?.Dispatcher.BeginInvoke(() => Application.Current?.Shutdown());
+
     public IEnumerable? CreateGroupedView(IEnumerable source, string groupProperty)
     {
         var view = new ListCollectionView((IList)source);

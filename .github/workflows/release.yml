@@ -1,0 +1,97 @@
+name: Release
+
+# After CI passes on main, build the Windows .exe and the Mac apps and publish them as the "latest" release.
+# Installed copies of ReWASD look at that release and offer to update themselves.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Build ReWASD.exe
+        shell: pwsh
+        run: scripts/package-windows.ps1
+      - name: Check the exe starts and stays open
+        shell: pwsh
+        run: |
+          $p = Start-Process artifacts/windows/ReWASD.exe -PassThru
+          Start-Sleep -Seconds 12
+          if ($p.HasExited) { throw "ReWASD.exe closed by itself (exit code $($p.ExitCode))" }
+          Stop-Process -Id $p.Id -Force
+      - name: Name the file for the release
+        shell: pwsh
+        run: Copy-Item artifacts/windows/ReWASD.exe ReWASD-win-x64.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: ReWASD-win-x64.exe
+
+  build-macos:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Build the apps (Apple silicon and Intel)
+        run: |
+          scripts/package-macos.sh osx-arm64
+          scripts/package-macos.sh osx-x64
+          ditto -c -k --keepParent artifacts/macos/osx-arm64/ReWASD.app ReWASD-osx-arm64.zip
+          ditto -c -k --keepParent artifacts/macos/osx-x64/ReWASD.app ReWASD-osx-x64.zip
+      - name: Check the app starts and stays open
+        continue-on-error: true
+        run: |
+          artifacts/macos/osx-arm64/ReWASD.app/Contents/MacOS/ReWASD &
+          PID=$!
+          sleep 12
+          kill -0 $PID || { echo "ReWASD closed by itself"; exit 1; }
+          kill $PID
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: |
+            ReWASD-osx-arm64.zip
+            ReWASD-osx-x64.zip
+
+  publish:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: files
+          merge-multiple: true
+      - name: Publish the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          SHORT="${SHA:0:7}"
+          gh release delete latest --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
+          gh release create latest --repo "$GITHUB_REPOSITORY" --target "$SHA" --prerelease \
+            --title "Latest build ($SHORT)" \
+            --notes "commit: $SHA
+
+          Windows: download ReWASD-win-x64.exe and double-click it.
+          Mac: download the zip for your Mac (Apple silicon: osx-arm64, Intel: osx-x64), unzip it, and open ReWASD.app (first time: right-click, then Open).
+          Installed copies offer to update themselves from this release." \
+            files/*

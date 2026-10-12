@@ -14,6 +14,9 @@ public interface IPlatformUi
     /// <summary>Calls <paramref name="tick"/> on the UI thread every <paramref name="interval"/> until the result is disposed.</summary>
     IDisposable StartTimer(TimeSpan interval, Action tick);
 
+    /// <summary>Closes the application (after an update has been staged).</summary>
+    void RequestExit();
+
     /// <summary>A collection view of <paramref name="source"/> grouped by a property, or null if the toolkit has no grouped views.</summary>
     IEnumerable? CreateGroupedView(IEnumerable source, string groupProperty);
 }
@@ -48,6 +51,11 @@ public sealed class SynchronizationContextUi : IPlatformUi
         }, null, interval, interval);
         return timer;
     }
+
+    /// <summary>True once <see cref="RequestExit"/> was called (nothing else can close a headless host).</summary>
+    public bool ExitRequested { get; private set; }
+
+    public void RequestExit() => ExitRequested = true;
 
     public IEnumerable? CreateGroupedView(IEnumerable source, string groupProperty) => null;
 }

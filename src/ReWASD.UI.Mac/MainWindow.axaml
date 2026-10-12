@@ -198,6 +198,20 @@
                             </Border>
                         </StackPanel>
 
+                        <TextBlock Text="UPDATES" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                        <Border Classes="card">
+                            <StackPanel>
+                                <TextBlock Text="{Binding BuildText, StringFormat='This build: {0}'}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                <TextBlock Text="{Binding UpdateStatusText}" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0" Spacing="8">
+                                    <Button Content="Check now" Command="{Binding CheckForUpdatesCommand}" Classes="secondary" Padding="12,5" />
+                                    <Button Content="Update now" Command="{Binding InstallUpdateCommand}" Classes="secondary" Padding="12,5" IsVisible="{Binding ShowUpdateButton}" />
+                                </StackPanel>
+                                <ProgressBar Minimum="0" Maximum="1" Value="{Binding UpdateProgress}" Height="6" Margin="0,10,0,0" IsVisible="{Binding IsUpdating}" />
+                                <CheckBox Content="Check for updates when ReWASD starts" IsChecked="{Binding AutoCheckUpdates}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" Margin="0,10,0,0" />
+                            </StackPanel>
+                        </Border>
+
                         <TextBlock Text="ACTIVATOR TIMING (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
                         <Border Classes="card">
                             <StackPanel>
@@ -324,6 +338,12 @@
                     <!-- macOS: shown while a permission is missing -->
                     <Button Content="Allow access…" Command="{Binding RequestPermissionsCommand}" Classes="secondary" Height="42" Margin="14,0,0,0"
                             IsVisible="{Binding HasPermissionIssue}" ToolTip.Tip="{Binding MissingPermissions}" />
+
+                    <!-- A newer build is ready: one click downloads it and restarts into it -->
+                    <Button Content="Update available" Command="{Binding InstallUpdateCommand}" Classes="secondary" Height="42" Margin="14,0,0,0"
+                            IsVisible="{Binding ShowUpdateButton}" ToolTip.Tip="{Binding UpdateStatusText}" />
+                    <ProgressBar Minimum="0" Maximum="1" Value="{Binding UpdateProgress}" Width="120" Height="8" Margin="14,0,0,0" VerticalAlignment="Center"
+                                 IsVisible="{Binding IsUpdating}" />
                 </StackPanel>
 
                 <TextBlock Grid.Column="1" Text="{Binding StatusMessage}" Foreground="{StaticResource BrushTextSecondary}" FontSize="12"

@@ -46,6 +46,8 @@ internal static class Fakes
 
     public sealed class Ui : IPlatformUi
     {
+        public bool ExitRequested;
+        public void RequestExit() => ExitRequested = true;
         public void Post(Action action) => action();
         public IDisposable StartTimer(TimeSpan interval, Action tick) => new Nop();
         public System.Collections.IEnumerable? CreateGroupedView(System.Collections.IEnumerable source, string groupProperty) => null;
