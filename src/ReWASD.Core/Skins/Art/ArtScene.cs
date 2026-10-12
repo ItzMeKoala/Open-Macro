@@ -102,6 +102,31 @@ public sealed class ArtPath : ArtNode
     public bool IsGlow => Get("fx") == "glow";
 }
 
+public enum ArtTextAnchor { Start, Middle, End }
+
+/// <summary>
+/// A line of text, such as the legend printed on a key. <see cref="X"/> is where the text starts, centres or ends (see
+/// <see cref="Anchor"/>); <see cref="Y"/> is the middle of the line when <see cref="Central"/> is set, else its baseline.
+/// </summary>
+public sealed class ArtText : ArtNode
+{
+    public required string Text { get; init; }
+    public double X { get; init; }
+    public double Y { get; init; }
+    public double FontSize { get; init; } = 12;
+
+    /// <summary>CSS weight: 400 normal, 600 semibold, 700 bold.</summary>
+    public int FontWeight { get; init; } = 400;
+
+    public string Fill { get; init; } = "#000000";
+    public string? FontFamily { get; init; }
+    public ArtTextAnchor Anchor { get; init; }
+    public bool Central { get; init; }
+
+    /// <summary>The vertical middle of the line, in drawing units.</summary>
+    public double CenterY => Central ? Y : Y - FontSize * 0.35;
+}
+
 /// <summary>How a part reacts to its input.</summary>
 public enum ArtMotion
 {
@@ -120,7 +145,12 @@ public sealed class ArtPart
 {
     public required string Id { get; init; }
     public required string Name { get; init; }
+
+    /// <summary>The controller input that drives this part (None for a keyboard key).</summary>
     public required ControllerButton Button { get; init; }
+
+    /// <summary>For a keyboard key, its profile name (for example "A", "Escape", "ShiftKey"); null for controller parts.</summary>
+    public string? Key { get; init; }
     public required ArtMotion Motion { get; init; }
     public required ArtGroup Group { get; init; }
 
@@ -153,5 +183,7 @@ public sealed class ArtScene
     public required ArtGroup Root { get; init; }
     public required IReadOnlyList<ArtPart> Parts { get; init; }
 
-    public ArtPart? PartFor(ControllerButton button) => Parts.FirstOrDefault(p => p.Button == button);
+    public ArtPart? PartFor(ControllerButton button) => Parts.FirstOrDefault(p => p.Key == null && p.Button == button);
+
+    public ArtPart? PartForKey(string key) => Parts.FirstOrDefault(p => string.Equals(p.Key, key, StringComparison.OrdinalIgnoreCase));
 }

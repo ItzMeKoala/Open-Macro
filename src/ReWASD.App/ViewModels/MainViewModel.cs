@@ -123,6 +123,8 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsGamepadTab))]
     [NotifyPropertyChangedFor(nameof(ShowSkinArt))]
+    [NotifyPropertyChangedFor(nameof(ShowKeyboardArt))]
+    [NotifyPropertyChangedFor(nameof(ShowOutline))]
     private InputTab _selectedInputTab = InputTab.Gamepad;
 
     [ObservableProperty]
@@ -1959,11 +1961,21 @@ public partial class MainViewModel : ObservableObject
     /// <summary>The detailed animated drawing of the chosen controller, if it has one (front ends that cannot show it use the outline).</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowSkinArt))]
+    [NotifyPropertyChangedFor(nameof(ShowOutline))]
     [NotifyPropertyChangedFor(nameof(OverlayHasArt))]
     private ArtScene? _skinArt;
 
     /// <summary>True when the detailed drawing replaces the outline: the controller tab is open and the skin has one.</summary>
     public bool ShowSkinArt => SkinArt != null && SelectedInputTab == InputTab.Gamepad;
+
+    /// <summary>The detailed keyboard drawing (null if it could not be built: the keyboard tab then shows plain key boxes).</summary>
+    public ArtScene? KeyboardArt { get; } = ArtLibrary.TryGetKeyboard();
+
+    /// <summary>True when the detailed keyboard replaces the key boxes: the keyboard tab is open and the drawing was built.</summary>
+    public bool ShowKeyboardArt => KeyboardArt != null && SelectedInputTab == InputTab.Keyboard;
+
+    /// <summary>True when the plain outline drawing is shown (no detailed drawing for this tab).</summary>
+    public bool ShowOutline => !ShowSkinArt && !ShowKeyboardArt;
 
     partial void OnSelectedSkinChanged(SkinKind value)
     {

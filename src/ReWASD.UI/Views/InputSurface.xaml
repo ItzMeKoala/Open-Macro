@@ -123,8 +123,8 @@
                 <Style TargetType="Viewbox">
                     <Setter Property="Visibility" Value="Visible" />
                     <Style.Triggers>
-                        <!-- Hidden while a controller has its own detailed picture -->
-                        <DataTrigger Binding="{Binding ShowSkinArt}" Value="True">
+                        <!-- Hidden while the controller or the keyboard has its own detailed picture -->
+                        <DataTrigger Binding="{Binding ShowOutline}" Value="False">
                             <Setter Property="Visibility" Value="Collapsed" />
                         </DataTrigger>
                     </Style.Triggers>
@@ -170,6 +170,10 @@
         <!-- A detailed animated picture, for controllers that have one (falls back to the outline above if it cannot be drawn) -->
         <art:ArtView x:Name="Art" Grid.Row="1" Margin="40,0,40,10" Scene="{Binding SkinArt}" Sources="{Binding ControllerButtons}"
                      Visibility="{Binding ShowSkinArt, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+        <!-- The keyboard, drawn the same way -->
+        <art:ArtView x:Name="KeysArt" Grid.Row="1" Margin="40,0,40,10" Scene="{Binding KeyboardArt}" Sources="{Binding KeyboardSources}"
+                     Visibility="{Binding ShowKeyboardArt, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
     </Grid>
 </UserControl>

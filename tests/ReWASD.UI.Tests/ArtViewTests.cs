@@ -179,3 +179,54 @@ public class ArtViewTests
         Assert.Equal(0.35, view.Inspect(ControllerButton.RightTrigger)!.Value.Glow, 2);
     });
 }
+
+/// <summary>The detailed keyboard on Windows: it builds, its keys follow the keyboard and clicking one selects it.</summary>
+public class KeyboardArtViewTests
+{
+    private static List<ButtonViewModel> Keys() =>
+        ReWASD.Core.Skins.InputLayouts.Keyboard.Select(k => new ButtonViewModel { Kind = SourceKind.Key, SourceName = k.Name, FriendlyName = k.Name }).ToList();
+
+    [Fact]
+    public void TheKeyboard_Builds_AndAKeySinksAndLightsWhileHeld() => Sta.Run(() =>
+    {
+        var keys = Keys();
+        var view = new ArtView { Scene = ArtLibrary.Keyboard, Sources = keys };
+        view.Measure(new Size(1100, 500));
+        view.Arrange(new Rect(0, 0, 1100, 500));
+        view.UpdateLayout();
+        Assert.False(view.HasFailed);
+
+        foreach (var k in keys) Assert.NotNull(view.Inspect(k.SourceName));
+
+        keys.First(k => k.SourceName == "W").IsPressed = true;
+        view.Settle();
+        var w = view.Inspect("W")!.Value;
+        Assert.True(w.Transform.OffsetY > 2);
+        Assert.True(w.Glow > 0.2);
+        Assert.Equal(0, view.Inspect("Q")!.Value.Glow);
+    });
+
+    [Fact]
+    public void ClickingAKey_SelectsIt() => Sta.Run(() =>
+    {
+        var keys = Keys();
+        var view = new ArtView { Scene = ArtLibrary.Keyboard, Sources = keys };
+        view.Measure(new Size(1100, 500));
+        view.Arrange(new Rect(0, 0, 1100, 500));
+        view.UpdateLayout();
+
+        var scene = ArtLibrary.Keyboard;
+        var root = ((Viewbox)view.Child).Child;
+        foreach (var name in new[] { "Escape", "Q", "Space", "Left" })
+        {
+            var b = scene.PartForKey(name)!.HitBounds;
+            var at = root.TransformToAncestor(view).Transform(new Point(b.CenterX - scene.OriginX, b.CenterY - scene.OriginY));
+            var hit = view.InputHitTest(at);
+            Assert.NotNull(hit);
+            bool found = false;
+            for (DependencyObject? d = hit as DependencyObject; d != null && !ReferenceEquals(d, view); d = System.Windows.Media.VisualTreeHelper.GetParent(d))
+                if (d is FrameworkElement { Tag: not null and not double }) { found = true; break; }
+            Assert.True(found, name);
+        }
+    });
+}

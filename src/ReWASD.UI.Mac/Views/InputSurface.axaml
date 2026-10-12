@@ -106,7 +106,10 @@
         <!-- A detailed animated picture, for controllers that have one -->
         <art:ArtView Margin="16" Scene="{Binding SkinArt}" Sources="{Binding ControllerButtons}" IsVisible="{Binding ShowSkinArt}" />
 
-        <Viewbox Stretch="Uniform" Margin="16" IsVisible="{Binding !ShowSkinArt}">
+        <!-- The keyboard, drawn the same way -->
+        <art:ArtView Name="KeyboardArt" Margin="24,16" Scene="{Binding KeyboardArt}" Sources="{Binding KeyboardSources}" IsVisible="{Binding ShowKeyboardArt}" />
+
+        <Viewbox Stretch="Uniform" Margin="16" IsVisible="{Binding ShowOutline}">
             <Canvas Width="700" Height="440" RenderTransformOrigin="0.5,0.5">
                 <Canvas.RenderTransform>
                     <ScaleTransform ScaleX="{Binding SurfaceScale}" ScaleY="{Binding SurfaceScale}" />

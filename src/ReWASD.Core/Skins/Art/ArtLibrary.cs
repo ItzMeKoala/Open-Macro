@@ -7,6 +7,23 @@ public static class ArtLibrary
 {
     private static readonly Lazy<ArtScene> DualSenseScene = new(() => Load("dualsense.svg"));
     private static readonly Lazy<ArtScene> XboxOneScene = new(() => Load("xboxone.svg"));
+    private static readonly Lazy<ArtScene> KeyboardScene = new(() => SvgArtParser.Parse(KeyboardArt.Svg()));
+
+    /// <summary>A tenkeyless keyboard, drawn from <see cref="KeyboardArt"/>.</summary>
+    public static ArtScene Keyboard => KeyboardScene.Value;
+
+    /// <summary>The keyboard drawing, or null if it cannot be built (the keyboard tab then shows its plain key boxes).</summary>
+    public static ArtScene? TryGetKeyboard()
+    {
+        try
+        {
+            return Keyboard;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
 
     /// <summary>The PlayStation 5 DualSense controller, front view.</summary>
     public static ArtScene DualSense => DualSenseScene.Value;

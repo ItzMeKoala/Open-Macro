@@ -139,7 +139,9 @@ public sealed class ArtView : Decorator
             AttachDecorations(visual, builder);
             group.Children.Add(visual.Marker);
 
-            visual.Source = sources.FirstOrDefault(s => s.Kind == SourceKind.Pad && s.Button == part.Button);
+            visual.Source = part.Key != null
+                ? sources.FirstOrDefault(s => s.Kind == SourceKind.Key && string.Equals(s.SourceName, part.Key, StringComparison.OrdinalIgnoreCase))
+                : sources.FirstOrDefault(s => s.Kind == SourceKind.Pad && s.Button == part.Button);
             built.Add(visual);
         }
 
@@ -356,9 +358,13 @@ public sealed class ArtView : Decorator
     /// <summary>What a part looks like right now, for tests.</summary>
     internal readonly record struct PartSnapshot(Matrix Transform, double Glow, double Halo, bool MarkerVisible);
 
-    internal PartSnapshot? Inspect(ControllerButton button)
+    internal PartSnapshot? Inspect(ControllerButton button) => Inspect(_parts.FirstOrDefault(x => x.Part.Key == null && x.Part.Button == button));
+
+    internal PartSnapshot? Inspect(string key) =>
+        Inspect(_parts.FirstOrDefault(x => string.Equals(x.Part.Key, key, StringComparison.OrdinalIgnoreCase)));
+
+    private PartSnapshot? Inspect(PartVisual? p)
     {
-        var p = _parts.FirstOrDefault(x => x.Part.Button == button);
         if (p == null) return null;
         return new PartSnapshot(
             p.MoverTransform.Matrix,

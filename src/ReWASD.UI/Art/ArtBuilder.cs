@@ -48,6 +48,7 @@ internal sealed class ArtBuilder
             {
                 ArtGroup sub => BuildGroup(sub),
                 ArtPath p => BuildPath(p),
+                ArtText t => BuildText(t),
                 _ => null
             };
             if (c != null) canvas.Children.Add(c);
@@ -84,6 +85,33 @@ internal sealed class ArtBuilder
         // A glow shows at most this strong (data-max), so a lit button brightens instead of turning into a flat colour
         if (p.IsGlow) path.Tag = double.TryParse(p.Get("max"), NumberStyles.Float, CultureInfo.InvariantCulture, out var max) ? max : 1.0;
         return path;
+    }
+
+    // Text is laid out in a box this wide around its anchor, and as tall as two lines around its middle
+    private const double TextBox = 600;
+
+    /// <summary>A legend: a text block centred on the line's middle, starting, centred or ending at its anchor.</summary>
+    private UIElement BuildText(ArtText t)
+    {
+        var fill = new SolidColorBrush(Parse(t.Fill, 1));
+        fill.Freeze();
+        var block = new TextBlock
+        {
+            Text = t.Text,
+            FontSize = t.FontSize,
+            FontWeight = FontWeight.FromOpenTypeWeight(Math.Clamp(t.FontWeight, 1, 999)),
+            Foreground = fill,
+            TextAlignment = t.Anchor switch { ArtTextAnchor.Middle => TextAlignment.Center, ArtTextAnchor.End => TextAlignment.Right, _ => TextAlignment.Left },
+            VerticalAlignment = VerticalAlignment.Center,
+            Width = TextBox
+        };
+        if (!string.IsNullOrWhiteSpace(t.FontFamily)) block.FontFamily = new FontFamily(t.FontFamily);
+
+        var box = new Border { Width = TextBox, Height = t.FontSize * 2, Child = block, IsHitTestVisible = false };
+        Canvas.SetLeft(box, t.Anchor switch { ArtTextAnchor.Middle => t.X - TextBox / 2, ArtTextAnchor.End => t.X - TextBox, _ => t.X });
+        Canvas.SetTop(box, t.CenterY - t.FontSize);
+        Apply(box, t);
+        return box;
     }
 
     private static PenLineCap Cap(ArtLineCap cap) => cap switch { ArtLineCap.Round => PenLineCap.Round, ArtLineCap.Square => PenLineCap.Square, _ => PenLineCap.Flat };

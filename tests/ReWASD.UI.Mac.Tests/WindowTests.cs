@@ -51,9 +51,12 @@ public class WindowTests
         var vm = NewViewModel();
         var window = Show(vm);
 
+        // The keyboard is the detailed drawing, with a part for every key that can be remapped
         vm.SelectedInputTab = InputTab.Keyboard;
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-        Assert.Equal(vm.KeyboardSources.Count, window.GetVisualDescendants().OfType<Button>().Count(b => b.Classes.Contains("src")));
+        var keyboard = window.GetVisualDescendants().OfType<Art.ArtView>().Single(v => v.Name == "KeyboardArt");
+        Assert.True(keyboard.IsEffectivelyVisible);
+        Assert.All(vm.KeyboardSources, k => Assert.NotNull(keyboard.Inspect(k.SourceName)));
         Shot(window, "keyboard");
 
         vm.SelectedInputTab = InputTab.Mouse;

@@ -10,7 +10,8 @@ namespace ReWASD.Core.Skins.Art;
 /// gradient paints, transforms, one clip path and a Gaussian blur per node. Anything else is ignored, so a drawing
 /// that looks right in a browser can be shown by any front end that renders this model.
 ///
-/// Parts are groups with a <c>data-button</c> attribute naming a <see cref="ControllerButton"/>; see <see cref="ArtPart"/>.
+/// Parts are groups with a <c>data-button</c> attribute naming a <see cref="ControllerButton"/>, or a <c>data-key</c> attribute
+/// naming a keyboard key; see <see cref="ArtPart"/>.
 /// </summary>
 public static class SvgArtParser
 {
@@ -121,6 +122,25 @@ public static class SvgArtParser
                 if (node != null) group.Children.Add(node);
             }
             return group;
+        }
+
+        if (name == "text")
+        {
+            string text = e.Value.Trim();
+            if (text.Length == 0) return null;
+            return new ArtText
+            {
+                Id = id, Class = cls, Opacity = opacity, Transform = transform, ClipPath = clip, Blur = blur, Data = data,
+                Text = text,
+                X = Num(e.Attribute("x")?.Value, 0),
+                Y = Num(e.Attribute("y")?.Value, 0),
+                FontSize = Num(e.Attribute("font-size")?.Value, 12),
+                FontWeight = (int)Num(e.Attribute("font-weight")?.Value switch { "bold" => "700", "normal" => "400", var w => w }, 400),
+                Fill = e.Attribute("fill")?.Value ?? "#000000",
+                FontFamily = e.Attribute("font-family")?.Value,
+                Anchor = e.Attribute("text-anchor")?.Value switch { "middle" => ArtTextAnchor.Middle, "end" => ArtTextAnchor.End, _ => ArtTextAnchor.Start },
+                Central = e.Attribute("dominant-baseline")?.Value is "central" or "middle"
+            };
         }
 
         string? d = ShapeData(e);
@@ -269,9 +289,11 @@ public static class SvgArtParser
             if (child is not ArtGroup g) continue;
 
             string? button = g.Get("button");
-            if (button != null)
+            string? key = g.Get("key");
+            if (button != null || key != null)
             {
-                if (!Enum.TryParse<ControllerButton>(button, out var b)) throw new FormatException($"Part '{g.Id}' names an unknown button '{button}'");
+                var b = ControllerButton.None;
+                if (button != null && !Enum.TryParse(button, out b)) throw new FormatException($"Part '{g.Id}' names an unknown button '{button}'");
 
                 var hits = new List<ArtPath>();
                 FindHits(g, hits);
@@ -283,9 +305,10 @@ public static class SvgArtParser
 
                 parts.Add(new ArtPart
                 {
-                    Id = g.Id ?? button,
-                    Name = g.Get("name") ?? button,
+                    Id = g.Id ?? button ?? key!,
+                    Name = g.Get("name") ?? button ?? key!,
                     Button = b,
+                    Key = key,
                     Motion = g.Get("anim") switch { "trigger" => ArtMotion.Trigger, "stick" => ArtMotion.Stick, _ => ArtMotion.Press },
                     Group = g,
                     Origin = (origin.ElementAtOrDefault(0), origin.ElementAtOrDefault(1)),
