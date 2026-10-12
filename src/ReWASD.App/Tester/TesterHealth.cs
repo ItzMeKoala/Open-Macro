@@ -102,8 +102,8 @@ public static class TesterHealth
         if (r.TotalChanges < MinChangesForRate) return new(name, Grade.Unknown, "Move a stick steadily for a few seconds");
 
         string detail = $"{r.SteadyShare:P0} steady, worst gap {r.WorstIntervalMs:0} ms";
-        if (r.WorstIntervalMs > 250 || r.SteadyShare < 0.5) return new(name, Grade.Poor, detail);
-        return new(name, r.SteadyShare >= 0.8 && r.WorstIntervalMs <= 100 ? Grade.Good : Grade.Fair, detail);
+        if (r.WorstIntervalMs > 100 || r.SteadyShare < 0.5) return new(name, Grade.Poor, detail);
+        return new(name, r.SteadyShare >= 0.8 && r.WorstIntervalMs <= 60 ? Grade.Good : Grade.Fair, detail);
     }
 }
 

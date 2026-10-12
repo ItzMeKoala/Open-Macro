@@ -141,12 +141,24 @@ public class TesterHealthTests
         var m = new TesterModel();
         m.Feed(Pad(), 0);
         double t = 0;
-        for (int i = 1; i <= 100; i++) m.Feed(Pad(lx: i * 0.001), t += i % 2 == 0 ? 4 : 30);
+        for (int i = 1; i <= 100; i++) m.Feed(Pad(lx: i * 0.001), t += i % 2 == 0 ? 4 : 30);   // gaps alternate 4 and 30 ms
 
         var item = Item(TesterHealth.Evaluate(m.Snapshot()), "Report rate");
 
-        Assert.NotEqual(Grade.Good, item.Grade);
+        Assert.Equal(Grade.Poor, item.Grade);                     // half the gaps are far from the usual one
         Assert.Contains("steady", item.Detail);
+
+        var stalls = new TesterModel();
+        stalls.Feed(Pad(), 0);
+        double u = 0;
+        for (int i = 1; i <= 100; i++) stalls.Feed(Pad(lx: i * 0.001), u += i == 50 ? 110 : 8);   // steady, but one 110 ms stall
+        Assert.Equal(Grade.Poor, Item(TesterHealth.Evaluate(stalls.Snapshot()), "Report rate").Grade);
+
+        var pauses = new TesterModel();
+        pauses.Feed(Pad(), 0);
+        double v = 0;
+        for (int i = 1; i <= 100; i++) pauses.Feed(Pad(lx: i * 0.001), v += i % 20 == 0 ? 500 : 8);   // the person paused: not the pad's fault
+        Assert.Equal(Grade.Good, Item(TesterHealth.Evaluate(pauses.Snapshot()), "Report rate").Grade);
     }
 
     [Fact]

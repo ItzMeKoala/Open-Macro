@@ -30,10 +30,29 @@ internal sealed class WpfUi : IPlatformUi
         return Task.FromResult(dialog.ShowDialog(Application.Current?.MainWindow) == true ? dialog.FileName : null);
     }
 
-    public Task<string?> PickSaveFileAsync(string title, string suggestedName)
+    public Task<string?> PickSaveFileAsync(string title, string suggestedName, string extension = "json")
     {
-        var dialog = new Microsoft.Win32.SaveFileDialog { Title = title, Filter = Filter, FileName = suggestedName, DefaultExt = ".json", AddExtension = true };
+        string filter = extension == "json" ? Filter : $"{extension.ToUpperInvariant()} file (*.{extension})|*.{extension}|All files (*.*)|*.*";
+        var dialog = new Microsoft.Win32.SaveFileDialog { Title = title, Filter = filter, FileName = suggestedName, DefaultExt = "." + extension, AddExtension = true };
         return Task.FromResult(dialog.ShowDialog(Application.Current?.MainWindow) == true ? dialog.FileName : null);
+    }
+
+    public async Task<bool> SetClipboardTextAsync(string text)
+    {
+        // Another program can hold the clipboard for a moment; try a few times
+        for (int attempt = 0; attempt < 5; attempt++)
+        {
+            try
+            {
+                Clipboard.SetDataObject(text, true);
+                return true;
+            }
+            catch (System.Runtime.InteropServices.COMException)
+            {
+                await Task.Delay(60);
+            }
+        }
+        return false;
     }
 
     public Task<bool> ConfirmAsync(string title, string message)

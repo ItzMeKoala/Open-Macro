@@ -126,7 +126,7 @@ public class TesterViewTests
         var (vm, window, pad) = Open();
         window.WindowState = WindowState.FullScreen;
         window.Width = 1700;
-        window.Height = 1450;
+        window.Height = 1900;
         vm.Shutdown();                                  // stop the sampler: this test feeds the model itself
 
         // Feed some lively history straight into the model
@@ -156,6 +156,45 @@ public class TesterViewTests
         Shot(window, "tester");
 
         Assert.True(vm.Tester.Left.Snapshot!.Coverage > 0.8);
+        vm.Shutdown();
+    }
+}
+
+public class TesterControlTests
+{
+    [Fact]
+    public void TheGaugeColour_FollowsTheScore()
+    {
+        Assert.Equal(Avalonia.Media.Color.Parse("#2EF2A0"), RingGauge.ColorFor(92, true));
+        Assert.Equal(Avalonia.Media.Color.Parse("#FFC24B"), RingGauge.ColorFor(60, true));
+        Assert.Equal(Avalonia.Media.Color.Parse("#FF6B6B"), RingGauge.ColorFor(30, true));
+        Assert.Equal(Avalonia.Media.Color.Parse("#566173"), RingGauge.ColorFor(99, false));
+    }
+
+    [Fact]
+    public void TheHistogram_ReadsAnyNumbers_AndFindsTheSkippedBins()
+    {
+        Assert.Equal(new double[] { 1, 2, 3 }, Histogram.ToArray(new[] { 1, 2, 3 }));
+        Assert.Equal(new double[] { 5, 0 }, Histogram.ToArray(new long[] { 5, 0 }));
+        Assert.Empty(Histogram.ToArray(null));
+
+        Assert.Equal(new[] { 2, 3 }, Histogram.SkippedBins(new double[] { 0, 4, 0, 0, 7, 1, 0 }));    // the empty edges are not "skipped"
+        Assert.Empty(Histogram.SkippedBins(new double[] { 0, 0, 0 }));
+        Assert.Empty(Histogram.SkippedBins(new double[] { 1, 1, 1 }));
+    }
+
+    [AvaloniaFact]
+    public void TheNewControls_DrawInsideTheTester_WithoutFailing()
+    {
+        var pad = new Fakes.Pad();
+        var vm = new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo, pad), new Fakes.Ui(), Fakes.TempProfiles());
+        var window = new MainWindow { DataContext = vm };
+        window.Show();
+        window.WindowState = WindowState.FullScreen;
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        Assert.Single(window.Tester!.GetVisualDescendants().OfType<RingGauge>());
+        Assert.Equal(3, window.Tester.GetVisualDescendants().OfType<Histogram>().Count());        // the gaps and one per trigger
         vm.Shutdown();
     }
 }

@@ -42,19 +42,35 @@ public sealed class AvaloniaUi : IPlatformUi
         return files.Count == 0 ? null : Avalonia.Platform.Storage.StorageProviderExtensions.TryGetLocalPath(files[0]);
     }
 
-    public async Task<string?> PickSaveFileAsync(string title, string suggestedName)
+    public async Task<string?> PickSaveFileAsync(string title, string suggestedName, string extension = "json")
     {
         var storage = MainWindow?.StorageProvider;
         if (storage == null) return null;
 
+        var type = extension == "json" ? JsonFiles : new Avalonia.Platform.Storage.FilePickerFileType($"{extension.ToUpperInvariant()} file") { Patterns = new[] { "*." + extension } };
         var file = await storage.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
         {
             Title = title,
             SuggestedFileName = suggestedName,
-            DefaultExtension = "json",
-            FileTypeChoices = new[] { JsonFiles }
+            DefaultExtension = extension,
+            FileTypeChoices = new[] { type }
         });
         return file == null ? null : Avalonia.Platform.Storage.StorageProviderExtensions.TryGetLocalPath(file);
+    }
+
+    public async Task<bool> SetClipboardTextAsync(string text)
+    {
+        var clipboard = MainWindow?.Clipboard;
+        if (clipboard == null) return false;
+        try
+        {
+            await clipboard.SetTextAsync(text);
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 
     public async Task<bool> ConfirmAsync(string title, string message)

@@ -252,7 +252,7 @@ public sealed class TesterModel
         || a.LeftTrigger != b.LeftTrigger || a.RightTrigger != b.RightTrigger;
 
     /// <summary>A pause longer than this means the person stopped moving, not that the pad stalled.</summary>
-    public const double IdleGapMs = 300;
+    public const double IdleGapMs = 120;
 
     private void CountChange(PhysicalState state, double now)
     {
@@ -260,7 +260,7 @@ public sealed class TesterModel
 
         _totalChanges++;
         _recentChanges.Enqueue(now);
-        if (!double.IsNaN(_lastChangeAt) && now - _lastChangeAt <= IdleGapMs)
+        if (!double.IsNaN(_lastChangeAt) && now >= _lastChangeAt && now - _lastChangeAt <= IdleGapMs)
         {
             double gap = now - _lastChangeAt;
             _intervalBins[Math.Min(HistogramBins - 1, (int)gap)]++;

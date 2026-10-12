@@ -55,7 +55,9 @@ internal static class Fakes
         public bool Confirmation;
         public readonly List<string> Questions = new();
         public Task<string?> PickOpenFileAsync(string title) => Task.FromResult(OpenPath);
-        public Task<string?> PickSaveFileAsync(string title, string suggestedName) => Task.FromResult(SavePath);
+        public Task<string?> PickSaveFileAsync(string title, string suggestedName, string extension = "json") => Task.FromResult(SavePath);
+        public string? Clipboard;
+        public Task<bool> SetClipboardTextAsync(string text) { Clipboard = text; return Task.FromResult(true); }
         public Task<bool> ConfirmAsync(string title, string message) { Questions.Add(message); return Task.FromResult(Confirmation); }
         public void Post(Action action) => action();
         public IDisposable StartTimer(TimeSpan interval, Action tick) => new Nop();

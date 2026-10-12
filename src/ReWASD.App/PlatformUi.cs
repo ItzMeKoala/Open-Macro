@@ -24,7 +24,10 @@ public interface IPlatformUi
     Task<string?> PickOpenFileAsync(string title);
 
     /// <summary>Asks where to save a profile file. Null when the person cancels.</summary>
-    Task<string?> PickSaveFileAsync(string title, string suggestedName);
+    Task<string?> PickSaveFileAsync(string title, string suggestedName, string extension = "json");
+
+    /// <summary>Puts text on the clipboard. Returns whether it worked.</summary>
+    Task<bool> SetClipboardTextAsync(string text);
 
     /// <summary>Asks a yes/no question. False when the person says no or closes the question.</summary>
     Task<bool> ConfirmAsync(string title, string message);
@@ -71,7 +74,8 @@ public sealed class SynchronizationContextUi : IPlatformUi
 
     public bool SetDockIconHidden(bool hidden) => false;
     public Task<string?> PickOpenFileAsync(string title) => Task.FromResult<string?>(null);
-    public Task<string?> PickSaveFileAsync(string title, string suggestedName) => Task.FromResult<string?>(null);
+    public Task<string?> PickSaveFileAsync(string title, string suggestedName, string extension = "json") => Task.FromResult<string?>(null);
+    public Task<bool> SetClipboardTextAsync(string text) => Task.FromResult(false);
     public Task<bool> ConfirmAsync(string title, string message) => Task.FromResult(false);
 
     public IEnumerable? CreateGroupedView(IEnumerable source, string groupProperty) => null;

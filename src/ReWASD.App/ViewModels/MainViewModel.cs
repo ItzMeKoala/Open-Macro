@@ -632,7 +632,45 @@ public partial class MainViewModel : ObservableObject
             }
         }
 
+        if (Tester.IsPaused && !force) return;
         Tester.Refresh(Tester.Model.Snapshot(), _testerControllerName, SelectedProfile.LeftStick, SelectedProfile.RightStick);
+    }
+
+    [RelayCommand]
+    private void ToggleTesterPause()
+    {
+        Tester.IsPaused = !Tester.IsPaused;
+        if (!Tester.IsPaused) RefreshTester(force: true);
+    }
+
+    private string BuildTesterReport()
+    {
+        var snap = Tester.Model.Snapshot();
+        return TesterReport.Build(snap, _testerControllerName, TesterHealth.Evaluate(snap), DateTime.Now);
+    }
+
+    [RelayCommand]
+    private async Task CopyTesterReport()
+    {
+        bool ok = await _ui.SetClipboardTextAsync(BuildTesterReport());
+        Tester.Notice = ok ? "Report copied to the clipboard" : "Could not copy the report";
+    }
+
+    [RelayCommand]
+    private async Task SaveTesterReport()
+    {
+        string? path = await _ui.PickSaveFileAsync("Save the test report", $"controller-test-{DateTime.Now:yyyyMMdd-HHmm}.txt", "txt");
+        if (string.IsNullOrEmpty(path)) return;
+
+        try
+        {
+            await System.IO.File.WriteAllTextAsync(path, BuildTesterReport());
+            Tester.Notice = $"Report saved to {path}";
+        }
+        catch (Exception ex)
+        {
+            Tester.Notice = $"Could not save the report: {ex.Message}";
+        }
     }
 
     [RelayCommand]

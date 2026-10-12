@@ -266,11 +266,11 @@ public class TesterModelTests
     {
         _m.Feed(Pad(), 0);
         for (int i = 1; i <= 20; i++) _m.Feed(Pad(lx: i * 0.01), i * 10);
-        _m.Feed(Pad(lx: 0.5), 200 + 150);                       // a 150 ms hiccup
+        _m.Feed(Pad(lx: 0.5), 200 + 110);                       // a 110 ms hiccup
         _m.Feed(Pad(lx: 0.5), 3000);
 
         var rate = _m.Snapshot().Rate;
-        Assert.Equal(150, rate.WorstIntervalMs, 1);
+        Assert.Equal(110, rate.WorstIntervalMs, 1);
         Assert.Equal(0, rate.ChangesPerSecond);                 // nothing in the last second
     }
 
@@ -446,5 +446,18 @@ public class TesterModelTests
         _m.Reset();
         Assert.Equal(ReactionState.Idle, _m.Snapshot().Reaction.State);
         Assert.Equal(0, _m.Snapshot().Reaction.Attempts);
+    }
+
+    [Fact]
+    public void ATimeThatGoesBackwards_NeverBreaksTheCounts()
+    {
+        _m.Feed(Pad(), 1000);
+        _m.Feed(Pad(lx: 0.1), 1010);
+        _m.Feed(Pad(lx: 0.2), 5);                        // the clock restarted
+        _m.Feed(Pad(lx: 0.3), 15);
+
+        var rate = _m.Snapshot().Rate;
+        Assert.Equal(3, rate.TotalChanges);
+        Assert.Equal(1, rate.Histogram.Sum());           // only the one sane gap was counted
     }
 }

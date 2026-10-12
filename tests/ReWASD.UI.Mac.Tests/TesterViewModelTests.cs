@@ -200,3 +200,109 @@ public class TesterViewModelTests
         Assert.Equal((0.0, 0.0), rumble.Snapshot()[^1]);
     }
 }
+
+public class TesterExtrasTests
+{
+    private static PhysicalState Pad(double lx = 0, double ly = 0, double rx = 0, double ry = 0, double lt = 0, double rt = 0, params ControllerButton[] down) =>
+        new(new HashSet<ControllerButton>(down), lx, ly, rx, ry, lt, rt);
+
+    [Fact]
+    public void TheHealthRows_FollowTheReport()
+    {
+        var model = new TesterModel();
+        var vm = new TesterViewModel(model);
+        Assert.Equal(7, vm.Health.Count);
+        Assert.All(vm.Health, r => Assert.True(r.IsUnknown));
+
+        for (int i = 0; i < 80; i++) model.Feed(Pad(lx: 0.002), i * 5);
+        vm.Refresh(model.Snapshot(), "x", null, null);
+
+        var drift = vm.Health.First(r => r.Name == "Left stick drift");
+        Assert.True(drift.IsGood);
+        Assert.Equal("GOOD", drift.GradeText);
+        Assert.Contains("off centre", drift.Detail);
+        Assert.True(vm.HasHealthScore);
+        Assert.Equal("100", vm.HealthScoreText);
+        Assert.Equal("2 of 7 checks done", vm.HealthChecksText);
+        Assert.Equal("In great shape", vm.HealthVerdict);
+    }
+
+    [Fact]
+    public void StepsAndTravel_ReachTheTexts()
+    {
+        var model = new TesterModel();
+        var vm = new TesterViewModel(model);
+        for (int i = 0; i < 256; i++) model.Feed(Pad(lx: (i - 128) / 128.0, lt: i / 255.0), i * 2);
+
+        vm.Refresh(model.Snapshot(), "x", null, null);
+
+        Assert.Equal("256 × 1 steps  ·  8-bit", vm.Left.StepsText);
+        Assert.Equal("255 steps", vm.LeftTrigger.StepsText);
+        Assert.Equal(TesterModel.TravelBins, vm.LeftTrigger.Travel.Length);
+        Assert.True(vm.LeftTrigger.Travel.All(n => n > 0));
+        Assert.Equal(TesterModel.HistogramBins, vm.Histogram.Length);
+    }
+
+    private static MainViewModel NewVm(Fakes.Ui ui) => new(Fakes.Platform(PlatformServices.MacOSInfo, new Fakes.Pad { State = Pad() }), ui, Fakes.TempProfiles());
+
+    [Fact]
+    public void Pause_FreezesTheNumbers_ButNotTheRecording()
+    {
+        var vm = NewVm(new Fakes.Ui());
+        vm.Tester.Model.Feed(Pad(lx: 0.3), 0);
+        vm.Tester.Model.Feed(Pad(lx: 0.3, down: ControllerButton.A), 10);
+        vm.IsTesterMode = true;
+        vm.Shutdown();                                         // stop the sampler: this test feeds the model itself
+        vm.Tester.Model.Reset();
+        vm.Tester.Model.Feed(Pad(lx: 0.3), 0);
+        vm.Tester.Model.Feed(Pad(lx: 0.3, down: ControllerButton.A), 10);
+        vm.LiveTickForTests(); vm.LiveTickForTests();
+        Assert.Equal("1", vm.Tester.Buttons.First(b => b.Button == ControllerButton.A).PressesText);
+
+        vm.ToggleTesterPauseCommand.Execute(null);
+        Assert.True(vm.Tester.IsPaused);
+        vm.Tester.Model.Feed(Pad(lx: 0.3), 100);
+        vm.Tester.Model.Feed(Pad(lx: 0.3, down: ControllerButton.A), 120);
+        vm.LiveTickForTests(); vm.LiveTickForTests();
+        Assert.Equal("1", vm.Tester.Buttons.First(b => b.Button == ControllerButton.A).PressesText);        // the screen holds still
+
+        vm.ToggleTesterPauseCommand.Execute(null);
+        Assert.Equal("2", vm.Tester.Buttons.First(b => b.Button == ControllerButton.A).PressesText);        // resuming catches up
+    }
+
+    [Fact]
+    public async Task CopyingTheReport_PutsItOnTheClipboard()
+    {
+        var ui = new Fakes.Ui();
+        var vm = NewVm(ui);
+        vm.Tester.Model.Feed(Pad(down: ControllerButton.B), 0);
+
+        await vm.CopyTesterReportCommand.ExecuteAsync(null);
+
+        Assert.StartsWith("ReWASD controller test report", ui.Clipboard);
+        Assert.Contains("Left stick drift", ui.Clipboard);
+        Assert.Equal("Report copied to the clipboard", vm.Tester.Notice);
+    }
+
+    [Fact]
+    public async Task SavingTheReport_WritesAFile_AndCancellingDoesNothing()
+    {
+        var ui = new Fakes.Ui();
+        var vm = NewVm(ui);
+        string path = Path.Combine(Path.GetTempPath(), "rewasd-report-" + Guid.NewGuid().ToString("N") + ".txt");
+
+        await vm.SaveTesterReportCommand.ExecuteAsync(null);                 // cancelled: no path chosen
+        Assert.Equal("", vm.Tester.Notice);
+
+        ui.SavePath = path;
+        await vm.SaveTesterReportCommand.ExecuteAsync(null);
+
+        Assert.StartsWith("ReWASD controller test report", File.ReadAllText(path));
+        Assert.Contains("saved", vm.Tester.Notice);
+        File.Delete(path);
+
+        ui.SavePath = Path.Combine(path, "no", "such", "folder", "r.txt");
+        await vm.SaveTesterReportCommand.ExecuteAsync(null);
+        Assert.StartsWith("Could not save", vm.Tester.Notice);
+    }
+}
