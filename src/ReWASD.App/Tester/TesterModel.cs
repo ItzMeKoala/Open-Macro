@@ -11,17 +11,18 @@ public sealed record StickSnapshot(
     double X, double Y, double Magnitude, double AngleDegrees,
     double PeakMagnitude, double RestX, double RestY, double RestSamples, double WorstRestDrift,
     double[] Extents, double Coverage, double MinRadius, double MaxRadius, double MeanRadius, double Roundness,
-    (double X, double Y)[] Trail)
+    (double X, double Y)[] Trail,
+    int StepsX, int StepsY)
 {
     /// <summary>True once enough of the edge has been covered for the roundness figure to mean something.</summary>
     public bool HasCircle => Coverage >= TesterModel.EnoughCoverage;
 }
 
 /// <summary>What the tester knows about one trigger.</summary>
-public sealed record TriggerSnapshot(double Value, double Peak, double FirstMovement, double HeldMs, long Presses);
+public sealed record TriggerSnapshot(double Value, double Peak, double FirstMovement, double HeldMs, long Presses, int Steps, int[] Travel);
 
 /// <summary>How often the controller reported something new, and how evenly.</summary>
-public sealed record RateSnapshot(double ChangesPerSecond, double PeakChangesPerSecond, double AverageIntervalMs, double WorstIntervalMs, long TotalChanges, double JitterMs, double SteadyShare);
+public sealed record RateSnapshot(double ChangesPerSecond, double PeakChangesPerSecond, double AverageIntervalMs, double WorstIntervalMs, long TotalChanges, double JitterMs, double SteadyShare, long[] Histogram);
 
 public enum ReactionState
 {
@@ -58,6 +59,9 @@ public sealed class TesterModel
     public const double BounceMs = 30;               // a release and press closer than this is switch chatter, not a person
     public const double RestLimit = 0.2;             // a stick this close to centre is "resting"
     public const int MaxLog = 200;
+    public const int TravelBins = 20;                // trigger travel, in twentieths of a pull
+    public const int HistogramBins = 42;             // gaps between reports: 0 to 40 ms in 1 ms steps, then everything longer
+    private const int MaxDistinct = 70000;
 
     /// <summary>The buttons the tester lists: the digital ones (sticks and triggers have their own panels).</summary>
     public static readonly ControllerButton[] ListedButtons =
@@ -104,6 +108,7 @@ public sealed class TesterModel
         public double RestSumX, RestSumY, RestCount, WorstRest;
         public readonly double[] Extents = new double[AngleBins];
         public readonly Queue<(double X, double Y)> Trail = new();
+        public readonly HashSet<double> StepsX = new(), StepsY = new();
     }
 
     private sealed class TriggerStat
@@ -114,6 +119,8 @@ public sealed class TesterModel
         public double DownAt;
         public double Held;
         public long Presses;
+        public readonly HashSet<double> Steps = new();
+        public readonly int[] Travel = new int[TravelBins];
     }
 
     private readonly object _gate = new();
@@ -134,6 +141,7 @@ public sealed class TesterModel
     private double _lastChangeAt = double.NaN;
     private readonly Queue<double> _recentIntervals = new();
     private long _totalChanges;
+    private readonly long[] _intervalBins = new long[HistogramBins];
     private double _peakRate;
     private long _logVersion;
 
@@ -163,6 +171,7 @@ public sealed class TesterModel
             _lastScopeAt = double.NegativeInfinity;
             _recentChanges.Clear();
             _recentIntervals.Clear();
+            Array.Clear(_intervalBins);
             _lastChangeAt = double.NaN;
             _totalChanges = 0;
             _peakRate = 0;
@@ -185,6 +194,8 @@ public sealed class TesterModel
         s.RestSumX = s.RestSumY = s.RestCount = s.WorstRest = 0;
         Array.Clear(s.Extents);
         s.Trail.Clear();
+        s.StepsX.Clear();
+        s.StepsY.Clear();
     }
 
     private static void ResetTrigger(TriggerStat t)
@@ -194,6 +205,8 @@ public sealed class TesterModel
         t.Presses = 0;
         t.Down = false;
         t.Held = 0;
+        t.Steps.Clear();
+        Array.Clear(t.Travel);
     }
 
     /// <summary>Takes one reading (null = no controller) at the given time in milliseconds.</summary>
@@ -233,19 +246,24 @@ public sealed class TesterModel
 
     // ---- how often the pad reports ----------------------------------------------------------------------------------
 
-    private static bool Same(PhysicalState a, PhysicalState b) =>
-        a.LeftStickX == b.LeftStickX && a.LeftStickY == b.LeftStickY && a.RightStickX == b.RightStickX && a.RightStickY == b.RightStickY
-        && a.LeftTrigger == b.LeftTrigger && a.RightTrigger == b.RightTrigger && a.Buttons.SetEquals(b.Buttons);
+    // Only the sticks and triggers make a steady stream; buttons change when a finger does, so they say nothing about the pad's rate
+    private static bool AxesDiffer(PhysicalState a, PhysicalState b) =>
+        a.LeftStickX != b.LeftStickX || a.LeftStickY != b.LeftStickY || a.RightStickX != b.RightStickX || a.RightStickY != b.RightStickY
+        || a.LeftTrigger != b.LeftTrigger || a.RightTrigger != b.RightTrigger;
+
+    /// <summary>A pause longer than this means the person stopped moving, not that the pad stalled.</summary>
+    public const double IdleGapMs = 300;
 
     private void CountChange(PhysicalState state, double now)
     {
-        if (_previous == null || Same(_previous, state)) return;
+        if (_previous == null || !AxesDiffer(_previous, state)) return;
 
         _totalChanges++;
         _recentChanges.Enqueue(now);
-        if (!double.IsNaN(_lastChangeAt))
+        if (!double.IsNaN(_lastChangeAt) && now - _lastChangeAt <= IdleGapMs)
         {
             double gap = now - _lastChangeAt;
+            _intervalBins[Math.Min(HistogramBins - 1, (int)gap)]++;
             _recentIntervals.Enqueue(gap);
             if (_recentIntervals.Count > 200) _recentIntervals.Dequeue();
         }
@@ -338,6 +356,8 @@ public sealed class TesterModel
         _ = name;
         s.X = x;
         s.Y = y;
+        if (s.StepsX.Count < MaxDistinct) s.StepsX.Add(x);
+        if (s.StepsY.Count < MaxDistinct) s.StepsY.Add(y);
         double mag = Math.Sqrt(x * x + y * y);
         s.Peak = Math.Max(s.Peak, mag);
 
@@ -383,13 +403,19 @@ public sealed class TesterModel
             s.Peak,
             s.RestCount > 0 ? s.RestSumX / s.RestCount : 0, s.RestCount > 0 ? s.RestSumY / s.RestCount : 0, s.RestCount, s.WorstRest,
             (double[])s.Extents.Clone(), coverage, min, max, mean, roundness,
-            s.Trail.ToArray());
+            s.Trail.ToArray(), s.StepsX.Count, s.StepsY.Count);
     }
 
     // ---- triggers (pressure) ---------------------------------------------------------------------------------------------
 
     private void UpdateTrigger(TriggerStat t, string name, double value, double now)
     {
+        if (value != t.Value)
+        {
+            // Every distinct reading is a step the trigger can report; counting where they fall shows gaps in its travel
+            if (t.Steps.Count < MaxDistinct) t.Steps.Add(value);
+            t.Travel[Math.Clamp((int)(value * TravelBins), 0, TravelBins - 1)]++;
+        }
         t.Value = value;
         t.Peak = Math.Max(t.Peak, value);
         if (value > 0.004 && (double.IsNaN(t.FirstMovement) || value < t.FirstMovement)) t.FirstMovement = value;
@@ -474,12 +500,12 @@ public sealed class TesterModel
                 _connected, elapsed,
                 Snapshot(_left), Snapshot(_right),
                 Snapshot(_lt), Snapshot(_rt),
-                buttons, new RateSnapshot(perSecond, _peakRate, average, worst, _totalChanges, jitter, steady),
+                buttons, new RateSnapshot(perSecond, _peakRate, average, worst, _totalChanges, jitter, steady, (long[])_intervalBins.Clone()),
                 _logVersion, _log.ToList(), scope,
                 new ReactionSnapshot(_reaction, _lastReaction, _reactions.Count > 0 ? _reactions.Min() : 0, _reactions.Count > 0 ? _reactions.Average() : 0, _reactions.Count));
         }
     }
 
     private static TriggerSnapshot Snapshot(TriggerStat t) =>
-        new(t.Value, t.Peak, double.IsNaN(t.FirstMovement) ? 0 : t.FirstMovement, t.Held, t.Presses);
+        new(t.Value, t.Peak, double.IsNaN(t.FirstMovement) ? 0 : t.FirstMovement, t.Held, t.Presses, t.Steps.Count, (int[])t.Travel.Clone());
 }
