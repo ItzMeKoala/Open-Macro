@@ -350,6 +350,8 @@ public partial class MainViewModel : ObservableObject
         _macros.ActionFailed += message => _ui.Post(() => StatusMessage = message);
         _hook = platform.CreateHook(_mappingEngine.IsKeySuppressed, _mappingEngine.IsMouseSuppressed);
         _hook.PanicRequested += OnPanicRequested;
+        LeftStickSettings.CalibrationRequested = k => StartCalibration(LeftStickSettings, _leftCalibrator, k, left: true);
+        RightStickSettings.CalibrationRequested = k => StartCalibration(RightStickSettings, _rightCalibrator, k, left: false);
         _macros.MacroStarted += () => Interlocked.Increment(ref _macroStarts);
         _foreground = platform.Foreground;
         _mappingEngine.LockChanged += locked => _ui.Post(() => OnEngineLockChanged(locked));
@@ -516,6 +518,65 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Could not save config: {ex.Message}";
+        }
+    }
+
+    // ---- Stick tuning: live readout and calibration ---------------------------------------------------------------------
+
+    private readonly StickCalibrator _leftCalibrator = new();
+    private readonly StickCalibrator _rightCalibrator = new();
+    private int _tuningTicks;
+
+    private void StartCalibration(StickViewModel stick, StickCalibrator calibrator, CalibrationKind kind, bool left)
+    {
+        var phys = _pipeline.IsRunning ? _pipeline.LatestPhysical : _reader.Read();
+        if (phys == null)
+        {
+            stick.CalibrationText = "Connect a controller first";
+            return;
+        }
+
+        calibrator.Start(kind, NowMs());
+        stick.IsCalibrating = true;
+        stick.CalibrationProgress = 0;
+        stick.CalibrationText = kind == CalibrationKind.Rest
+            ? "Let go of the stick and leave it alone…"
+            : "Roll the stick slowly around its edge, all the way…";
+    }
+
+    private void FeedStickTuning(PhysicalState? phys)
+    {
+        FeedCalibrator(LeftStickSettings, _leftCalibrator, phys?.LeftStickX, phys?.LeftStickY);
+        FeedCalibrator(RightStickSettings, _rightCalibrator, phys?.RightStickX, phys?.RightStickY);
+
+        // The readout is only worked out while Preferences is open, a few times a second
+        if (!IsPreferencesPage || ++_tuningTicks % 4 != 0) return;
+        LeftStickSettings.LiveText = Describe(phys?.LeftStickX, phys?.LeftStickY);
+        RightStickSettings.LiveText = Describe(phys?.RightStickX, phys?.RightStickY);
+    }
+
+    private static string Describe(double? x, double? y) =>
+        x is not { } px || y is not { } py ? "no controller" : $"x {px:+0.00;-0.00;0.00}   y {py:+0.00;-0.00;0.00}   push {Math.Sqrt(px * px + py * py):0.00}";
+
+    private void FeedCalibrator(StickViewModel stick, StickCalibrator calibrator, double? x, double? y)
+    {
+        if (!calibrator.IsRunning) return;
+
+        var kind = calibrator.Kind;
+        double? result = calibrator.Feed(x, y, NowMs());
+        stick.CalibrationProgress = calibrator.Progress;
+        if (result is not { } value) return;
+
+        stick.IsCalibrating = false;
+        if (kind == CalibrationKind.Rest)
+        {
+            stick.DeadzoneMin = value;
+            stick.CalibrationText = $"Inner deadzone set to {value:P0}";
+        }
+        else
+        {
+            stick.DeadzoneMax = value;
+            stick.CalibrationText = $"Full push now counts from {value:P0}";
         }
     }
 
@@ -2146,6 +2207,7 @@ public partial class MainViewModel : ObservableObject
         FeedComboCapture(phys);
         CountUsage(phys);
         UpdatePressedText(phys);
+        FeedStickTuning(phys);
 
         foreach (var vm in ControllerButtons)
         {

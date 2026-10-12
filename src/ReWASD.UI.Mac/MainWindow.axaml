@@ -267,6 +267,37 @@
                                     </DockPanel>
                                     <Slider Minimum="0.05" Maximum="1" SmallChange="0.05" LargeChange="0.1" Value="{Binding PrecisionFactor}" Margin="0,4,0,0" />
                                 </StackPanel>
+
+                                <TextBlock Text="RESPONSE" Foreground="{StaticResource BrushTextMuted}" FontSize="10" FontWeight="Bold" Margin="0,14,0,6" />
+                                <TextBlock Text="{Binding LiveText}" Foreground="{StaticResource BrushCyan}" FontSize="11" FontFamily="Menlo, Consolas, monospace" />
+                                <DockPanel Margin="0,8,0,0">
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding DeadzoneMin, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" FontSize="12" />
+                                    <TextBlock Text="Deadzone (ignore drift below)" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                </DockPanel>
+                                <Slider Minimum="0" Maximum="0.6" SmallChange="0.01" LargeChange="0.05" Value="{Binding DeadzoneMin}" Margin="0,4,0,0" />
+                                <DockPanel Margin="0,6,0,0">
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding DeadzoneMax, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" FontSize="12" />
+                                    <TextBlock Text="Full push reached at" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                </DockPanel>
+                                <Slider Minimum="0.3" Maximum="1" SmallChange="0.01" LargeChange="0.05" Value="{Binding DeadzoneMax}" Margin="0,4,0,0" />
+                                <TextBlock Text="Curve" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,8,0,4" />
+                                <ComboBox ItemsSource="{x:Static vm:StickViewModel.CurveNames}" SelectedIndex="{Binding CurveIndex}" HorizontalAlignment="Stretch" />
+                                <DockPanel Margin="0,8,0,0">
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Sensitivity, StringFormat='{}{0:0.00}x'}" Foreground="{StaticResource BrushCyan}" FontSize="12" />
+                                    <TextBlock Text="Sensitivity" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                </DockPanel>
+                                <Slider Minimum="0.3" Maximum="2" SmallChange="0.05" LargeChange="0.2" Value="{Binding Sensitivity}" Margin="0,4,0,0" />
+                                <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,6,0,0">
+                                    <CheckBox Content="Flip left / right" IsChecked="{Binding InvertX}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
+                                    <CheckBox Content="Flip up / down" IsChecked="{Binding InvertY}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,10,0,0">
+                                    <Button Content="Measure drift" Command="{Binding CalibrateRestCommand}" Classes="secondary" Padding="10,4" ToolTip.Tip="Leave the stick alone: sets the deadzone just above its drift" />
+                                    <Button Content="Measure reach" Command="{Binding CalibrateRangeCommand}" Classes="secondary" Padding="10,4" ToolTip.Tip="Roll the stick around its edge: sets where a full push counts" />
+                                    <Button Content="Reset" Command="{Binding ResetTuningCommand}" Classes="secondary" Padding="10,4" />
+                                </StackPanel>
+                                <ProgressBar Minimum="0" Maximum="1" Value="{Binding CalibrationProgress}" Height="6" Margin="0,8,0,0" IsVisible="{Binding IsCalibrating}" />
+                                <TextBlock Text="{Binding CalibrationText}" Foreground="{StaticResource BrushOrange}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0" />
                             </StackPanel>
                         </Border>
 
@@ -306,6 +337,37 @@
                                     </DockPanel>
                                     <Slider Minimum="0.05" Maximum="1" SmallChange="0.05" LargeChange="0.1" Value="{Binding PrecisionFactor}" Margin="0,4,0,0" />
                                 </StackPanel>
+
+                                <TextBlock Text="RESPONSE" Foreground="{StaticResource BrushTextMuted}" FontSize="10" FontWeight="Bold" Margin="0,14,0,6" />
+                                <TextBlock Text="{Binding LiveText}" Foreground="{StaticResource BrushCyan}" FontSize="11" FontFamily="Menlo, Consolas, monospace" />
+                                <DockPanel Margin="0,8,0,0">
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding DeadzoneMin, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" FontSize="12" />
+                                    <TextBlock Text="Deadzone (ignore drift below)" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                </DockPanel>
+                                <Slider Minimum="0" Maximum="0.6" SmallChange="0.01" LargeChange="0.05" Value="{Binding DeadzoneMin}" Margin="0,4,0,0" />
+                                <DockPanel Margin="0,6,0,0">
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding DeadzoneMax, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" FontSize="12" />
+                                    <TextBlock Text="Full push reached at" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                </DockPanel>
+                                <Slider Minimum="0.3" Maximum="1" SmallChange="0.01" LargeChange="0.05" Value="{Binding DeadzoneMax}" Margin="0,4,0,0" />
+                                <TextBlock Text="Curve" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,8,0,4" />
+                                <ComboBox ItemsSource="{x:Static vm:StickViewModel.CurveNames}" SelectedIndex="{Binding CurveIndex}" HorizontalAlignment="Stretch" />
+                                <DockPanel Margin="0,8,0,0">
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Sensitivity, StringFormat='{}{0:0.00}x'}" Foreground="{StaticResource BrushCyan}" FontSize="12" />
+                                    <TextBlock Text="Sensitivity" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                </DockPanel>
+                                <Slider Minimum="0.3" Maximum="2" SmallChange="0.05" LargeChange="0.2" Value="{Binding Sensitivity}" Margin="0,4,0,0" />
+                                <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,6,0,0">
+                                    <CheckBox Content="Flip left / right" IsChecked="{Binding InvertX}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
+                                    <CheckBox Content="Flip up / down" IsChecked="{Binding InvertY}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,10,0,0">
+                                    <Button Content="Measure drift" Command="{Binding CalibrateRestCommand}" Classes="secondary" Padding="10,4" ToolTip.Tip="Leave the stick alone: sets the deadzone just above its drift" />
+                                    <Button Content="Measure reach" Command="{Binding CalibrateRangeCommand}" Classes="secondary" Padding="10,4" ToolTip.Tip="Roll the stick around its edge: sets where a full push counts" />
+                                    <Button Content="Reset" Command="{Binding ResetTuningCommand}" Classes="secondary" Padding="10,4" />
+                                </StackPanel>
+                                <ProgressBar Minimum="0" Maximum="1" Value="{Binding CalibrationProgress}" Height="6" Margin="0,8,0,0" IsVisible="{Binding IsCalibrating}" />
+                                <TextBlock Text="{Binding CalibrationText}" Foreground="{StaticResource BrushOrange}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0" />
                             </StackPanel>
                         </Border>
 
