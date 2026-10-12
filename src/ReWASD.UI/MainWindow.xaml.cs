@@ -22,12 +22,41 @@ public partial class MainWindow : Window
     /// <summary>The overlay window while it is open (for tests).</summary>
     internal OverlayWindow? Overlay => _overlay;
 
+    private TrayIconHost? _tray;
+
     public MainWindow()
     {
         InitializeComponent();
         DataContextChanged += (_, _) => Watch(DataContext as ViewModels.MainViewModel);
-        Closing += (_, _) =>
+        Watch(DataContext as ViewModels.MainViewModel);   // the XAML may already have created it
+
+        try
         {
+            if (DataContext is ViewModels.MainViewModel viewModel) _tray = new TrayIconHost(this, viewModel);
+        }
+        catch (Exception)
+        {
+            // No notification area available: the app simply works without it
+        }
+
+        if (Application.Current != null)
+        {
+            Application.Current.SessionEnding += (_, _) => (DataContext as ViewModels.MainViewModel)?.NoteSystemShutdown();
+        }
+
+        Closing += (_, e) =>
+        {
+            // With "keep running in the background" the close button only hides the window; Quit in the tray (or the system
+            // shutting down) closes it for real
+            if (DataContext is ViewModels.MainViewModel { KeepRunningInBackground: true, IsQuitting: false })
+            {
+                e.Cancel = true;
+                Hide();
+                return;
+            }
+
+            _tray?.Dispose();
+            _tray = null;
             CloseOverlay();
             var vm = DataContext as ViewModels.MainViewModel;
             vm?.StopLiveUpdates();
@@ -37,6 +66,7 @@ public partial class MainWindow : Window
 
     private void Watch(ViewModels.MainViewModel? vm)
     {
+        if (ReferenceEquals(_watched, vm)) return;
         if (_watched != null) _watched.PropertyChanged -= OnViewModelChanged;
         _watched = vm;
         if (vm != null) vm.PropertyChanged += OnViewModelChanged;

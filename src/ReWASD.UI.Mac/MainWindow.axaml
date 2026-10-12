@@ -7,6 +7,7 @@
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="720"
         x:Class="ReWASD.UI.Mac.MainWindow"
         Title="ReWASD Open Source — Gamepad Remapper"
+        Icon="avares://ReWASD/Assets/icon.png"
         Width="1200" Height="720" MinWidth="1050" MinHeight="650"
         WindowStartupLocation="CenterScreen">
 
@@ -472,6 +473,15 @@
                             <StackPanel>
                                 <ToggleButton Content="Show the controller overlay" IsChecked="{Binding ShowOverlay}" HorizontalAlignment="Left" Padding="12,5" />
                                 <TextBlock Text="A small window that stays on top and shows your controller moving. Drag it where you want it and resize it from its corner; capture it with a window capture in OBS. Turn it off here." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="BACKGROUND" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                        <Border Classes="card">
+                            <StackPanel>
+                                <CheckBox Content="Keep running when the window is closed" IsChecked="{Binding KeepRunningInBackground}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                <TextBlock Text="The close button hides the window and ReWASD stays in the menu bar or notification area; use its icon to open the window or quit." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                <CheckBox Content="Hide the Dock icon (menu bar only)" IsChecked="{Binding HideDockIcon}" IsVisible="{Binding CanHideDockIcon}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,10,0,0" />
                             </StackPanel>
                         </Border>
 

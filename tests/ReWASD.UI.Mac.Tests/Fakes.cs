@@ -48,6 +48,8 @@ internal static class Fakes
     {
         public bool ExitRequested;
         public void RequestExit() => ExitRequested = true;
+        public bool? DockHidden;
+        public bool SetDockIconHidden(bool hidden) { DockHidden = hidden; return true; }
         public string? OpenPath;
         public string? SavePath;
         public bool Confirmation;

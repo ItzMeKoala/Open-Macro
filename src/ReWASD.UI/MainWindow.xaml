@@ -8,6 +8,7 @@
         xmlns:conv="clr-namespace:ReWASD.UI.Converters"
         mc:Ignorable="d"
         Title="ReWASD Open Source — Gamepad Remapper"
+        Icon="pack://application:,,,/Assets/ReWASD.ico"
         Height="720" Width="1200"
         MinHeight="650" MinWidth="1050"
         WindowStartupLocation="CenterScreen"
@@ -521,6 +522,14 @@
                         <StackPanel>
                             <ToggleButton Content="Show the controller overlay" IsChecked="{Binding ShowOverlay}" HorizontalAlignment="Left" Padding="12,5" />
                             <TextBlock Text="A small window that stays on top and shows your controller moving. Drag it where you want it and resize it from its corner; capture it with a window capture in OBS. Turn it off here." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="BACKGROUND" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                        <StackPanel>
+                            <CheckBox Content="Keep running when the window is closed" IsChecked="{Binding KeepRunningInBackground}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                            <TextBlock Text="The close button hides the window and ReWASD stays in the notification area (next to the clock); use its icon to open the window or quit." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0" />
                         </StackPanel>
                     </Border>
 

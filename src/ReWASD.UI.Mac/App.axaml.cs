@@ -15,7 +15,18 @@ public partial class App : Application
         {
             // Must be set before the view model is created
             UiHost.Current = new AvaloniaUi();
-            desktop.MainWindow = new MainWindow { DataContext = new MainViewModel() };
+            var vm = new MainViewModel();
+            var window = new MainWindow { DataContext = vm };
+            desktop.MainWindow = window;
+
+            try
+            {
+                TrayHost.Attach(this, window, vm);
+            }
+            catch (Exception)
+            {
+                // No menu bar or tray available: the app simply works without it
+            }
         }
 
         base.OnFrameworkInitializationCompleted();

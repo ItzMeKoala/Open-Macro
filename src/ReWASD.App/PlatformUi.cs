@@ -17,6 +17,9 @@ public interface IPlatformUi
     /// <summary>Closes the application (after an update has been staged).</summary>
     void RequestExit();
 
+    /// <summary>Hides or shows the app's Dock icon (macOS only; elsewhere nothing happens). Returns whether it took effect.</summary>
+    bool SetDockIconHidden(bool hidden);
+
     /// <summary>Asks for a profile file to open. Null when the person cancels.</summary>
     Task<string?> PickOpenFileAsync(string title);
 
@@ -66,6 +69,7 @@ public sealed class SynchronizationContextUi : IPlatformUi
 
     public void RequestExit() => ExitRequested = true;
 
+    public bool SetDockIconHidden(bool hidden) => false;
     public Task<string?> PickOpenFileAsync(string title) => Task.FromResult<string?>(null);
     public Task<string?> PickSaveFileAsync(string title, string suggestedName) => Task.FromResult<string?>(null);
     public Task<bool> ConfirmAsync(string title, string message) => Task.FromResult(false);

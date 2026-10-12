@@ -36,6 +36,9 @@ dotnet publish src/ReWASD.UI.Mac/ReWASD.UI.Mac.csproj \
   -p:PublishSingleFile=false -p:DebugType=none \
   -o "$APP/Contents/MacOS"
 
+mkdir -p "$APP/Contents/Resources"
+cp src/ReWASD.UI.Mac/Assets/ReWASD.icns "$APP/Contents/Resources/ReWASD.icns"
+
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -45,6 +48,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleDisplayName</key><string>ReWASD Open Source</string>
   <key>CFBundleIdentifier</key><string>org.rewasd.opensource</string>
   <key>CFBundleExecutable</key><string>ReWASD</string>
+  <key>CFBundleIconFile</key><string>ReWASD</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>
   <key>CFBundleVersion</key><string>$VERSION</string>

@@ -128,3 +128,87 @@ public class OverlayTests
         Assert.False(window.Overlay!.Art.ShowEditing);
     }
 }
+
+public class BackgroundTests
+{
+    private static (MainViewModel Vm, MainWindow Window, Fakes.Ui Ui, string Dir) Open(bool keepRunning)
+    {
+        var ui = new Fakes.Ui();
+        string dir = Fakes.TempProfiles();
+        var vm = new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo), ui, dir) { KeepRunningInBackground = keepRunning };
+        var window = new MainWindow { DataContext = vm };
+        window.Show();
+        return (vm, window, ui, dir);
+    }
+
+    [AvaloniaFact]
+    public void WithTheSwitchOn_TheCloseButtonOnlyHidesTheWindow()
+    {
+        var (vm, window, _, _) = Open(keepRunning: true);
+        bool closed = false;
+        window.Closed += (_, _) => closed = true;
+
+        window.Close();
+
+        Assert.False(closed);
+        Assert.False(window.IsVisible);
+
+        window.Show();                                  // "Show ReWASD" in the tray
+        Assert.True(window.IsVisible);
+
+        vm.RequestQuit();                               // Quit in the tray
+        window.Close();
+        Assert.True(closed);
+    }
+
+    [AvaloniaFact]
+    public void WithTheSwitchOff_TheCloseButtonCloses()
+    {
+        var (_, window, _, _) = Open(keepRunning: false);
+        bool closed = false;
+        window.Closed += (_, _) => closed = true;
+
+        window.Close();
+
+        Assert.True(closed);
+    }
+
+    [AvaloniaFact]
+    public void Quit_AsksTheAppToExit()
+    {
+        var (vm, _, ui, _) = Open(keepRunning: true);
+
+        vm.RequestQuit();
+
+        Assert.True(ui.ExitRequested);
+        Assert.True(vm.IsQuitting);
+    }
+
+    [AvaloniaFact]
+    public void TheSettings_AreRemembered_AndTheDockIconFollows()
+    {
+        var (vm, _, ui, dir) = Open(keepRunning: false);
+        Assert.True(vm.CanHideDockIcon);
+
+        vm.KeepRunningInBackground = true;
+        vm.HideDockIcon = true;
+        Assert.Equal(true, ui.DockHidden);
+
+        var ui2 = new Fakes.Ui();
+        var again = new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo), ui2, dir);
+        Assert.True(again.KeepRunningInBackground);
+        Assert.True(again.HideDockIcon);
+        Assert.Equal(true, ui2.DockHidden);                 // restored when the app starts
+
+        again.HideDockIcon = false;
+        Assert.Equal(false, ui2.DockHidden);
+        Directory.Delete(dir, true);
+    }
+
+    [AvaloniaFact]
+    public void OnWindows_ThereIsNoDockIconToHide()
+    {
+        var vm = new MainViewModel(Fakes.Platform(PlatformServices.WindowsInfo), new Fakes.Ui(), Fakes.TempProfiles());
+        Assert.False(vm.CanHideDockIcon);
+    }
+}

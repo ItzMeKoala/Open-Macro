@@ -21,6 +21,8 @@ public sealed class AvaloniaUi : IPlatformUi
     public void RequestExit() =>
         Dispatcher.UIThread.Post(() => (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown());
 
+    public bool SetDockIconHidden(bool hidden) => OperatingSystem.IsMacOS() && ReWASD.Engine.Platform.MacOS.MacDock.SetHidden(hidden);
+
     private static Avalonia.Controls.Window? MainWindow =>
         (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
 

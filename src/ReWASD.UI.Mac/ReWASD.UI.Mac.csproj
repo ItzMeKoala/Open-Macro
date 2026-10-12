@@ -20,6 +20,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <AvaloniaResource Include="Assets\icon.png" />
+    <AvaloniaResource Include="Assets\tray.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="ReWASD.UI.Mac.Tests" />
   </ItemGroup>
 

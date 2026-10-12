@@ -380,6 +380,8 @@ public partial class MainViewModel : ObservableObject
         LoadUpdateSetting();
         LoadObsSettings();
         LoadAutoSwitchSetting();
+        LoadBackgroundSettings();
+        if (HideDockIcon && CanHideDockIcon) _ui.SetDockIconHidden(true);
         _manualProfile = _selectedProfile;
         RefreshHistory();
         LoadStats();
@@ -579,6 +581,70 @@ public partial class MainViewModel : ObservableObject
             stick.CalibrationText = $"Full push now counts from {value:P0}";
         }
     }
+
+    // ---- Running in the background (tray / menu bar) ---------------------------------------------------------------------
+
+    /// <summary>Closing the window hides it and ReWASD keeps running from the tray or menu bar; Quit there ends it.</summary>
+    [ObservableProperty]
+    private bool _keepRunningInBackground;
+
+    /// <summary>macOS: no Dock icon, the menu bar icon only.</summary>
+    [ObservableProperty]
+    private bool _hideDockIcon;
+
+    public bool CanHideDockIcon => Platform.Name == "macOS";
+
+    /// <summary>Set when the person chose Quit (or the system is shutting down): the window really closes then.</summary>
+    public bool IsQuitting { get; private set; }
+
+    private string BackgroundSettingPath => System.IO.Path.Combine(_profilesDirectory, "background.cfg");
+
+    partial void OnKeepRunningInBackgroundChanged(bool value) => SaveBackgroundSettings();
+
+    partial void OnHideDockIconChanged(bool value)
+    {
+        if (_constructed && CanHideDockIcon && !_ui.SetDockIconHidden(value)) StatusMessage = "Could not change the Dock icon";
+        SaveBackgroundSettings();
+    }
+
+    private void SaveBackgroundSettings()
+    {
+        if (!_constructed) return;
+        try
+        {
+            System.IO.Directory.CreateDirectory(_profilesDirectory);
+            System.IO.File.WriteAllText(BackgroundSettingPath, $"background={(KeepRunningInBackground ? "on" : "off")}\ndock={(HideDockIcon ? "hidden" : "shown")}\n");
+        }
+        catch (Exception)
+        {
+            // Not being able to remember a setting must not get in the way
+        }
+    }
+
+    private void LoadBackgroundSettings()
+    {
+        try
+        {
+            if (!System.IO.File.Exists(BackgroundSettingPath)) return;
+            var lines = System.IO.File.ReadAllLines(BackgroundSettingPath);
+            KeepRunningInBackground = lines.Contains("background=on");
+            if (CanHideDockIcon) HideDockIcon = lines.Contains("dock=hidden");
+        }
+        catch (Exception)
+        {
+            // An unreadable file just means the defaults
+        }
+    }
+
+    /// <summary>Quits for real (the tray's Quit): the window will close instead of hiding.</summary>
+    public void RequestQuit()
+    {
+        IsQuitting = true;
+        _ui.RequestExit();
+    }
+
+    /// <summary>The system is shutting down or logging off: do not hold the window back.</summary>
+    public void NoteSystemShutdown() => IsQuitting = true;
 
     // ---- Input overlay (a small always-on-top window that shows the controller, for streaming or just looking) -----------
 

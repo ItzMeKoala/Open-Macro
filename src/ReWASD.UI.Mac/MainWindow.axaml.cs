@@ -15,8 +15,17 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         DataContextChanged += (_, _) => Watch(DataContext as MainViewModel);
-        Closing += (_, _) =>
+        Closing += (_, e) =>
         {
+            // With "keep running in the background" the close button only hides the window; quitting from the tray, the system
+            // shutting down or Cmd+Q still close it for real
+            if (e.CloseReason == WindowCloseReason.WindowClosing && DataContext is MainViewModel { KeepRunningInBackground: true, IsQuitting: false })
+            {
+                e.Cancel = true;
+                Hide();
+                return;
+            }
+
             CloseOverlay();
             var vm = DataContext as MainViewModel;
             vm?.StopLiveUpdates();
