@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using ReWASD.Core.Models;
 using ReWASD.Core.Serialization;
 using ReWASD.Engine;
+using ReWASD.Engine.Actions;
 using ReWASD.Engine.HidHide;
 using ReWASD.Engine.Input;
 using ReWASD.Engine.Platform;
@@ -304,12 +305,17 @@ public partial class MainViewModel : ObservableObject
 
     /// <summary>Creates the view model for the operating system it runs on, hosted by the toolkit that registered itself in <see cref="UiHost"/>.</summary>
     public MainViewModel()
-        : this(PlatformServices.Create(), UiHost.Current ?? new SynchronizationContextUi(), AppPaths.ProfilesDirectory, new UpdateService(), new UpdateInstaller())
+        : this(PlatformServices.Create(), UiHost.Current ?? new SynchronizationContextUi(), AppPaths.ProfilesDirectory, new UpdateService(), new UpdateInstaller(), RealActions)
     {
     }
 
     /// <param name="updates">Where to look for newer builds; the default never finds any, so tests and tools make no network calls.</param>
-    public MainViewModel(PlatformBackends platform, IPlatformUi ui, string profilesDirectory, IUpdateService? updates = null, UpdateInstaller? installer = null)
+    // The one set of system actions the real app uses; it reads OBS's address from whatever the window currently holds
+    private static readonly ObsSettings SharedObs = new();
+    private static ISystemActions RealActions => new SystemActions(() => SharedObs);
+
+    /// <param name="actions">What macro steps that open things, run commands or call the network do; the default does nothing, so tests never touch the real system.</param>
+    public MainViewModel(PlatformBackends platform, IPlatformUi ui, string profilesDirectory, IUpdateService? updates = null, UpdateInstaller? installer = null, ISystemActions? actions = null)
     {
         _platform = platform;
         _ui = ui;
@@ -329,7 +335,8 @@ public partial class MainViewModel : ObservableObject
         _virtualService.Initialize();
         _injector = new KeyboardMouseInjector(_inputBackend);
         _macroPad = new MacroPadState();
-        _macros = new MacroRunner(_inputBackend, _macroPad, platform.Rumble);
+        _macros = new MacroRunner(_inputBackend, _macroPad, platform.Rumble, actions ?? new NullSystemActions());
+        _macros.ActionFailed += message => _ui.Post(() => StatusMessage = message);
         _hook = platform.CreateHook(_mappingEngine.IsKeySuppressed, _mappingEngine.IsMouseSuppressed);
         _hook.PanicRequested += OnPanicRequested;
         _pipeline = new InputPipeline(_mappingEngine, _reader, _virtualService, _injector, _macros, _macroPad, _hook);
@@ -355,6 +362,7 @@ public partial class MainViewModel : ObservableObject
         LoadSkinChoice();
         AutoSelectSkin();
         LoadUpdateSetting();
+        LoadObsSettings();
         if (AutoCheckUpdates && _updates is not NoUpdates) _ = CheckAfterStartupAsync();
     }
 
@@ -499,6 +507,94 @@ public partial class MainViewModel : ObservableObject
         if (slots.Count == 0) ConnectedDevices.Add(Platform.NoControllerText);
 
         AutoSelectSkin();
+    }
+
+    // ---- Macro step helpers -----------------------------------------------------------------------------------------
+
+    /// <summary>A ready-made step the macro editor can add, with a placeholder to overwrite.</summary>
+    public sealed record MacroStepTemplate(string Label, string Script);
+
+    public IReadOnlyList<MacroStepTemplate> MacroStepTemplates { get; } = new MacroStepTemplate[]
+    {
+        new("Open web page", "OpenUrl:https://example.com"),
+        new("Launch app", OperatingSystem.IsWindows() ? "LaunchApp:notepad.exe" : "LaunchApp:Safari"),
+        new("Run command", OperatingSystem.IsWindows() ? "Shell:echo hello > %TEMP%\\hello.txt" : "Shell:say hello"),
+        new("Webhook", "Webhook:POST https://example.com/hook {\"pressed\":true}"),
+        new("OBS scene", "Obs:Scene Gaming"),
+        new("OBS record", "Obs:record"),
+        new("Type text", "TypeText:Hello!"),
+        new("Wait", "Delay:500"),
+    };
+
+    /// <summary>What the macro editor accepts, shown under the box.</summary>
+    public string MacroHelpText { get; } =
+        "Steps are separated by semicolons. Keys and mouse: KeyDown / KeyUp / KeyTap:W, MouseClick:Left Click, Wheel:1, MouseMove:up:20, Delay:100. " +
+        "Outside the keyboard: OpenUrl:https://..., LaunchApp:Safari, Shell:command, TypeText:hello, " +
+        "Webhook:POST https://... {json body}, Obs:Scene Name (or Obs:record, Obs:stream, Obs:mute Mic). Write \\; for a semicolon inside text.";
+
+    [RelayCommand]
+    private void AddMacroStep(MacroStepTemplate? template)
+    {
+        if (template == null) return;
+        string current = (MacroScript ?? string.Empty).Trim().TrimEnd(';').TrimEnd();
+        MacroScript = current.Length == 0 ? template.Script : current + "; " + template.Script;
+    }
+
+    // ---- OBS connection ---------------------------------------------------------------------------------------------
+
+    /// <summary>Where the Obs macro step connects. Kept in this computer's settings, never in a shareable profile.</summary>
+    [ObservableProperty]
+    private string _obsHost = "localhost";
+
+    [ObservableProperty]
+    private int _obsPort = 4455;
+
+    [ObservableProperty]
+    private string _obsPassword = string.Empty;
+
+    private string ObsSettingsPath => System.IO.Path.Combine(_profilesDirectory, "obs.json");
+
+    partial void OnObsHostChanged(string value) => SaveObsSettings();
+    partial void OnObsPortChanged(int value) => SaveObsSettings();
+    partial void OnObsPasswordChanged(string value) => SaveObsSettings();
+
+    private void SaveObsSettings()
+    {
+        if (!_constructed) return;
+        var settings = new ObsSettings { Host = string.IsNullOrWhiteSpace(ObsHost) ? "localhost" : ObsHost.Trim(), Port = ObsPort is > 0 and < 65536 ? ObsPort : 4455, Password = ObsPassword ?? string.Empty };
+        SharedObs.Host = settings.Host;
+        SharedObs.Port = settings.Port;
+        SharedObs.Password = settings.Password;
+        try
+        {
+            System.IO.Directory.CreateDirectory(_profilesDirectory);
+            System.IO.File.WriteAllText(ObsSettingsPath, System.Text.Json.JsonSerializer.Serialize(settings));
+        }
+        catch (Exception)
+        {
+            // Not being able to remember the address must not get in the way
+        }
+    }
+
+    private void LoadObsSettings()
+    {
+        try
+        {
+            if (System.IO.File.Exists(ObsSettingsPath) &&
+                System.Text.Json.JsonSerializer.Deserialize<ObsSettings>(System.IO.File.ReadAllText(ObsSettingsPath)) is { } saved)
+            {
+                ObsHost = saved.Host;
+                ObsPort = saved.Port;
+                ObsPassword = saved.Password;
+            }
+        }
+        catch (Exception)
+        {
+            // An unreadable file just means the defaults
+        }
+        SharedObs.Host = ObsHost;
+        SharedObs.Port = ObsPort;
+        SharedObs.Password = ObsPassword;
     }
 
     // ---- Updates --------------------------------------------------------------------------------------------------

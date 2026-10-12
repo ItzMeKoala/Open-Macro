@@ -44,6 +44,38 @@ public static class KeyMap
         return Named.TryGetValue(name, out vk);
     }
 
+    // Typed characters on a US layout: the key and whether Shift is needed
+    private const string ShiftedDigits = ")!@#$%^&*(";
+    private static readonly (char Plain, char Shifted, ushort Vk)[] Punctuation =
+    {
+        (';', ':', 0xBA), ('=', '+', 0xBB), (',', '<', 0xBC), ('-', '_', 0xBD), ('.', '>', 0xBE),
+        ('/', '?', 0xBF), ('`', '~', 0xC0), ('[', '{', 0xDB), ('\\', '|', 0xDC), (']', '}', 0xDD), ('\'', '"', 0xDE)
+    };
+
+    /// <summary>The key (and Shift) that types a character on a US keyboard. False for characters it cannot type.</summary>
+    public static bool TryGetTypedKey(char c, out ushort vk, out bool shift)
+    {
+        vk = 0;
+        shift = false;
+
+        if (c is >= 'a' and <= 'z') { vk = (ushort)char.ToUpperInvariant(c); return true; }
+        if (c is >= 'A' and <= 'Z') { vk = c; shift = true; return true; }
+        if (c is >= '0' and <= '9') { vk = c; return true; }
+        if (c == ' ') { vk = 0x20; return true; }
+        if (c == '\n') { vk = 0x0D; return true; }
+        if (c == '\t') { vk = 0x09; return true; }
+
+        int digit = ShiftedDigits.IndexOf(c);
+        if (digit >= 0) { vk = (ushort)('0' + digit); shift = true; return true; }
+
+        foreach (var (plain, shifted, key) in Punctuation)
+        {
+            if (c == plain) { vk = key; return true; }
+            if (c == shifted) { vk = key; shift = true; return true; }
+        }
+        return false;
+    }
+
     public static bool IsExtended(ushort vk) => Extended.Contains(vk);
 
     // One canonical name per virtual key, so a captured key always maps back to the name profiles use

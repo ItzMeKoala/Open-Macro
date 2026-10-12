@@ -26,7 +26,25 @@ public enum MacroActionType
     Rumble,
 
     /// <summary>Ends the macro immediately, including any repeat loop.</summary>
-    Break
+    Break,
+
+    /// <summary>Opens an address in the default browser. Value = the address.</summary>
+    OpenUrl,
+
+    /// <summary>Starts an application or opens a file. Value = the app's name or path.</summary>
+    LaunchApp,
+
+    /// <summary>Runs a command line without showing a window. Value = the command.</summary>
+    Shell,
+
+    /// <summary>Sends an HTTP request. Value = <c>METHOD url [-H "Name=Value"] [body]</c>.</summary>
+    Webhook,
+
+    /// <summary>Sends a request to OBS Studio over its WebSocket. Value = <c>RequestType [json]</c> or a short form such as <c>Scene Gaming</c>.</summary>
+    Obs,
+
+    /// <summary>Types text as key presses. Value = the text.</summary>
+    TypeText
 }
 
 public enum MacroRepeatMode
@@ -56,13 +74,26 @@ public class MacroStep
 
     public MacroStep Clone() => new() { Action = Action, Value = Value, Amount = Amount };
 
+    /// <summary>Actions whose value is free text (it may contain colons and semicolons) rather than a name.</summary>
+    public static bool TakesText(MacroActionType action) =>
+        action is MacroActionType.OpenUrl or MacroActionType.LaunchApp or MacroActionType.Shell
+            or MacroActionType.Webhook or MacroActionType.Obs or MacroActionType.TypeText;
+
     public override string ToString() => Action switch
     {
         MacroActionType.Delay or MacroActionType.Wheel => $"{Action}:{Amount}",
         MacroActionType.Break => "Break",
         MacroActionType.MouseMove or MacroActionType.PadAxis or MacroActionType.Rumble => $"{Action}:{Value}:{Amount}",
+        _ when TakesText(Action) => $"{Action}:{EscapeText(Value)}",
         _ => $"{Action}:{Value}"
     };
+
+    // A semicolon ends a step, so one inside text is written \; ; a trailing backslash gets a space so it cannot be read as an escape
+    private static string EscapeText(string value)
+    {
+        string text = value.Replace(";", "\\;");
+        return text.EndsWith('\\') ? text + " " : text;
+    }
 }
 
 public class MacroDefinition
@@ -107,9 +138,17 @@ public class MacroDefinition
         macro = new MacroDefinition { RepeatMode = repeatMode };
         error = string.Empty;
 
-        foreach (var raw in script.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        foreach (var raw in SplitSteps(script))
         {
             var parts = raw.Split(':', 3, StringSplitOptions.TrimEntries);
+
+            // Free-text actions keep everything after the first colon as their value
+            if (Enum.TryParse<MacroActionType>(parts[0], ignoreCase: true, out var textAction) && MacroStep.TakesText(textAction))
+            {
+                if (!TryParseText(textAction, raw, out var textStep, out error)) return false;
+                macro.Steps.Add(textStep);
+                continue;
+            }
 
             if (!Enum.TryParse<MacroActionType>(parts[0], ignoreCase: true, out var action) || !Enum.IsDefined(action))
             {
@@ -210,6 +249,70 @@ public class MacroDefinition
             return false;
         }
 
+        return true;
+    }
+
+    // Steps are separated by semicolons; a semicolon written \; belongs to the text of a step
+    private static IEnumerable<string> SplitSteps(string script)
+    {
+        var current = new System.Text.StringBuilder();
+        for (int i = 0; i < script.Length; i++)
+        {
+            char c = script[i];
+            if (c == '\\' && i + 1 < script.Length && script[i + 1] == ';')
+            {
+                current.Append(';');
+                i++;
+            }
+            else if (c == ';')
+            {
+                string step = current.ToString().Trim();
+                if (step.Length > 0) yield return step;
+                current.Clear();
+            }
+            else
+            {
+                current.Append(c);
+            }
+        }
+
+        string last = current.ToString().Trim();
+        if (last.Length > 0) yield return last;
+    }
+
+    private static bool TryParseText(MacroActionType action, string raw, out MacroStep step, out string error)
+    {
+        step = new MacroStep { Action = action };
+        error = string.Empty;
+
+        int colon = raw.IndexOf(':');
+        string value = colon < 0 ? string.Empty : raw[(colon + 1)..].Trim();
+        if (value.Length == 0)
+        {
+            error = $"'{raw}' must look like {action}:Value";
+            return false;
+        }
+
+        switch (action)
+        {
+            case MacroActionType.OpenUrl:
+                if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) || uri.Scheme is "file" or "javascript" or "data")
+                {
+                    error = $"'{value}' is not a web address (start it with https://)";
+                    return false;
+                }
+                break;
+
+            case MacroActionType.Webhook:
+                if (!WebhookRequest.TryParse(value, out _, out error)) return false;
+                break;
+
+            case MacroActionType.Obs:
+                if (!ObsRequest.TryParse(value, out _, out error)) return false;
+                break;
+        }
+
+        step.Value = value;
         return true;
     }
 

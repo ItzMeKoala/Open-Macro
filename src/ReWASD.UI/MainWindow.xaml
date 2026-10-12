@@ -334,6 +334,23 @@
                         </StackPanel>
                     </Border>
 
+                    <TextBlock Text="OBS STUDIO (for Obs: macro steps)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                    <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="In OBS: Tools, then WebSocket Server Settings, then Enable. Kept on this computer only." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" />
+                            <Grid Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="80" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding ObsHost, UpdateSourceTrigger=LostFocus}" Margin="0,0,6,0" Padding="6,4" />
+                                <TextBox Grid.Column="1" Text="{Binding ObsPort, UpdateSourceTrigger=LostFocus}" Padding="6,4" />
+                            </Grid>
+                            <TextBlock Text="Password (if you set one)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" Margin="0,8,0,2" />
+                            <TextBox x:Name="ObsPasswordBox" Padding="6,4" Text="{Binding ObsPassword, UpdateSourceTrigger=LostFocus}" />
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Text="ACTIVATOR TIMING (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
                     <Border Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
                         <StackPanel>

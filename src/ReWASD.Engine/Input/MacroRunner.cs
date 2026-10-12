@@ -1,4 +1,5 @@
 using ReWASD.Core.Models;
+using ReWASD.Engine.Actions;
 
 namespace ReWASD.Engine.Input;
 
@@ -10,20 +11,26 @@ public sealed class MacroRunner : IDisposable
 {
     private const int TapHoldMs = 15;
     private const int MouseMoveStepMs = 1;
+    private const int TypeKeyMs = 8;
 
     private readonly IInputBackend _backend;
     private readonly IPadOutput? _pad;
     private readonly IRumbleOutput? _rumble;
+    private readonly ISystemActions? _system;
     private readonly object _gate = new();
     private readonly Dictionary<MacroDefinition, CancellationTokenSource> _running = new();
     private HashSet<MacroDefinition> _previouslyHeld = new();
 
-    public MacroRunner(IInputBackend backend, IPadOutput? pad = null, IRumbleOutput? rumble = null)
+    public MacroRunner(IInputBackend backend, IPadOutput? pad = null, IRumbleOutput? rumble = null, ISystemActions? system = null)
     {
         _backend = backend;
         _pad = pad;
         _rumble = rumble;
+        _system = system;
     }
+
+    /// <summary>Raised when a macro step that talks to the outside world fails (no network, OBS not running...), so the app can say so.</summary>
+    public event Action<string>? ActionFailed;
 
     /// <summary>Everything a single run has pressed or set, so it can be undone however the run ends.</summary>
     private sealed class RunState
@@ -215,6 +222,36 @@ public sealed class MacroRunner : IDisposable
                 }
                 break;
 
+            case MacroActionType.OpenUrl:
+                _system?.OpenUrl(step.Value);
+                break;
+
+            case MacroActionType.LaunchApp:
+                _system?.LaunchApp(step.Value);
+                break;
+
+            case MacroActionType.Shell:
+                _system?.RunShell(step.Value);
+                break;
+
+            case MacroActionType.Webhook:
+                if (_system != null && WebhookRequest.TryParse(step.Value, out var webhook, out _))
+                {
+                    await GuardAsync("Webhook", () => _system.SendWebhookAsync(webhook, token), token);
+                }
+                break;
+
+            case MacroActionType.Obs:
+                if (_system != null && ObsRequest.TryParse(step.Value, out var obs, out _))
+                {
+                    await GuardAsync("OBS", () => _system.SendObsAsync(obs, token), token);
+                }
+                break;
+
+            case MacroActionType.TypeText:
+                await TypeTextAsync(step.Value, token);
+                break;
+
             case MacroActionType.Rumble:
                 if (_rumble != null && MacroDefinition.TryParseRumble(step.Value, out double left, out double right))
                 {
@@ -231,6 +268,43 @@ public sealed class MacroRunner : IDisposable
         }
 
         return false;
+    }
+
+    // A network call that fails is reported and the macro goes on; cancelling the macro still cancels the call
+    private async Task GuardAsync(string what, Func<Task> action, CancellationToken token)
+    {
+        try
+        {
+            await action();
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            ActionFailed?.Invoke($"{what} failed: {ex.Message}");
+        }
+    }
+
+    private async Task TypeTextAsync(string text, CancellationToken token)
+    {
+        foreach (char c in text)
+        {
+            if (!KeyMap.TryGetTypedKey(c, out ushort vk, out bool shift)) continue;
+
+            if (shift) _backend.KeyDown(0xA0);
+            _backend.KeyDown(vk);
+            try
+            {
+                await Task.Delay(TypeKeyMs, token);
+            }
+            finally
+            {
+                _backend.KeyUp(vk);
+                if (shift) _backend.KeyUp(0xA0);
+            }
+        }
     }
 
     // Spread the movement over a few 1ms ticks so large moves are not a single teleport

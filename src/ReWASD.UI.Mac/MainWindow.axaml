@@ -295,6 +295,18 @@
                             </StackPanel>
                         </Border>
 
+                        <TextBlock Text="OBS STUDIO (for Obs: macro steps)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                        <Border Classes="card">
+                            <StackPanel>
+                                <TextBlock Text="In OBS: Tools, then WebSocket Server Settings, then Enable. Kept on this computer only." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" />
+                                <Grid ColumnDefinitions="*,80" Margin="0,8,0,0">
+                                    <TextBox Text="{Binding ObsHost}" Watermark="localhost" Margin="0,0,6,0" />
+                                    <TextBox Grid.Column="1" Text="{Binding ObsPort}" Watermark="4455" />
+                                </Grid>
+                                <TextBox Text="{Binding ObsPassword}" PasswordChar="●" Watermark="Password (if you set one)" Margin="0,8,0,0" />
+                            </StackPanel>
+                        </Border>
+
                         <TextBlock Text="ACTIVATOR TIMING (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
                         <Border Classes="card">
                             <StackPanel>

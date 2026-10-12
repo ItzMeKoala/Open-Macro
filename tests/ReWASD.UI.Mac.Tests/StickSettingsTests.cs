@@ -75,3 +75,54 @@ public class StickSettingsTests
         Assert.Equal("Off", StickViewModel.PrecisionNames[0]);
     }
 }
+
+public class MacroEditorTests
+{
+    private static MainViewModel New() => new(Fakes.Platform(PlatformServices.MacOSInfo), new Fakes.Ui(), Fakes.TempProfiles());
+
+    [Fact]
+    public void AddingAStepTemplate_AppendsAValidStep()
+    {
+        var vm = New();
+        vm.MacroScript = "KeyTap:A";
+
+        foreach (var template in vm.MacroStepTemplates)
+        {
+            vm.AddMacroStepCommand.Execute(template);
+            Assert.True(MacroDefinition.TryParseScript(vm.MacroScript, MacroRepeatMode.Once, out _, out var error), $"{template.Label}: {error}");
+        }
+
+        Assert.StartsWith("KeyTap:A; OpenUrl:", vm.MacroScript);
+        Assert.Contains("Obs:Scene Gaming", vm.MacroScript);
+    }
+
+    [Fact]
+    public void AddingAStep_ToAnEmptyOrSemicolonEndedScript_LeavesNoGap()
+    {
+        var vm = New();
+        vm.MacroScript = "";
+        vm.AddMacroStepCommand.Execute(vm.MacroStepTemplates[^1]);
+        Assert.Equal("Delay:500", vm.MacroScript);
+
+        vm.MacroScript = "KeyTap:A;  ";
+        vm.AddMacroStepCommand.Execute(vm.MacroStepTemplates[^1]);
+        Assert.Equal("KeyTap:A; Delay:500", vm.MacroScript);
+    }
+
+    [Fact]
+    public void TheObsAddress_IsRemembered()
+    {
+        string dir = Fakes.TempProfiles();
+        var first = new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo), new Fakes.Ui(), dir);
+        first.ObsHost = "192.168.1.5";
+        first.ObsPort = 4466;
+        first.ObsPassword = "pw";
+
+        var second = new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo), new Fakes.Ui(), dir);
+
+        Assert.Equal("192.168.1.5", second.ObsHost);
+        Assert.Equal(4466, second.ObsPort);
+        Assert.Equal("pw", second.ObsPassword);
+        Directory.Delete(dir, true);
+    }
+}
