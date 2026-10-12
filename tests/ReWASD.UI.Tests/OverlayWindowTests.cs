@@ -42,7 +42,7 @@ public class OverlayWindowTests
         public void Dispose() { }
     }
 
-    private static MainViewModel NewViewModel() => new(
+    internal static MainViewModel NewViewModel() => new(
         new PlatformBackends
         {
             Info = PlatformServices.WindowsInfo,
@@ -85,5 +85,36 @@ public class OverlayWindowTests
         var overlay = new OverlayWindow(vm);
 
         Assert.Equal(Visibility.Collapsed, overlay.Art.Visibility);
+    });
+
+    [Fact]
+    public void TheCommandWheel_DrawsItsSlices_AndHighlightsTheChosenOne() => Sta.Run(() =>
+    {
+        var vm = NewViewModel();
+        foreach (var (label, action) in new[] { ("Browser", "LaunchApp:notepad.exe"), ("Notes", "KeyTap:A"), ("Music", "KeyTap:B") })
+        {
+            vm.NewWheelLabel = label;
+            vm.NewWheelAction = action;
+            vm.AddWheelItemCommand.Execute(null);
+        }
+
+        var wheel = new WheelWindow(vm);
+
+        Assert.True(wheel.Topmost);
+        Assert.False(wheel.ShowActivated);        // it must never take the keyboard from a game
+        Assert.True(wheel.AllowsTransparency);
+        Assert.Equal(3, wheel.SliceCount);
+        Assert.Equal(-1, wheel.DrawnSelection);
+
+        vm.WheelSelectedIndex = 2;
+        Assert.Equal(2, wheel.DrawnSelection);
+        Assert.Equal("Music", wheel.CentreText);
+
+        vm.WheelSelectedIndex = -1;
+        Assert.Equal(-1, wheel.DrawnSelection);
+
+        wheel.Measure(new Size(380, 380));
+        wheel.Arrange(new Rect(0, 0, 380, 380));
+        wheel.UpdateLayout();
     });
 }
