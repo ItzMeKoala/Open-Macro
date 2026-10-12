@@ -158,7 +158,7 @@
                     <Button Content="Copy report" Classes="chip" Command="{Binding CopyTesterReportCommand}" />
                     <Button Content="Save report" Classes="chip" Command="{Binding SaveTesterReportCommand}" />
                     <Button Content="Reset" Classes="chip" Command="{Binding ResetTesterCommand}" />
-                    <Button Name="ExitButton" Content="Exit full screen  (Esc)" Classes="chip" Background="#E9C46A" Foreground="#14161B" />
+                    <Button Name="ExitButton" Content="Close tester  (Esc)" Classes="chip" Background="#E9C46A" Foreground="#14161B" />
                 </StackPanel>
             </Grid>
         </Border>

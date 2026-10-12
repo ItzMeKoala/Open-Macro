@@ -32,3 +32,6 @@ Thumbs.db
 
 # Packaged builds
 artifacts/
+
+# graphify output
+graphify-out/

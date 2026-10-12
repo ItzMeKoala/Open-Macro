@@ -37,14 +37,28 @@ public class TesterViewTests
     }
 
     [AvaloniaFact]
-    public void GoingFullScreen_ShowsTheTester_AndLeavingHidesIt()
+    public void GoingFullScreen_KeepsTheNormalScreen()
+    {
+        var (vm, window, _) = Open();
+
+        window.WindowState = WindowState.FullScreen;
+
+        Assert.Null(window.Tester);
+        Assert.False(vm.IsTesterMode);
+        Assert.False(window.FindControl<ContentControl>("TesterHost")!.IsVisible);
+        vm.Shutdown();
+    }
+
+    [AvaloniaFact]
+    public void TheTesterButton_OpensTheTesterFullScreen_AndLeavingFullScreenClosesIt()
     {
         var (vm, window, _) = Open();
         Assert.Null(window.Tester);
         Assert.False(vm.IsTesterMode);
 
-        window.WindowState = WindowState.FullScreen;
+        vm.OpenTesterCommand.Execute(null);
 
+        Assert.Equal(WindowState.FullScreen, window.WindowState);
         Assert.NotNull(window.Tester);
         Assert.True(vm.IsTesterMode);
         Assert.True(window.FindControl<ContentControl>("TesterHost")!.IsVisible);
@@ -62,7 +76,7 @@ public class TesterViewTests
     public void TheExitButton_LeavesFullScreen()
     {
         var (vm, window, _) = Open();
-        window.WindowState = WindowState.FullScreen;
+        vm.OpenTesterCommand.Execute(null);
 
         window.Tester!.FindControl<Button>("ExitButton")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
 
@@ -75,7 +89,7 @@ public class TesterViewTests
     public void TheTesterHasEverythingOnIt()
     {
         var (vm, window, _) = Open();
-        window.WindowState = WindowState.FullScreen;
+        vm.OpenTesterCommand.Execute(null);
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         var tester = window.Tester!;
 
@@ -95,7 +109,7 @@ public class TesterViewTests
     public void TheMainWindowsOwnPictureIsStillTheOnlyOneOutsideTheTester()
     {
         var (vm, window, _) = Open();
-        window.WindowState = WindowState.FullScreen;
+        vm.OpenTesterCommand.Execute(null);
         window.WindowState = WindowState.Normal;
 
         Assert.Single(window.GetVisualDescendants().OfType<ArtView>());
@@ -124,7 +138,7 @@ public class TesterViewTests
     public void ARichTester_Renders()
     {
         var (vm, window, pad) = Open();
-        window.WindowState = WindowState.FullScreen;
+        vm.OpenTesterCommand.Execute(null);
         window.Width = 1700;
         window.Height = 1900;
         vm.Shutdown();                                  // stop the sampler: this test feeds the model itself
@@ -190,7 +204,7 @@ public class TesterControlTests
         var vm = new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo, pad), new Fakes.Ui(), Fakes.TempProfiles());
         var window = new MainWindow { DataContext = vm };
         window.Show();
-        window.WindowState = WindowState.FullScreen;
+        vm.OpenTesterCommand.Execute(null);
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
         Assert.Single(window.Tester!.GetVisualDescendants().OfType<RingGauge>());

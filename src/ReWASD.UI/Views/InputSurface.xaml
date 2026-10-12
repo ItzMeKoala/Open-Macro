@@ -113,7 +113,7 @@
 
     <Grid Background="Transparent">
         <Grid.RowDefinitions>
-            <RowDefinition Height="64" />
+            <RowDefinition Height="16" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -171,22 +171,5 @@
         <art:ArtView x:Name="Art" Grid.Row="1" Margin="40,0,40,10" Scene="{Binding SkinArt}" Sources="{Binding ControllerButtons}"
                      Visibility="{Binding ShowSkinArt, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-        <!-- Which controller picture to draw (gamepad only) -->
-        <Border Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="16,0,6,0" Height="42" CornerRadius="10"
-                Background="{StaticResource BrushBgCard}" BorderBrush="{StaticResource BrushBorderLight}" BorderThickness="1"
-                ToolTip="Which controller picture to draw"
-                Visibility="{Binding IsGamepadTab, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Controller:" Foreground="{StaticResource BrushTextSecondary}" FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0" />
-                <ComboBox ItemsSource="{Binding SkinOptions}" SelectedValuePath="Kind" SelectedValue="{Binding SelectedSkin, Mode=TwoWay}"
-                          Width="170" Height="34" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" FontSize="14" FontWeight="SemiBold">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}" />
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-            </StackPanel>
-        </Border>
     </Grid>
 </UserControl>

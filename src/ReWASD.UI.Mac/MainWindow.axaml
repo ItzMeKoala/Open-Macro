@@ -21,7 +21,7 @@
         </DataTemplate>
     </Window.Resources>
 
-    <Grid RowDefinitions="48,44,38,Auto,*,46,58">
+    <Grid RowDefinitions="48,48,Auto,*,56">
 
         <!-- 1. CONFIG BAR -->
         <Border Grid.Row="0" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,0,1" Padding="14,0">
@@ -81,7 +81,7 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button Name="TesterButton" Classes="bar" ToolTip.Tip="Test your controller full screen (F11)" AutomationProperties.Name="Controller tester">
+                    <Button Name="TesterButton" Classes="bar" ToolTip.Tip="Test your controller full screen (F11)" AutomationProperties.Name="Controller tester" Command="{Binding OpenTesterCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="7">
                             <PathIcon Data="{StaticResource IconTester}" Width="15" Height="15" />
                             <TextBlock Text="Tester" VerticalAlignment="Center" />
@@ -97,81 +97,93 @@
             </Grid>
         </Border>
 
-        <!-- 2. LAYER BAR -->
-        <Border Grid.Row="1" Background="{StaticResource BrushBgPanel}" Padding="14,0">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <ComboBox ItemsSource="{Binding LayerNames}" SelectedIndex="{Binding ActiveShiftLayer, Mode=TwoWay}"
-                          Width="150" Background="Transparent" BorderThickness="0" FontSize="14" />
-                <!-- How this layer is reached: which buttons, and hold vs toggle -->
-                <ToggleButton Name="LayerToggle" Classes="icon" Width="34" Height="34" Margin="4,0,0,0"
-                              ToolTip.Tip="Layer activation (buttons and hold/toggle)"
-                              IsEnabled="{Binding IsLayerEditable}"
-                              IsChecked="{Binding IsLayerMenuOpen, Mode=TwoWay}">
-                    <PathIcon Data="{StaticResource IconSettings}" Width="15" Height="15" />
-                </ToggleButton>
-                <Popup IsOpen="{Binding IsLayerMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding #LayerToggle}"
-                       Placement="Bottom" IsLightDismissEnabled="True" WindowManagerAddShadowHint="False">
-                    <Border Classes="menu" Width="300" Margin="0,4,0,0" Padding="12">
-                        <StackPanel>
-                            <TextBlock Text="ACTIVATE THIS LAYER WITH" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,6" />
-                            <TextBlock Text="Pick up to 4 buttons; all must be held together." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8" />
-                            <ItemsControl ItemsSource="{Binding LayerModifierOptions}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <CheckBox Content="{Binding Label}" IsChecked="{Binding IsChecked}" Width="136" Margin="0,0,0,6"
-                                                  Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            <TextBlock Text="BEHAVIOUR" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,10,0,6" />
-                            <ComboBox ItemsSource="{Binding AvailableLayerTypes}" SelectedItem="{Binding SelectedLayerType}" HorizontalAlignment="Stretch" />
-                            <TextBlock Text="Hold: active while held. Toggle: each press switches it on or off." Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" Margin="0,4,0,0" />
-                            <TextBlock Text="LEFT STICK IN THIS LAYER" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,10,0,6" />
-                            <ComboBox ItemsSource="{Binding LayerStickChoices}" SelectedIndex="{Binding LayerLeftStickIndex}" HorizontalAlignment="Stretch" />
-                            <TextBlock Text="RIGHT STICK IN THIS LAYER" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,10,0,6" />
-                            <ComboBox ItemsSource="{Binding LayerStickChoices}" SelectedIndex="{Binding LayerRightStickIndex}" HorizontalAlignment="Stretch" />
-                        </StackPanel>
-                    </Border>
-                </Popup>
-            </StackPanel>
-        </Border>
+        <!-- 2. TOOLBAR: what to remap on the left; layer and picture on the right -->
+        <Border Grid.Row="1" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,0,1" Padding="14,0">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <Border Classes="segbox" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Classes="pill" GroupName="InputTab"
+                                     IsChecked="{Binding SelectedInputTab, Converter={StaticResource EnumToBool}, ConverterParameter=Gamepad}">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <PathIcon Data="{StaticResource IconGamepad}" Width="15" Height="15" />
+                                <TextBlock Text="Gamepad" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton Classes="pill" GroupName="InputTab"
+                                     ToolTip.Tip="Remap keyboard keys (the original key is swallowed while remapping is on)"
+                                     IsChecked="{Binding SelectedInputTab, Converter={StaticResource EnumToBool}, ConverterParameter=Keyboard}">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <PathIcon Data="{StaticResource IconKeyboard}" Width="15" Height="15" />
+                                <TextBlock Text="Keyboard" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton Classes="pill" GroupName="InputTab"
+                                     ToolTip.Tip="Remap mouse buttons and the wheel (the original is swallowed while remapping is on)"
+                                     IsChecked="{Binding SelectedInputTab, Converter={StaticResource EnumToBool}, ConverterParameter=Mouse}">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <PathIcon Data="{StaticResource IconMouse}" Width="15" Height="15" />
+                                <TextBlock Text="Mouse" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+                    </StackPanel>
+                </Border>
 
-        <!-- 3. INPUT-TYPE TABS -->
-        <Border Grid.Row="2" Background="{StaticResource BrushBgPanel}" Padding="14,0">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <RadioButton Classes="tab" Margin="0,0,10,0" HorizontalAlignment="Center"
-                             IsChecked="{Binding SelectedInputTab, Converter={StaticResource EnumToBool}, ConverterParameter=Gamepad}">
-                    <StackPanel Orientation="Horizontal">
-                        <PathIcon Data="{StaticResource IconGamepad}" Width="16" Height="16" Margin="0,0,8,0" />
-                        <TextBlock Text="Gamepad" VerticalAlignment="Center" />
-                    </StackPanel>
-                </RadioButton>
-                <RadioButton Classes="tab" Margin="0,0,10,0" HorizontalAlignment="Center"
-                             ToolTip.Tip="Remap keyboard keys (the original key is swallowed while remapping is on)"
-                             IsChecked="{Binding SelectedInputTab, Converter={StaticResource EnumToBool}, ConverterParameter=Keyboard}">
-                    <StackPanel Orientation="Horizontal">
-                        <PathIcon Data="{StaticResource IconKeyboard}" Width="16" Height="16" Margin="0,0,8,0" />
-                        <TextBlock Text="Keyboard" VerticalAlignment="Center" />
-                    </StackPanel>
-                </RadioButton>
-                <RadioButton Classes="tab" HorizontalAlignment="Center"
-                             ToolTip.Tip="Remap mouse buttons and the wheel (the original is swallowed while remapping is on)"
-                             IsChecked="{Binding SelectedInputTab, Converter={StaticResource EnumToBool}, ConverterParameter=Mouse}">
-                    <StackPanel Orientation="Horizontal">
-                        <PathIcon Data="{StaticResource IconMouse}" Width="16" Height="16" Margin="0,0,8,0" />
-                        <TextBlock Text="Mouse" VerticalAlignment="Center" />
-                    </StackPanel>
-                </RadioButton>
-            </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <TextBlock Text="Layer" Foreground="{StaticResource BrushTextMuted}" FontSize="12" VerticalAlignment="Center" Margin="0,0,4,0" />
+                    <ComboBox ItemsSource="{Binding LayerNames}" SelectedIndex="{Binding ActiveShiftLayer, Mode=TwoWay}"
+                              Width="140" Height="32" FontSize="13" ToolTip.Tip="Layers: other sets of mappings, switched to with a button" />
+                    <!-- How this layer is reached: which buttons, and hold vs toggle -->
+                    <ToggleButton Name="LayerToggle" Classes="icon" Width="32" Height="32"
+                                  ToolTip.Tip="Layer activation (buttons and hold/toggle)"
+                                  IsEnabled="{Binding IsLayerEditable}"
+                                  IsChecked="{Binding IsLayerMenuOpen, Mode=TwoWay}">
+                        <PathIcon Data="{StaticResource IconSettings}" Width="15" Height="15" />
+                    </ToggleButton>
+                    <Popup IsOpen="{Binding IsLayerMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding #LayerToggle}"
+                           Placement="Bottom" IsLightDismissEnabled="True" WindowManagerAddShadowHint="False">
+                        <Border Classes="menu" Width="300" Margin="0,4,0,0" Padding="12">
+                            <StackPanel>
+                                <TextBlock Text="ACTIVATE THIS LAYER WITH" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,6" />
+                                <TextBlock Text="Pick up to 4 buttons; all must be held together." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8" />
+                                <ItemsControl ItemsSource="{Binding LayerModifierOptions}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <CheckBox Content="{Binding Label}" IsChecked="{Binding IsChecked}" Width="136" Margin="0,0,0,6"
+                                                      Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="BEHAVIOUR" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,10,0,6" />
+                                <ComboBox ItemsSource="{Binding AvailableLayerTypes}" SelectedItem="{Binding SelectedLayerType}" HorizontalAlignment="Stretch" />
+                                <TextBlock Text="Hold: active while held. Toggle: each press switches it on or off." Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                <TextBlock Text="LEFT STICK IN THIS LAYER" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,10,0,6" />
+                                <ComboBox ItemsSource="{Binding LayerStickChoices}" SelectedIndex="{Binding LayerLeftStickIndex}" HorizontalAlignment="Stretch" />
+                                <TextBlock Text="RIGHT STICK IN THIS LAYER" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,10,0,6" />
+                                <ComboBox ItemsSource="{Binding LayerStickChoices}" SelectedIndex="{Binding LayerRightStickIndex}" HorizontalAlignment="Stretch" />
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+                    <!-- Which controller picture to draw (gamepad only) -->
+                    <Border Width="1" Height="20" Background="{StaticResource BrushBorder}" Margin="8,0" IsVisible="{Binding IsGamepadTab}" />
+                    <ComboBox ItemsSource="{Binding SkinOptions}" SelectedValueBinding="{Binding Kind}" SelectedValue="{Binding SelectedSkin, Mode=TwoWay}"
+                              Width="170" Height="32" FontSize="13" ToolTip.Tip="Controller picture" IsVisible="{Binding IsGamepadTab}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
         </Border>
 
         <!-- GETTING STARTED: three plain steps, shown until dismissed or remapping has been started once -->
-        <Border Grid.Row="3" Background="#1E1B12" BorderBrush="#3A3220" BorderThickness="0,1,0,1" Padding="20,10" IsVisible="{Binding ShowGettingStarted}">
+        <Border Grid.Row="2" Background="#1E1B12" BorderBrush="#3A3220" BorderThickness="0,0,0,1" Padding="20,10" IsVisible="{Binding ShowGettingStarted}">
             <Grid ColumnDefinitions="*,Auto">
                 <TextBlock VerticalAlignment="Center" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" TextWrapping="Wrap"
                            Text="New here?  1. Click a button on the controller.   2. Choose what it should do on the right, then press Save.   3. Press Start remapping." />
@@ -180,11 +192,14 @@
         </Border>
 
         <!-- 4. CONTENT: visualizer | inspector -->
-        <Grid Grid.Row="4" ColumnDefinitions="*,Auto">
+        <Grid Grid.Row="3" ColumnDefinitions="*,Auto">
 
-            <!-- The controller, keyboard or mouse drawing -->
+            <!-- The controller, keyboard or mouse drawing; under the controller, live readings once the window has room for them -->
             <Border Grid.Column="0" Background="{StaticResource BrushBgDeep}" MinWidth="420">
-                <views:InputSurface />
+                <views:StagePanel Name="Stage" DeckWanted="{Binding IsGamepadTab}">
+                    <views:InputSurface />
+                    <views:LiveDeck IsVisible="False" />
+                </views:StagePanel>
             </Border>
 
             <!-- Inspector -->
@@ -620,9 +635,9 @@
                                         <TextBlock Grid.Row="2" Text="{Binding ModifierKeyName, StringFormat='{}{0} + Enter'}" FontFamily="Menlo, Consolas, monospace" FontSize="12" Foreground="{StaticResource BrushTextPrimary}" Margin="0,0,16,6" />
                                         <TextBlock Grid.Row="2" Grid.Column="1" Text="Start or stop remapping" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" />
                                         <TextBlock Grid.Row="3" Text="F11" FontFamily="Menlo, Consolas, monospace" FontSize="12" Foreground="{StaticResource BrushTextPrimary}" Margin="0,0,16,6" />
-                                        <TextBlock Grid.Row="3" Grid.Column="1" Text="Full screen: the controller tester" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" />
+                                        <TextBlock Grid.Row="3" Grid.Column="1" Text="Open or close the controller tester" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" />
                                         <TextBlock Grid.Row="4" Text="Esc" FontFamily="Menlo, Consolas, monospace" FontSize="12" Foreground="{StaticResource BrushTextPrimary}" Margin="0,0,16,6" />
-                                        <TextBlock Grid.Row="4" Grid.Column="1" Text="Leave settings or full screen" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" />
+                                        <TextBlock Grid.Row="4" Grid.Column="1" Text="Leave settings, the tester or full screen" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" />
                                     </Grid>
                                 </Border>
                             </StackPanel>
@@ -630,30 +645,13 @@
                     </ScrollViewer>
                 </Grid>
 
-        <!-- 5. DEVICE BAR -->
-        <Border Grid.Row="5" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0" Padding="14,0">
-            <Grid>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <PathIcon Data="{StaticResource IconGamepad}" Width="20" Height="20" Foreground="{StaticResource BrushCyan}" Margin="0,0,10,0" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding ConnectedDevices[0]}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
-                </StackPanel>
-
-                <!-- Only things that need attention show here -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <TextBlock Text="Needs permission to control the keyboard and mouse" Foreground="{StaticResource BrushOrange}" FontSize="12" VerticalAlignment="Center" IsVisible="{Binding HasPermissionIssue}" />
-                    <TextBlock Text="Virtual controller driver (ViGEmBus) is not installed" Foreground="{StaticResource BrushOrange}" FontSize="12" VerticalAlignment="Center"
-                               IsVisible="{Binding ShowDriverWarning}" />
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <!-- 6. APPLY BAR -->
-        <Border Grid.Row="6" Background="{StaticResource BrushBgDeep}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0" Padding="14,0">
-            <Grid ColumnDefinitions="Auto,*">
+        <!-- 4. BOTTOM BAR: start remapping and its options on the left; messages and the controller in use on the right -->
+        <Border Grid.Row="4" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0" Padding="14,0">
+            <Grid ColumnDefinitions="Auto,*,Auto">
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <!-- Start / stop remapping -->
-                    <Button Command="{Binding ToggleApplyCommand}" Classes="apply" Classes.on="{Binding IsRemappingActive}" MinWidth="170" Height="42"
+                    <Button Command="{Binding ToggleApplyCommand}" Classes="apply" Classes.on="{Binding IsRemappingActive}" MinWidth="170" Height="38"
                             ToolTip.Tip="Start or stop remapping" AutomationProperties.Name="Start or stop remapping">
                         <StackPanel Orientation="Horizontal" Spacing="9">
                             <Ellipse Width="9" Height="9" Fill="#2EF2A0" IsVisible="{Binding IsRemappingActive}" VerticalAlignment="Center" />
@@ -663,13 +661,13 @@
 
                     <!-- Slot -->
                     <TextBlock Text="Slot" Foreground="{StaticResource BrushTextMuted}" FontSize="12" VerticalAlignment="Center" Margin="14,0,6,0"
-                               ToolTip.Tip="Which controller slot (1 to 4) the virtual controller takes" />
-                    <ComboBox ItemsSource="{Binding SlotNumbers}" SelectedItem="{Binding ActiveSlot, Mode=TwoWay}"
-                              Width="80" Height="42" FontSize="14" FontWeight="SemiBold" Margin="0,0,14,0" VerticalAlignment="Center"
+                               ToolTip.Tip="Which controller slot (1 to 4) the virtual controller takes" IsVisible="{Binding SupportsVirtualController}" />
+                    <ComboBox ItemsSource="{Binding SlotNumbers}" SelectedItem="{Binding ActiveSlot, Mode=TwoWay}" IsVisible="{Binding SupportsVirtualController}"
+                              Width="80" Height="36" FontSize="14" FontWeight="SemiBold" Margin="0,0,14,0" VerticalAlignment="Center"
                               ToolTip.Tip="Which controller slot (1 to 4) the virtual controller takes" />
 
                     <!-- Virtual controller: which controller games will see (Windows only: macOS has no virtual controller) -->
-                    <ToggleButton Name="OutputToggle" Classes="icon" Width="46" Height="42" Margin="0,0,6,0"
+                    <ToggleButton Name="OutputToggle" Classes="icon" Width="46" Height="36" Margin="0,0,6,0"
                                   ToolTip.Tip="Virtual controller: what games will see"
                                   IsVisible="{Binding SupportsVirtualController}"
                                   IsChecked="{Binding IsOutputMenuOpen, Mode=TwoWay}">
@@ -700,7 +698,7 @@
                     <ToggleSwitch IsVisible="{Binding SupportsDeviceHiding}"
                                   IsChecked="{Binding HideInputDevice, Mode=TwoWay}" IsEnabled="{Binding IsHidHideAvailable}"
                                   OnContent="Hide Physical Device" OffContent="Hide Physical Device"
-                                  Height="42" Margin="6,0,0,0" VerticalAlignment="Center">
+                                  Height="36" Margin="6,0,0,0" VerticalAlignment="Center">
                         <ToolTip.Tip>
                             <StackPanel>
                                 <TextBlock Text="Hide the original controller from games (HidHide)" FontWeight="SemiBold" />
@@ -710,11 +708,11 @@
                     </ToggleSwitch>
 
                     <!-- macOS: shown while a permission is missing -->
-                    <Button Content="Allow access…" Command="{Binding RequestPermissionsCommand}" Classes="secondary" Height="42" Margin="14,0,0,0"
+                    <Button Content="Allow access…" Command="{Binding RequestPermissionsCommand}" Classes="secondary" Height="36" Margin="14,0,0,0"
                             IsVisible="{Binding HasPermissionIssue}" ToolTip.Tip="{Binding MissingPermissions}" />
 
                     <!-- A newer build is ready: one click downloads it and restarts into it -->
-                    <Button Content="Update available" Command="{Binding InstallUpdateCommand}" Classes="secondary" Height="42" Margin="14,0,0,0"
+                    <Button Content="Update available" Command="{Binding InstallUpdateCommand}" Classes="secondary" Height="36" Margin="14,0,0,0"
                             IsVisible="{Binding ShowUpdateButton}" ToolTip.Tip="{Binding UpdateStatusText}" />
                     <ProgressBar Minimum="0" Maximum="1" Value="{Binding UpdateProgress}" Width="120" Height="8" Margin="14,0,0,0" VerticalAlignment="Center"
                                  IsVisible="{Binding IsUpdating}" />
@@ -722,11 +720,22 @@
 
                 <TextBlock Grid.Column="1" Text="{Binding StatusMessage}" Foreground="{StaticResource BrushTextSecondary}" FontSize="12"
                            HorizontalAlignment="Right" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="14,0,0,0" />
+
+                <!-- The controller in use; a warning only when something needs attention -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0" Spacing="8">
+                    <TextBlock Text="Virtual controller driver (ViGEmBus) is not installed" Foreground="{StaticResource BrushOrange}" FontSize="12" VerticalAlignment="Center"
+                               IsVisible="{Binding ShowDriverWarning}" />
+                    <Border Width="1" Height="20" Background="{StaticResource BrushBorder}" Margin="4,0" />
+                    <Ellipse Width="7" Height="7" Fill="#2EF2A0" VerticalAlignment="Center" IsVisible="{Binding IsControllerConnected}" />
+                    <Ellipse Width="7" Height="7" Fill="{StaticResource BrushTextMuted}" VerticalAlignment="Center" IsVisible="{Binding !IsControllerConnected}" />
+                    <TextBlock Name="DeviceText" Text="{Binding DeviceName}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12.5" VerticalAlignment="Center"
+                               MaxWidth="260" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding DeviceName}" />
+                </StackPanel>
             </Grid>
         </Border>
 
 
         <!-- The full-screen tester, created only while the window is full screen -->
-        <ContentControl Name="TesterHost" Grid.RowSpan="7" IsVisible="False" />
+        <ContentControl Name="TesterHost" Grid.RowSpan="5" IsVisible="False" />
     </Grid>
 </Window>

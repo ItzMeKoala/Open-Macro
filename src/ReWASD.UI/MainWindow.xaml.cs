@@ -41,7 +41,7 @@ public partial class MainWindow : Window
     /// <summary>True while the window is full screen and showing the tester.</summary>
     internal bool IsFullScreen => _fullScreen;
 
-    /// <summary>Full screen is the controller tester: F11 or the button toggles it, Esc leaves it.</summary>
+    /// <summary>Full screen is the controller tester: F11 or the Tester button opens it, Esc leaves it.</summary>
     internal void SetFullScreen(bool on)
     {
         if (on == _fullScreen) return;
@@ -87,10 +87,20 @@ public partial class MainWindow : Window
         DataContextChanged += (_, _) => Watch(DataContext as ViewModels.MainViewModel);
         Watch(DataContext as ViewModels.MainViewModel);   // the XAML may already have created it
 
-        TesterButton.Click += (_, _) => SetFullScreen(!_fullScreen);
+        // Maximising the window keeps the normal screen and makes room for the live readings under the controller; tell the view model,
+        // so the controller is only measured while they are on screen
+        Stage.DeckShownChanged += (_, _) =>
+        {
+            bool shown = Stage.IsDeckShown;
+            Dispatcher.BeginInvoke(() => { if (DataContext is ViewModels.MainViewModel vm) vm.IsLiveDeckShown = shown; });
+        };
+        IsVisibleChanged += (_, _) => ReportShown();
+        StateChanged += (_, _) => ReportShown();
 
         // `REWASD_START_TESTER=1` opens straight into the tester (the build checks that the tester screen loads this way)
         if (Environment.GetEnvironmentVariable("REWASD_START_TESTER") == "1") Loaded += (_, _) => SetFullScreen(true);
+        // `REWASD_START_MAXIMIZED=1` opens maximised, which shows the live readings under the controller (the build checks they load)
+        if (Environment.GetEnvironmentVariable("REWASD_START_MAXIMIZED") == "1") Loaded += (_, _) => WindowState = WindowState.Maximized;
         PreviewKeyDown += (_, e) =>
         {
             var vm = DataContext as ViewModels.MainViewModel;
@@ -140,13 +150,28 @@ public partial class MainWindow : Window
         };
     }
 
+    private void ReportShown()
+    {
+        if (DataContext is ViewModels.MainViewModel vm) vm.IsWindowShown = IsVisible && WindowState != WindowState.Minimized;
+    }
+
     private void Watch(ViewModels.MainViewModel? vm)
     {
         if (ReferenceEquals(_watched, vm)) return;
-        if (_watched != null) _watched.PropertyChanged -= OnViewModelChanged;
+        if (_watched != null)
+        {
+            _watched.PropertyChanged -= OnViewModelChanged;
+            _watched.TesterRequested -= OnTesterRequested;
+        }
         _watched = vm;
-        if (vm != null) vm.PropertyChanged += OnViewModelChanged;
+        if (vm != null)
+        {
+            vm.PropertyChanged += OnViewModelChanged;
+            vm.TesterRequested += OnTesterRequested;
+        }
     }
+
+    private void OnTesterRequested(object? sender, EventArgs e) => SetFullScreen(true);
 
     private void OnViewModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {

@@ -313,6 +313,43 @@
         <Setter Property="BorderBrush" Value="{StaticResource BrushCyan}" />
     </Style>
 
+    <!-- Segmented switch in a well: Gamepad / Keyboard / Mouse -->
+    <Style Selector="Border.segbox">
+        <Setter Property="Background" Value="#141416" />
+        <Setter Property="BorderBrush" Value="#2E2E33" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="9" />
+        <Setter Property="Padding" Value="3" />
+    </Style>
+    <Style Selector="RadioButton.pill">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Padding" Value="14,6" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="Bd" Background="{TemplateBinding Background}" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="RadioButton.pill:pointerover">
+        <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+    </Style>
+    <Style Selector="RadioButton.pill:checked">
+        <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+    </Style>
+    <Style Selector="RadioButton.pill:checked /template/ Border#Bd">
+        <Setter Property="Background" Value="#2E2E34" />
+    </Style>
+    <Style Selector="RadioButton.pill:checked PathIcon">
+        <Setter Property="Foreground" Value="{StaticResource BrushCyan}" />
+    </Style>
+
     <!-- Small label above a field in the inspector -->
     <Style Selector="TextBlock.field">
         <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />

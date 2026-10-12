@@ -1,0 +1,245 @@
+<UserControl x:Class="ReWASD.UI.Views.LiveDeck"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:tc="clr-namespace:ReWASD.UI.TesterControls"
+             ClipToBounds="True">
+
+    <!-- Live readings under the controller, shown when the window has room for them -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+        <Style x:Key="Tile" TargetType="Border">
+            <Setter Property="Background" Value="#1B1B1E" />
+            <Setter Property="BorderBrush" Value="#2A2A2F" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="14,12" />
+        </Style>
+        <Style x:Key="Cap" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource BrushTextMuted}" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="Num" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontFamily" Value="Consolas" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+        </Style>
+        <Style x:Key="Big" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontFamily" Value="Consolas" />
+        </Style>
+        <Style x:Key="Soft" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontFamily" Value="Consolas" />
+        </Style>
+        <Style x:Key="Link" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="8,3" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="Transparent" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#18FFFFFF" />
+                                <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="LiveDot" TargetType="Ellipse">
+            <Setter Property="Width" Value="7" />
+            <Setter Property="Height" Value="7" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Fill" Value="{StaticResource BrushTextMuted}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Tester.Connected}" Value="True">
+                    <Setter Property="Fill" Value="#2EF2A0" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="NoRateHint" TargetType="TextBlock">
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Tester.HasRate}" Value="False">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- One stick: the plot and its numbers -->
+        <DataTemplate x:Key="StickTile">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="90" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <tc:StickPlot Snapshot="{Binding Snapshot}" DeadzoneMin="{Binding DeadzoneMin}" DeadzoneMax="{Binding DeadzoneMax}" />
+                <StackPanel Grid.Column="1" Width="96" Margin="10,0,0,0" VerticalAlignment="Center">
+                    <DockPanel Margin="0,0,0,5"><TextBlock Text="X" Style="{StaticResource Cap}" /><TextBlock Text="{Binding XText}" Style="{StaticResource Num}" /></DockPanel>
+                    <DockPanel Margin="0,0,0,5"><TextBlock Text="Y" Style="{StaticResource Cap}" /><TextBlock Text="{Binding YText}" Style="{StaticResource Num}" /></DockPanel>
+                    <DockPanel Margin="0,0,0,5"><TextBlock Text="PUSH" Style="{StaticResource Cap}" /><TextBlock Text="{Binding MagnitudeText}" Style="{StaticResource Num}" /></DockPanel>
+                    <DockPanel Margin="0,0,0,5"><TextBlock Text="ANGLE" Style="{StaticResource Cap}" /><TextBlock Text="{Binding AngleText}" Style="{StaticResource Num}" /></DockPanel>
+                    <DockPanel Margin="0,0,0,5" ToolTip="Roll the stick around its edge: how round its reach is"><TextBlock Text="ROUND" Style="{StaticResource Cap}" /><TextBlock Text="{Binding RoundnessText}" Style="{StaticResource Num}" Foreground="{StaticResource BrushCyan}" /></DockPanel>
+                    <DockPanel ToolTip="Leave the stick alone: how far it wanders from the centre"><TextBlock Text="DRIFT" Style="{StaticResource Cap}" /><TextBlock Text="{Binding DriftText}" Style="{StaticResource Num}" /></DockPanel>
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+
+        <!-- One trigger: how far it is pulled, as a number and an upright bar -->
+        <DataTemplate x:Key="TriggerColumn">
+            <Grid HorizontalAlignment="Center">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Text="{Binding PercentText}" Style="{StaticResource Big}" HorizontalAlignment="Center" />
+                <tc:PressureBar Grid.Row="1" Value="{Binding Value}" Peak="{Binding Peak}" Width="30" Margin="0,8" />
+                <TextBlock Grid.Row="2" Text="{Binding RawText}" Style="{StaticResource Soft}" HorizontalAlignment="Center" />
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid x:Name="Root" Margin="16,0,16,14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="30" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- What is being read, for how long, and the way to the full tester -->
+        <DockPanel Grid.Row="0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Tester.SessionText}" Style="{StaticResource Soft}" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="How long these readings have been collected" />
+                <Button Content="Reset" Style="{StaticResource Link}" Command="{Binding ResetTesterCommand}" ToolTip="Start the measurements again" />
+                <Button Content="Full tester" Style="{StaticResource Link}" Command="{Binding OpenTesterCommand}" Margin="4,0,0,0" ToolTip="Open the full-screen controller tester (F11)" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Ellipse Style="{StaticResource LiveDot}" Margin="0,0,8,0" />
+                <TextBlock Text="Live input" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Tester.ControllerName}" Foreground="{StaticResource BrushTextMuted}" FontSize="12" Margin="8,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+        </DockPanel>
+
+        <!-- The readings -->
+        <Grid x:Name="Tiles" Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="10" />
+                <ColumnDefinition Width="0.72*" />
+                <ColumnDefinition Width="10" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="10" />
+                <ColumnDefinition Width="0.9*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource Tile}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="LEFT STICK" Style="{StaticResource Cap}" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                    <ContentControl Content="{Binding Tester.Left}" ContentTemplate="{StaticResource StickTile}" Focusable="False" />
+                </DockPanel>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource Tile}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="TRIGGERS" Style="{StaticResource Cap}" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <DockPanel Grid.Column="0">
+                            <TextBlock DockPanel.Dock="Bottom" Text="LT" Style="{StaticResource Cap}" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                            <ContentControl Content="{Binding Tester.LeftTrigger}" ContentTemplate="{StaticResource TriggerColumn}" Focusable="False" />
+                        </DockPanel>
+                        <DockPanel Grid.Column="1">
+                            <TextBlock DockPanel.Dock="Bottom" Text="RT" Style="{StaticResource Cap}" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                            <ContentControl Content="{Binding Tester.RightTrigger}" ContentTemplate="{StaticResource TriggerColumn}" Focusable="False" />
+                        </DockPanel>
+                    </Grid>
+                </DockPanel>
+            </Border>
+
+            <Border Grid.Column="4" Style="{StaticResource Tile}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="RIGHT STICK" Style="{StaticResource Cap}" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                    <ContentControl Content="{Binding Tester.Right}" ContentTemplate="{StaticResource StickTile}" Focusable="False" />
+                </DockPanel>
+            </Border>
+
+            <!-- Timing and health -->
+            <Border x:Name="TimingTile" Grid.Column="6" Style="{StaticResource Tile}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="RESPONSE" Style="{StaticResource Cap}" HorizontalAlignment="Left" />
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0" ToolTip="How often the controller reports a change">
+                        <TextBlock Text="{Binding Tester.RateNumberText}" Style="{StaticResource Big}" FontSize="26" Foreground="{StaticResource BrushCyan}" />
+                        <TextBlock Text="per second" Foreground="{StaticResource BrushTextSecondary}" FontSize="11" VerticalAlignment="Bottom" Margin="6,0,0,5" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="2" Margin="0,6,0,0">
+                        <TextBlock Text="Move a stick to measure" Foreground="{StaticResource BrushTextMuted}" FontSize="11" Style="{StaticResource NoRateHint}" />
+                        <TextBlock Text="{Binding Tester.IntervalText}" Style="{StaticResource Soft}" TextTrimming="CharacterEllipsis" Margin="0,0,0,2"
+                                   Visibility="{Binding Tester.HasRate, Converter={StaticResource BoolToVisibility}}" />
+                        <TextBlock Text="{Binding Tester.JitterText}" Style="{StaticResource Soft}" TextTrimming="CharacterEllipsis"
+                                   Visibility="{Binding Tester.HasRate, Converter={StaticResource BoolToVisibility}}" />
+                    </StackPanel>
+                    <Grid Grid.Row="4" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <tc:RingGauge Width="46" Height="46" Value="{Binding Tester.HealthScore}" HasValue="{Binding Tester.HasHealthScore}" Text="{Binding Tester.HealthScoreText}" Caption="" />
+                        <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="HEALTH" Style="{StaticResource Cap}" HorizontalAlignment="Left" />
+                            <TextBlock Text="{Binding Tester.HealthChecksText}" Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- The last six seconds, when there is height for it -->
+        <Border x:Name="ScopeTile" Grid.Row="2" Style="{StaticResource Tile}" Margin="0,10,0,0" Height="150">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Ellipse Width="7" Height="7" Fill="#E9C46A" VerticalAlignment="Center" Margin="0,0,5,0" /><TextBlock Text="Left X" Style="{StaticResource Soft}" Margin="0,0,12,0" />
+                        <Ellipse Width="7" Height="7" Fill="#F4A261" VerticalAlignment="Center" Margin="0,0,5,0" /><TextBlock Text="Left Y" Style="{StaticResource Soft}" Margin="0,0,12,0" />
+                        <Ellipse Width="7" Height="7" Fill="#5BC0EB" VerticalAlignment="Center" Margin="0,0,5,0" /><TextBlock Text="Right X" Style="{StaticResource Soft}" Margin="0,0,12,0" />
+                        <Ellipse Width="7" Height="7" Fill="#9B8CFF" VerticalAlignment="Center" Margin="0,0,5,0" /><TextBlock Text="Right Y" Style="{StaticResource Soft}" Margin="0,0,12,0" />
+                        <Ellipse Width="7" Height="7" Fill="#00E676" VerticalAlignment="Center" Margin="0,0,5,0" /><TextBlock Text="LT" Style="{StaticResource Soft}" Margin="0,0,12,0" />
+                        <Ellipse Width="7" Height="7" Fill="#FF6B6B" VerticalAlignment="Center" Margin="0,0,5,0" /><TextBlock Text="RT" Style="{StaticResource Soft}" />
+                    </StackPanel>
+                    <TextBlock Text="LAST 6 SECONDS" Style="{StaticResource Cap}" HorizontalAlignment="Left" />
+                </DockPanel>
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <tc:ScopeGraph Series="{Binding Tester.Scope}" Channels="0,1,2,3" Minimum="-1" Maximum="1" />
+                    <tc:ScopeGraph Grid.Column="2" Series="{Binding Tester.Scope}" Channels="4,5" Minimum="0" Maximum="1" />
+                </Grid>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

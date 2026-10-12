@@ -154,15 +154,5 @@
             </Canvas>
         </Viewbox>
 
-        <!-- Which controller picture to draw (gamepad only) -->
-        <ComboBox ItemsSource="{Binding SkinOptions}" SelectedValueBinding="{Binding Kind}" SelectedValue="{Binding SelectedSkin, Mode=TwoWay}"
-                  Width="170" Height="34" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="18,14,0,0"
-                  ToolTip.Tip="Controller picture" IsVisible="{Binding IsGamepadTab}">
-            <ComboBox.ItemTemplate>
-                <DataTemplate>
-                    <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}" />
-                </DataTemplate>
-            </ComboBox.ItemTemplate>
-        </ComboBox>
     </Grid>
 </UserControl>

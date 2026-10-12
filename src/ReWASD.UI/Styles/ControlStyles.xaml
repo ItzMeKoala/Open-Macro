@@ -168,6 +168,40 @@
         </Setter>
     </Style>
 
+    <!-- Segmented switch in a well: Gamepad / Keyboard / Mouse -->
+    <Style x:Key="SegBox" TargetType="Border">
+        <Setter Property="Background" Value="#141416" />
+        <Setter Property="BorderBrush" Value="#2E2E33" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="9" />
+        <Setter Property="Padding" Value="3" />
+    </Style>
+    <Style x:Key="PillRadioStyle" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Padding" Value="14,6" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="bd" Background="Transparent" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="#2E2E34" />
+                            <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Quiet text button (Reset) -->
     <Style x:Key="GhostButtonStyle" TargetType="Button">
         <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />

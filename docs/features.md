@@ -8,9 +8,15 @@
 - **Configs save themselves** a moment after a change, when you switch config and when you close the app (Settings → Configs turns it
   off). Older copies are kept under History.
 - **Settings** has six sections down the left: Sticks, Combos and timing, Configs, Integrations, Window, System.
-- **Shortcuts:** Cmd/Ctrl+S saves now, Cmd/Ctrl+comma opens and closes settings, Cmd/Ctrl+Enter starts or stops remapping, F11 is the full-screen
-  tester, Esc leaves settings or full screen.
-- New users see three plain steps under the tabs until they press "Got it" or start remapping once.
+- **Shortcuts:** Cmd/Ctrl+S saves now, Cmd/Ctrl+comma opens and closes settings, Cmd/Ctrl+Enter starts or stops remapping, F11 opens and
+  closes the full-screen tester, Esc leaves settings, the tester or full screen.
+- New users see three plain steps under the toolbar until they press "Got it" or start remapping once.
+- **Layout:** the top bar holds the config, Tester and Settings; one toolbar holds Gamepad / Keyboard / Mouse, the layer and the controller
+  picture; the bottom bar starts remapping and names the controller in use (with a warning only when something needs attention).
+- **Live readings:** make the window bigger (maximise it, or full screen on a Mac) and the controller keeps its size while live readings
+  appear under it: both sticks with their circle, push, angle, roundness and drift, trigger pressure with the highest pull, how often the
+  pad reports, a health score and, with enough height, a graph of the last six seconds. The controller is only measured while they are on
+  screen. **Full tester** opens the complete tester.
 
 Everything below works on Windows and macOS unless it says otherwise. It is all set up in the window (Preferences holds most of
 it) and saved with your configs. The ideas come from the feature list of
@@ -85,7 +91,8 @@ the window is closed** makes the close button hide the window; on macOS the Dock
 
 ## Controller tester (full screen)
 
-Go full screen (the green button on a Mac, **F11**, or the **Tester** button; **Esc** leaves) and the window becomes a controller tester:
+Press **Tester** (or **F11**, or **Full tester** under the controller; **Esc** closes it) and the window becomes a full-screen controller
+tester:
 
 - **Sticks:** each as a circle with the live position, the path just taken, and the dashed deadzone rings from the config. Roll a stick
   around its edge and the **circularity test** draws the shape it makes, with *roundness* (smallest radius over largest), *coverage*, min,
@@ -98,7 +105,7 @@ Go full screen (the green button on a Mac, **F11**, or the **Tester** button; **
   fast thread so the figures are real. A **reaction test** (press any button when the box turns green) keeps best and average.
 - **Graph** of the last six seconds of all axes, a **timestamped event log**, the animated controller picture, and a **vibration test**
   (left motor, right motor, both) where the system can shake the pad (Windows).
-- **Reset** per stick or for everything. Nothing is read faster than normal until the tester is open.
+- **Reset** per stick or for everything. Nothing is read faster than normal unless the tester or the live readings are on screen.
 
 ## Usage counts
 

@@ -226,6 +226,8 @@ public partial class MainViewModel : ObservableObject
     public IReadOnlyList<string> LayerNames { get; } = new[] { "Main Layer", "Shift 1", "Shift 2", "Shift 3", "Shift 4" };
 
     public bool IsPreferencesPage => CurrentPage == AppPage.Preferences;
+
+    partial void OnCurrentPageChanged(AppPage value) => UpdateLiveSampling();
     public bool IsGamepadTab => SelectedInputTab == InputTab.Gamepad;
 
     public bool IsDriverAvailable => _virtualService.IsDriverAvailable;
@@ -355,6 +357,13 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<ButtonViewModel> KeyboardSources { get; } = new();
     public ObservableCollection<ButtonViewModel> MouseSources { get; } = new();
     public ObservableCollection<string> ConnectedDevices { get; } = new();
+
+    /// <summary>The controller in use, or the "no controller" text, for the bottom bar.</summary>
+    [ObservableProperty]
+    private string _deviceName = string.Empty;
+
+    [ObservableProperty]
+    private bool _isControllerConnected;
 
     /// <summary>Creates the view model for the operating system it runs on, hosted by the toolkit that registered itself in <see cref="UiHost"/>.</summary>
     public MainViewModel()
@@ -654,9 +663,36 @@ public partial class MainViewModel : ObservableObject
     partial void OnIsTesterModeChanged(bool value)
     {
         if (!_constructed) return;
-        _sampler ??= new TesterSampler(ReadPhysical, Tester.Model);
+        UpdateLiveSampling();
+        if (!value) StopVibration();
+    }
 
-        if (value)
+    /// <summary>The live panel under the controller has room to show (the window is big enough). Set by the view.</summary>
+    [ObservableProperty]
+    private bool _isLiveDeckShown;
+
+    /// <summary>The window is on screen (not hidden to the tray, not minimised). Set by the view.</summary>
+    [ObservableProperty]
+    private bool _isWindowShown = true;
+
+    partial void OnIsLiveDeckShownChanged(bool value) => UpdateLiveSampling();
+    partial void OnIsWindowShownChanged(bool value) => UpdateLiveSampling();
+
+    /// <summary>
+    /// The controller is being measured: in the tester, or while the live panel is in view. Only then does the fast reader run, so a
+    /// small or hidden window costs nothing.
+    /// </summary>
+    public bool IsLiveDataOn => IsTesterMode || (IsLiveDeckShown && IsWindowShown && IsGamepadTab && !IsPreferencesPage);
+
+    private void UpdateLiveSampling()
+    {
+        if (!_constructed || _shutDown) return;
+        OnPropertyChanged(nameof(IsLiveDataOn));
+        bool on = IsLiveDataOn;
+        if (on == (_sampler?.IsRunning ?? false)) return;
+
+        _sampler ??= new TesterSampler(ReadPhysical, Tester.Model);
+        if (on)
         {
             _sampler.Start();
             RefreshTester(force: true);
@@ -664,9 +700,14 @@ public partial class MainViewModel : ObservableObject
         else
         {
             _sampler.Stop();
-            StopVibration();
         }
     }
+
+    /// <summary>Asks the window to open the full-screen tester.</summary>
+    public event EventHandler? TesterRequested;
+
+    [RelayCommand]
+    private void OpenTester() => TesterRequested?.Invoke(this, EventArgs.Empty);
 
     // While remapping runs the pipeline owns the pad reader; otherwise read it here
     private PhysicalState? ReadPhysical() => _pipeline.IsRunning ? _pipeline.LatestPhysical : _reader.Read();
@@ -1512,9 +1553,11 @@ public partial class MainViewModel : ObservableObject
         foreach (var slot in slots)
         {
             string tag = slot == _reader.ExcludedUserIndex ? " (virtual output)" : "";
-            ConnectedDevices.Add($"🎮 {_reader.DescribeSlot(slot)}{tag}");
+            ConnectedDevices.Add($"{_reader.DescribeSlot(slot)}{tag}");
         }
         if (slots.Count == 0) ConnectedDevices.Add(Platform.NoControllerText);
+        IsControllerConnected = slots.Count > 0;
+        DeviceName = ConnectedDevices[0];
 
         AutoSelectSkin();
     }
@@ -1968,6 +2011,7 @@ public partial class MainViewModel : ObservableObject
     private bool _skinPinned;
     private bool _autoSkin;
     private bool _constructed;
+    private bool _shutDown;
 
     /// <summary>Shows the picture that matches the connected controller (a DualSense gets the PS5 drawing), unless one was chosen by hand.</summary>
     private void AutoSelectSkin()
@@ -2093,6 +2137,7 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnSelectedInputTabChanged(InputTab value)
     {
+        UpdateLiveSampling();
         CurrentSources = value switch
         {
             InputTab.Keyboard => KeyboardSources,
@@ -2840,7 +2885,7 @@ public partial class MainViewModel : ObservableObject
     {
         // While remapping runs the pipeline owns the pad reader; otherwise read it here so the display still works.
         // In the tester a faster thread does the reading and this just shows its newest result.
-        PhysicalState? phys = IsTesterMode && _sampler is { IsRunning: true } ? _sampler.Latest : ReadPhysical();
+        PhysicalState? phys = _sampler is { IsRunning: true } ? _sampler.Latest : ReadPhysical();
 
         // Plugging a controller in or out shows in the device bar straight away
         if ((phys != null) != _hadController)
@@ -2858,7 +2903,7 @@ public partial class MainViewModel : ObservableObject
         CountUsage(phys);
         UpdatePressedText(phys);
         FeedStickTuning(phys);
-        if (IsTesterMode && ++_testerTicks % 2 == 0) RefreshTester();
+        if ((IsTesterMode || _sampler is { IsRunning: true }) && ++_testerTicks % 2 == 0) RefreshTester();
 
         foreach (var vm in ControllerButtons)
         {
@@ -2980,6 +3025,7 @@ public partial class MainViewModel : ObservableObject
     /// <summary>Stops polling and releases every held key and the virtual pad. Call when the window closes.</summary>
     public void Shutdown()
     {
+        _shutDown = true;
         AutoApplyPending();
         FlushAutoSave();
         _autoSaveTimer?.Dispose();

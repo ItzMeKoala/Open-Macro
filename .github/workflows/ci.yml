@@ -49,6 +49,18 @@ jobs:
           }
           Stop-Process -Id $p.Id -Force
 
+          # And maximised, where the live readings show under the controller
+          $env:REWASD_START_TESTER = ''
+          $env:REWASD_START_MAXIMIZED = '1'
+          $p = Start-Process $exe.FullName -PassThru
+          Start-Sleep -Seconds 10
+          if ($p.HasExited) {
+            $log = Join-Path $env:APPDATA 'ReWASD-OpenSource\crash.log'
+            if (Test-Path $log) { Get-Content $log -Tail 60 }
+            throw "ReWASD.UI.exe closed by itself when maximised (exit code $($p.ExitCode))"
+          }
+          Stop-Process -Id $p.Id -Force
+
   package-macos:
     runs-on: macos-latest
     needs: build-and-test

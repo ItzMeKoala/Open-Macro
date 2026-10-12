@@ -26,6 +26,9 @@ public sealed partial class TesterStickViewModel : ObservableObject
     [ObservableProperty] private string _roundnessText = "—";
     [ObservableProperty] private string _peakText = "0.000";
     [ObservableProperty] private string _stepsText = "—";
+    [ObservableProperty] private string _xText = "0.000";
+    [ObservableProperty] private string _yText = "0.000";
+    [ObservableProperty] private string _driftText = "—";
 
     public void Update(StickSnapshot s, StickSettings? settings)
     {
@@ -37,6 +40,9 @@ public sealed partial class TesterStickViewModel : ObservableObject
         }
 
         PositionText = $"x {Signed(s.X)}    y {Signed(s.Y)}";
+        XText = Signed(s.X);
+        YText = Signed(s.Y);
+        DriftText = s.RestSamples < 20 ? "—" : F(s.WorstRestDrift);
         MagnitudeText = F(s.Magnitude);
         AngleText = s.Magnitude < 0.02 ? "—" : $"{s.AngleDegrees:0}°";
         PeakText = F(s.PeakMagnitude);
@@ -79,6 +85,7 @@ public sealed partial class TesterTriggerViewModel : ObservableObject
     [ObservableProperty] private string _percentText = "0%";
     [ObservableProperty] private string _rawText = "0 / 255";
     [ObservableProperty] private string _peakText = "peak 0%";
+    [ObservableProperty] private double _peak;
     [ObservableProperty] private string _startText = "starts moving at —";
     [ObservableProperty] private string _heldText = "not pressed";
     [ObservableProperty] private string _pressesText = "0 pulls";
@@ -95,6 +102,7 @@ public sealed partial class TesterTriggerViewModel : ObservableObject
         PercentText = $"{t.Value:P0}";
         RawText = $"{(int)Math.Round(t.Value * 255)} / 255";
         PeakText = $"peak {t.Peak:P0}";
+        Peak = t.Peak;
         StartText = t.FirstMovement > 0 ? $"starts moving at {t.FirstMovement:P1}" : "starts moving at —";
         HeldText = t.HeldMs > 0 ? $"held {t.HeldMs / 1000:0.00} s" : "not pressed";
         PressesText = t.Presses == 1 ? "1 pull" : $"{t.Presses} pulls";
@@ -183,6 +191,10 @@ public sealed partial class TesterViewModel : ObservableObject
     [ObservableProperty] private string _controllerName = "No controller";
     [ObservableProperty] private string _sessionText = "00:00:00";
     [ObservableProperty] private string _rateText = "—";
+
+    /// <summary>The report rate as a bare number for a big readout ("—" until a stick has moved), and whether there is one.</summary>
+    [ObservableProperty] private string _rateNumberText = "—";
+    [ObservableProperty] private bool _hasRate;
     [ObservableProperty] private string _intervalText = "—";
     [ObservableProperty] private string _peakRateText = "—";
     [ObservableProperty] private string _totalText = "0 changes";
@@ -227,11 +239,13 @@ public sealed partial class TesterViewModel : ObservableObject
         Connected = snap.Connected;
         ControllerName = snap.Connected ? controllerName : "No controller";
 
-        var span = TimeSpan.FromMilliseconds(snap.ElapsedMs);
+        var span = TimeSpan.FromMilliseconds(Math.Max(0, snap.ElapsedMs));
         SessionText = $"{(int)span.TotalHours:00}:{span.Minutes:00}:{span.Seconds:00}";
 
         var rate = snap.Rate;
         RateText = rate.TotalChanges < 2 ? "Move a stick to measure" : $"{rate.ChangesPerSecond:0} changes/s";
+        HasRate = rate.TotalChanges >= 2;
+        RateNumberText = HasRate ? $"{rate.ChangesPerSecond:0}" : "—";
         IntervalText = rate.TotalChanges < 3 ? "—" : $"avg {rate.AverageIntervalMs:0.0} ms   worst {rate.WorstIntervalMs:0.0} ms";
         PeakRateText = rate.TotalChanges < 2 ? "—" : $"peak {rate.PeakChangesPerSecond:0}/s";
         TotalText = $"{rate.TotalChanges:N0} changes";

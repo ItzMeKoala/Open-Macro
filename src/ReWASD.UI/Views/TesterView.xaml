@@ -237,7 +237,7 @@
                     <Button Content="Copy report" Style="{StaticResource Chip}" Command="{Binding CopyTesterReportCommand}" Margin="0,0,8,0" />
                     <Button Content="Save report" Style="{StaticResource Chip}" Command="{Binding SaveTesterReportCommand}" Margin="0,0,8,0" />
                     <Button Content="Reset" Style="{StaticResource Chip}" Command="{Binding ResetTesterCommand}" Margin="0,0,8,0" />
-                    <Button x:Name="ExitButton" Content="Exit full screen  (Esc)" Style="{StaticResource Chip}" Background="#E9C46A" Foreground="#14161B" />
+                    <Button x:Name="ExitButton" Content="Close tester  (Esc)" Style="{StaticResource Chip}" Background="#E9C46A" Foreground="#14161B" />
                 </StackPanel>
             </Grid>
         </Border>
