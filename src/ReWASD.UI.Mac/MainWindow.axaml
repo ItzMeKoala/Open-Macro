@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:views="using:ReWASD.UI.Mac.Views"
+        xmlns:vm="using:ReWASD.UI.ViewModels"
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="720"
         x:Class="ReWASD.UI.Mac.MainWindow"
         Title="ReWASD Open Source — Gamepad Remapper"
@@ -102,6 +103,10 @@
                             <TextBlock Text="BEHAVIOUR" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,10,0,6" />
                             <ComboBox ItemsSource="{Binding AvailableLayerTypes}" SelectedItem="{Binding SelectedLayerType}" HorizontalAlignment="Stretch" />
                             <TextBlock Text="Hold: active while held. Toggle: each press switches it on or off." Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" Margin="0,4,0,0" />
+                            <TextBlock Text="LEFT STICK IN THIS LAYER" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,10,0,6" />
+                            <ComboBox ItemsSource="{Binding LayerStickChoices}" SelectedIndex="{Binding LayerLeftStickIndex}" HorizontalAlignment="Stretch" />
+                            <TextBlock Text="RIGHT STICK IN THIS LAYER" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,10,0,6" />
+                            <ComboBox ItemsSource="{Binding LayerStickChoices}" SelectedIndex="{Binding LayerRightStickIndex}" HorizontalAlignment="Stretch" />
                         </StackPanel>
                     </Border>
                 </Popup>
@@ -209,6 +214,84 @@
                                 </StackPanel>
                                 <ProgressBar Minimum="0" Maximum="1" Value="{Binding UpdateProgress}" Height="6" Margin="0,10,0,0" IsVisible="{Binding IsUpdating}" />
                                 <CheckBox Content="Check for updates when ReWASD starts" IsChecked="{Binding AutoCheckUpdates}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" Margin="0,10,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="LEFT STICK (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                        <Border Classes="card" DataContext="{Binding LeftStickSettings}">
+                            <StackPanel>
+                                <ComboBox ItemsSource="{x:Static vm:StickViewModel.ModeNames}" SelectedIndex="{Binding ModeIndex}" HorizontalAlignment="Stretch" />
+                                <StackPanel IsVisible="{Binding IsMouse}" Margin="0,10,0,0">
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding MouseSpeed, StringFormat='{}{0:0} px/s'}" Foreground="{StaticResource BrushCyan}" FontSize="12" />
+                                        <TextBlock Text="Cursor speed" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                    </DockPanel>
+                                    <Slider Minimum="100" Maximum="4000" SmallChange="50" LargeChange="200" Value="{Binding MouseSpeed}" Margin="0,4,0,0" />
+                                </StackPanel>
+                                <StackPanel IsVisible="{Binding IsScroll}" Margin="0,10,0,0">
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding ScrollSpeed, StringFormat='{}{0:0} /s'}" Foreground="{StaticResource BrushCyan}" FontSize="12" />
+                                        <TextBlock Text="Scroll speed" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                    </DockPanel>
+                                    <Slider Minimum="2" Maximum="60" SmallChange="1" LargeChange="5" Value="{Binding ScrollSpeed}" Margin="0,4,0,0" />
+                                </StackPanel>
+                                <StackPanel IsVisible="{Binding IsKeys}" Margin="0,10,0,0">
+                                    <TextBlock Text="Keys" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,0,0,4" />
+                                    <ComboBox ItemsSource="{x:Static vm:StickViewModel.KeyPresetNames}" SelectedIndex="{Binding KeyPresetIndex}" HorizontalAlignment="Stretch" />
+                                    <DockPanel Margin="0,10,0,0">
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding KeyThreshold, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" FontSize="12" />
+                                        <TextBlock Text="Push this far to press" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                    </DockPanel>
+                                    <Slider Minimum="0.1" Maximum="0.95" SmallChange="0.05" LargeChange="0.1" Value="{Binding KeyThreshold}" Margin="0,4,0,0" />
+                                </StackPanel>
+                                <StackPanel IsVisible="{Binding CanBePrecise}" Margin="0,10,0,0">
+                                    <TextBlock Text="Slow down while holding" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,0,0,4" />
+                                    <ComboBox ItemsSource="{x:Static vm:StickViewModel.PrecisionNames}" SelectedIndex="{Binding PrecisionIndex}" HorizontalAlignment="Stretch" />
+                                    <DockPanel Margin="0,10,0,0">
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding PrecisionFactor, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" FontSize="12" />
+                                        <TextBlock Text="Speed while slowed" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                    </DockPanel>
+                                    <Slider Minimum="0.05" Maximum="1" SmallChange="0.05" LargeChange="0.1" Value="{Binding PrecisionFactor}" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="RIGHT STICK (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                        <Border Classes="card" DataContext="{Binding RightStickSettings}">
+                            <StackPanel>
+                                <ComboBox ItemsSource="{x:Static vm:StickViewModel.ModeNames}" SelectedIndex="{Binding ModeIndex}" HorizontalAlignment="Stretch" />
+                                <StackPanel IsVisible="{Binding IsMouse}" Margin="0,10,0,0">
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding MouseSpeed, StringFormat='{}{0:0} px/s'}" Foreground="{StaticResource BrushCyan}" FontSize="12" />
+                                        <TextBlock Text="Cursor speed" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                    </DockPanel>
+                                    <Slider Minimum="100" Maximum="4000" SmallChange="50" LargeChange="200" Value="{Binding MouseSpeed}" Margin="0,4,0,0" />
+                                </StackPanel>
+                                <StackPanel IsVisible="{Binding IsScroll}" Margin="0,10,0,0">
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding ScrollSpeed, StringFormat='{}{0:0} /s'}" Foreground="{StaticResource BrushCyan}" FontSize="12" />
+                                        <TextBlock Text="Scroll speed" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                    </DockPanel>
+                                    <Slider Minimum="2" Maximum="60" SmallChange="1" LargeChange="5" Value="{Binding ScrollSpeed}" Margin="0,4,0,0" />
+                                </StackPanel>
+                                <StackPanel IsVisible="{Binding IsKeys}" Margin="0,10,0,0">
+                                    <TextBlock Text="Keys" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,0,0,4" />
+                                    <ComboBox ItemsSource="{x:Static vm:StickViewModel.KeyPresetNames}" SelectedIndex="{Binding KeyPresetIndex}" HorizontalAlignment="Stretch" />
+                                    <DockPanel Margin="0,10,0,0">
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding KeyThreshold, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" FontSize="12" />
+                                        <TextBlock Text="Push this far to press" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                    </DockPanel>
+                                    <Slider Minimum="0.1" Maximum="0.95" SmallChange="0.05" LargeChange="0.1" Value="{Binding KeyThreshold}" Margin="0,4,0,0" />
+                                </StackPanel>
+                                <StackPanel IsVisible="{Binding CanBePrecise}" Margin="0,10,0,0">
+                                    <TextBlock Text="Slow down while holding" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,0,0,4" />
+                                    <ComboBox ItemsSource="{x:Static vm:StickViewModel.PrecisionNames}" SelectedIndex="{Binding PrecisionIndex}" HorizontalAlignment="Stretch" />
+                                    <DockPanel Margin="0,10,0,0">
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding PrecisionFactor, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" FontSize="12" />
+                                        <TextBlock Text="Speed while slowed" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                    </DockPanel>
+                                    <Slider Minimum="0.05" Maximum="1" SmallChange="0.05" LargeChange="0.1" Value="{Binding PrecisionFactor}" Margin="0,4,0,0" />
+                                </StackPanel>
                             </StackPanel>
                         </Border>
 

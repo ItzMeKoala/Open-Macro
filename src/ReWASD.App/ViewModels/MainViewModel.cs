@@ -410,8 +410,25 @@ public partial class MainViewModel : ObservableObject
         if (SelectedButton != null) SelectButton(SelectedButton);
     }
 
+    public StickViewModel LeftStickSettings { get; } = new("Left stick");
+    public StickViewModel RightStickSettings { get; } = new("Right stick");
+
+    /// <summary>"Same as the profile", then each stick mode: what a layer can set a stick to while it is active.</summary>
+    public IReadOnlyList<string> LayerStickChoices { get; } = new[] { "Same as profile" }.Concat(StickViewModel.ModeNames).ToList();
+
+    [ObservableProperty]
+    private int _layerLeftStickIndex;
+
+    [ObservableProperty]
+    private int _layerRightStickIndex;
+
     private void LoadProfileSettings(Profile profile)
     {
+        profile.LeftStick ??= new StickSettings();
+        profile.RightStick ??= new StickSettings();
+        LeftStickSettings.Load(profile.LeftStick);
+        RightStickSettings.Load(profile.RightStick);
+
         SelectedProcessExecutable = profile.ProcessExecutable ?? string.Empty;
 
         // A config saved with a type this build cannot emulate falls back to Xbox 360
@@ -1210,6 +1227,8 @@ public partial class MainViewModel : ObservableObject
             var layer = CurrentLayer;
             foreach (var option in LayerModifierOptions) option.IsChecked = layer.ModifierButtons.Contains(option.Button);
             SelectedLayerType = layer.Type;
+            LayerLeftStickIndex = layer.LeftStickMode is { } l ? (int)l + 1 : 0;
+            LayerRightStickIndex = layer.RightStickMode is { } r ? (int)r + 1 : 0;
         }
         finally
         {
@@ -1238,6 +1257,18 @@ public partial class MainViewModel : ObservableObject
         StatusMessage = chosen.Count == 0
             ? $"{CurrentLayer.Name} has no activation buttons, so it can only be reached by a jump or the dropdown"
             : $"{CurrentLayer.Name} activates with {string.Join(" + ", chosen)}";
+    }
+
+    partial void OnLayerLeftStickIndexChanged(int value)
+    {
+        if (_loadingLayerOptions) return;
+        lock (_mappingEngine.SyncRoot) CurrentLayer.LeftStickMode = value <= 0 ? null : (StickMode)(value - 1);
+    }
+
+    partial void OnLayerRightStickIndexChanged(int value)
+    {
+        if (_loadingLayerOptions) return;
+        lock (_mappingEngine.SyncRoot) CurrentLayer.RightStickMode = value <= 0 ? null : (StickMode)(value - 1);
     }
 
     partial void OnSelectedLayerTypeChanged(ShiftType value)

@@ -112,6 +112,22 @@ public enum SourceKind
     Mouse
 }
 
+/// <summary>What a stick drives while remapping is on.</summary>
+public enum StickMode
+{
+    /// <summary>The stick stays a stick: it moves the virtual controller's stick (Windows) and nothing else.</summary>
+    Gamepad,
+
+    /// <summary>Moves the mouse cursor.</summary>
+    Mouse,
+
+    /// <summary>Scrolls the wheel up and down.</summary>
+    Scroll,
+
+    /// <summary>Holds a key per direction (WASD, the arrow keys, or any keys), with diagonals.</summary>
+    Keys
+}
+
 public enum ResponseCurveType
 {
     Linear,

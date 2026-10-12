@@ -9,6 +9,39 @@ public class StickSettings
     public bool InvertX { get; set; } = false;
     public bool InvertY { get; set; } = false;
 
+    /// <summary>What the stick drives. Anything but <see cref="StickMode.Gamepad"/> takes the stick away from the virtual controller.</summary>
+    public StickMode Mode { get; set; } = StickMode.Gamepad;
+
+    /// <summary>Cursor speed in pixels per second at full deflection (Mouse mode).</summary>
+    public double MouseSpeed { get; set; } = 1200;
+
+    /// <summary>Wheel notches per second at full deflection (Scroll mode).</summary>
+    public double ScrollSpeed { get; set; } = 14;
+
+    /// <summary>How far the stick has to be pushed along an axis for its key to be held (Keys mode), 0.1 to 0.95.</summary>
+    public double KeyThreshold { get; set; } = 0.5;
+
+    /// <summary>Keys held for each direction in Keys mode, by key name.</summary>
+    public string KeyUp { get; set; } = "W";
+    public string KeyDown { get; set; } = "S";
+    public string KeyLeft { get; set; } = "A";
+    public string KeyRight { get; set; } = "D";
+
+    /// <summary>While this pad button is held the stick moves <see cref="PrecisionFactor"/> times as fast (Mouse and Scroll modes). None turns it off.</summary>
+    public ControllerButton PrecisionButton { get; set; } = ControllerButton.None;
+
+    /// <summary>Speed multiplier while <see cref="PrecisionButton"/> is held, 0.05 to 1.</summary>
+    public double PrecisionFactor { get; set; } = 0.3;
+
+    /// <summary>A copy with the same settings (a layer can override a stick's mode without touching the profile's).</summary>
+    public StickSettings Clone() => (StickSettings)MemberwiseClone();
+
+    /// <summary>Sets the four keys to WASD or the arrow keys.</summary>
+    public void UseKeyPreset(bool arrows)
+    {
+        (KeyUp, KeyDown, KeyLeft, KeyRight) = arrows ? ("Up", "Down", "Left", "Right") : ("W", "S", "A", "D");
+    }
+
     // Apply deadzone and curve to raw input coordinate (-1.0 to 1.0)
     public double TransformAxis(double input)
     {

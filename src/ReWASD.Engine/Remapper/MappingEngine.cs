@@ -20,6 +20,13 @@ public class RemappedState
 
     /// <summary>Layer requested by an active JumpToLayer mapping this frame; the engine applies it on the next frame.</summary>
     public int? RequestedLayer { get; set; }
+
+    /// <summary>Cursor velocity from sticks in Mouse mode, in pixels per second (positive x = right, positive y = down).</summary>
+    public double MouseVelocityX { get; set; }
+    public double MouseVelocityY { get; set; }
+
+    /// <summary>Wheel velocity from sticks in Scroll mode, in notches per second (positive = up).</summary>
+    public double ScrollVelocity { get; set; }
 }
 
 /// <summary>
@@ -283,16 +290,12 @@ public class MappingEngine
 
         if (leftStickFree)
         {
-            (result.LeftStickX, result.LeftStickY) = CurrentProfile.LeftStick.TransformStick(rawLeftStickX, rawLeftStickY);
-            if (CurrentProfile.LeftStick.InvertX) result.LeftStickX = -result.LeftStickX;
-            if (CurrentProfile.LeftStick.InvertY) result.LeftStickY = -result.LeftStickY;
+            ApplyStick(CurrentProfile.LeftStick, layer.LeftStickMode, rawLeftStickX, rawLeftStickY, pressedButtons, result, left: true);
         }
 
         if (rightStickFree)
         {
-            (result.RightStickX, result.RightStickY) = CurrentProfile.RightStick.TransformStick(rawRightStickX, rawRightStickY);
-            if (CurrentProfile.RightStick.InvertX) result.RightStickX = -result.RightStickX;
-            if (CurrentProfile.RightStick.InvertY) result.RightStickY = -result.RightStickY;
+            ApplyStick(CurrentProfile.RightStick, layer.RightStickMode, rawRightStickX, rawRightStickY, pressedButtons, result, left: false);
         }
 
         // 6. Process Triggers: a remapped trigger no longer drives the analog value
@@ -300,6 +303,51 @@ public class MappingEngine
         result.RightTrigger = IsRemappedAway(layer, ControllerButton.RightTrigger) ? 0.0 : rawRightTrigger;
 
         return result;
+    }
+
+    /// <summary>Runs one stick through its deadzone and curve, then hands it to the virtual pad, the cursor, the wheel or the keys.</summary>
+    private static void ApplyStick(StickSettings settings, StickMode? layerMode, double rawX, double rawY,
+        HashSet<ControllerButton> pressedButtons, RemappedState result, bool left)
+    {
+        var mode = layerMode ?? settings.Mode;
+        var (x, y) = settings.TransformStick(rawX, rawY);
+        if (settings.InvertX) x = -x;
+        if (settings.InvertY) y = -y;
+
+        double precision = settings.PrecisionButton != ControllerButton.None && pressedButtons.Contains(settings.PrecisionButton)
+            ? Math.Clamp(settings.PrecisionFactor, 0.05, 1.0)
+            : 1.0;
+
+        switch (mode)
+        {
+            case StickMode.Mouse:
+                // Stick up is positive; the screen's y grows downward
+                result.MouseVelocityX += x * settings.MouseSpeed * precision;
+                result.MouseVelocityY += -y * settings.MouseSpeed * precision;
+                break;
+
+            case StickMode.Scroll:
+                result.ScrollVelocity += y * settings.ScrollSpeed * precision;
+                break;
+
+            case StickMode.Keys:
+                double t = Math.Clamp(settings.KeyThreshold, 0.1, 0.95);
+                AddKey(result, settings.KeyUp, y >= t);
+                AddKey(result, settings.KeyDown, y <= -t);
+                AddKey(result, settings.KeyLeft, x <= -t);
+                AddKey(result, settings.KeyRight, x >= t);
+                break;
+
+            default:
+                if (left) (result.LeftStickX, result.LeftStickY) = (x, y);
+                else (result.RightStickX, result.RightStickY) = (x, y);
+                break;
+        }
+    }
+
+    private static void AddKey(RemappedState result, string key, bool held)
+    {
+        if (held && !string.IsNullOrWhiteSpace(key)) result.ActiveKeyboardKeys.Add(key);
     }
 
     // ---- Layers ------------------------------------------------------------------------------------------------

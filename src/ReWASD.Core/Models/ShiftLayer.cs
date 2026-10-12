@@ -12,6 +12,12 @@ public class ShiftLayer
 
     public ShiftType Type { get; set; } = ShiftType.Hold;
 
+    /// <summary>While this layer is active the left stick works in this mode instead of the profile's. Null keeps the profile's.</summary>
+    public StickMode? LeftStickMode { get; set; }
+
+    /// <summary>While this layer is active the right stick works in this mode instead of the profile's. Null keeps the profile's.</summary>
+    public StickMode? RightStickMode { get; set; }
+
     public Dictionary<ControllerButton, ButtonMapping> Mappings { get; set; } = new();
 
     /// <summary>Keyboard keys used as sources, by key name (e.g. "W", "Space"). A mapping here suppresses the original key.</summary>
@@ -34,7 +40,9 @@ public class ShiftLayer
             LayerIndex = LayerIndex,
             Name = Name,
             ModifierButtons = ModifierButtons.ToList(),
-            Type = Type
+            Type = Type,
+            LeftStickMode = LeftStickMode,
+            RightStickMode = RightStickMode
         };
 
         foreach (var kvp in Mappings) layer.Mappings[kvp.Key] = kvp.Value.Clone();
