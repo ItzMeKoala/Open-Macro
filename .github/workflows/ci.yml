@@ -31,14 +31,22 @@ jobs:
           $exe = Get-ChildItem src/ReWASD.UI/bin/Release -Recurse -Filter ReWASD.UI.exe | Select-Object -First 1
           $p = Start-Process $exe.FullName -PassThru
           Start-Sleep -Seconds 10
-          if ($p.HasExited) { throw "ReWASD.UI.exe closed by itself (exit code $($p.ExitCode))" }
+          if ($p.HasExited) {
+            $log = Join-Path $env:APPDATA 'ReWASD-OpenSource\crash.log'
+            if (Test-Path $log) { Get-Content $log -Tail 60 }
+            throw "ReWASD.UI.exe closed by itself (exit code $($p.ExitCode))"
+          }
           Stop-Process -Id $p.Id -Force
 
           # And once more straight into the full-screen controller tester, which is only built when it is first shown
           $env:REWASD_START_TESTER = '1'
           $p = Start-Process $exe.FullName -PassThru
           Start-Sleep -Seconds 10
-          if ($p.HasExited) { throw "ReWASD.UI.exe closed by itself when opening the tester (exit code $($p.ExitCode))" }
+          if ($p.HasExited) {
+            $log = Join-Path $env:APPDATA 'ReWASD-OpenSource\crash.log'
+            if (Test-Path $log) { Get-Content $log -Tail 60 }
+            throw "ReWASD.UI.exe closed by itself when opening the tester (exit code $($p.ExitCode))"
+          }
           Stop-Process -Id $p.Id -Force
 
   package-macos:
