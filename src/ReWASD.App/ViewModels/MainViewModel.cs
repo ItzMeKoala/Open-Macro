@@ -6,6 +6,7 @@ using ReWASD.Core.Serialization;
 using ReWASD.Engine;
 using ReWASD.Engine.Actions;
 using ReWASD.UI.Profiles;
+using ReWASD.UI.Tester;
 using ReWASD.Engine.Foreground;
 using ReWASD.Engine.Scripting;
 using ReWASD.Engine.HidHide;
@@ -582,6 +583,97 @@ public partial class MainViewModel : ObservableObject
             stick.DeadzoneMax = value;
             stick.CalibrationText = $"Full push now counts from {value:P0}";
         }
+    }
+
+    // ---- Controller tester (the full-screen view) -------------------------------------------------------------------------
+
+    public TesterViewModel Tester { get; } = new();
+    private TesterSampler? _sampler;
+    private int _testerTicks;
+    private string _testerControllerName = "No controller";
+
+    /// <summary>The tester screen is showing (the window is full screen). While it is, the controller is read as fast as it reports.</summary>
+    [ObservableProperty]
+    private bool _isTesterMode;
+
+    partial void OnIsTesterModeChanged(bool value)
+    {
+        if (!_constructed) return;
+        _sampler ??= new TesterSampler(ReadPhysical, Tester.Model);
+
+        if (value)
+        {
+            _sampler.Start();
+            RefreshTester(force: true);
+        }
+        else
+        {
+            _sampler.Stop();
+            StopVibration();
+        }
+    }
+
+    // While remapping runs the pipeline owns the pad reader; otherwise read it here
+    private PhysicalState? ReadPhysical() => _pipeline.IsRunning ? _pipeline.LatestPhysical : _reader.Read();
+
+    private void RefreshTester(bool force = false)
+    {
+        // The name of the controller changes rarely, and asking for it is not free: about once a second
+        if (force || _testerTicks % 60 == 0)
+        {
+            try
+            {
+                int slot = _reader.ActiveUserIndex;
+                _testerControllerName = slot < 0 ? "No controller" : _reader.DescribeSlot(slot);
+            }
+            catch (Exception)
+            {
+                _testerControllerName = "Controller";
+            }
+        }
+
+        Tester.Refresh(Tester.Model.Snapshot(), _testerControllerName, SelectedProfile.LeftStick, SelectedProfile.RightStick);
+    }
+
+    [RelayCommand]
+    private void ResetTester() => Tester.Model.Reset();
+
+    [RelayCommand]
+    private void ResetTesterLeftStick() => Tester.Model.ResetStickMeasurements(left: true);
+
+    [RelayCommand]
+    private void ResetTesterRightStick() => Tester.Model.ResetStickMeasurements(left: false);
+
+    /// <summary>The platform can shake the controller (Windows XInput); elsewhere the vibration buttons are hidden.</summary>
+    public bool CanVibrate => Platform.SupportsRumble;
+
+    private int _vibrationToken;
+
+    private void Vibrate(double left, double right)
+    {
+        if (!CanVibrate) return;
+        int token = Interlocked.Increment(ref _vibrationToken);
+        try { _platform.Rumble.Rumble(left, right); }
+        catch (Exception) { return; }
+
+        // A test shake lasts a moment, never until somebody remembers to stop it
+        _ = Task.Delay(700).ContinueWith(_ =>
+        {
+            if (token == Volatile.Read(ref _vibrationToken)) StopVibration();
+        });
+    }
+
+    [RelayCommand] private void VibrateLeft() => Vibrate(1.0, 0);
+    [RelayCommand] private void VibrateRight() => Vibrate(0, 1.0);
+    [RelayCommand] private void VibrateBoth() => Vibrate(1.0, 1.0);
+
+    [RelayCommand]
+    private void StopVibration()
+    {
+        Interlocked.Increment(ref _vibrationToken);
+        if (!CanVibrate) return;
+        try { _platform.Rumble.Rumble(0, 0); }
+        catch (Exception) { /* nothing to stop */ }
     }
 
     // ---- Command wheel -------------------------------------------------------------------------------------------------
@@ -2391,8 +2483,9 @@ public partial class MainViewModel : ObservableObject
 
     private void OnLiveTick()
     {
-        // While remapping runs the pipeline owns the pad reader; otherwise read it here so the display still works
-        PhysicalState? phys = _pipeline.IsRunning ? _pipeline.LatestPhysical : _reader.Read();
+        // While remapping runs the pipeline owns the pad reader; otherwise read it here so the display still works.
+        // In the tester a faster thread does the reading and this just shows its newest result.
+        PhysicalState? phys = IsTesterMode && _sampler is { IsRunning: true } ? _sampler.Latest : ReadPhysical();
 
         // Plugging a controller in or out shows in the device bar straight away
         if ((phys != null) != _hadController)
@@ -2410,6 +2503,7 @@ public partial class MainViewModel : ObservableObject
         CountUsage(phys);
         UpdatePressedText(phys);
         FeedStickTuning(phys);
+        if (IsTesterMode && ++_testerTicks % 2 == 0) RefreshTester();
 
         foreach (var vm in ControllerButtons)
         {
@@ -2531,6 +2625,8 @@ public partial class MainViewModel : ObservableObject
     /// <summary>Stops polling and releases every held key and the virtual pad. Call when the window closes.</summary>
     public void Shutdown()
     {
+        _sampler?.Stop();
+        StopVibration();
         _stats.Save(StatsPath);
         _foregroundTimer?.Dispose();
         _foregroundTimer = null;

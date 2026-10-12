@@ -43,27 +43,41 @@ public sealed class MacGameController : IPhysicalController
 
     private IntPtr _activeController;
 
+    // The input loop, the live display and the tester can all ask for a reading; the Objective-C calls and the active-controller
+    // bookkeeping are not meant to run at the same time on several threads
+    private readonly object _sync = new();
+
     public IReadOnlyList<int> ConnectedSlots()
     {
         var slots = new List<int>();
-        using var scope = new PoolScope();
-        int count = ExtendedControllers().Count;
-        for (int i = 0; i < count; i++) slots.Add(i);
+        lock (_sync)
+        {
+            using var scope = new PoolScope();
+            int count = ExtendedControllers().Count;
+            for (int i = 0; i < count; i++) slots.Add(i);
+        }
         return slots;
     }
 
     public string DescribeSlot(int slot)
     {
-        using var scope = new PoolScope();
-        var controllers = ExtendedControllers();
-        if (slot < 0 || slot >= controllers.Count) return $"Controller {slot + 1}";
-        return ObjC.GetString(controllers[slot], "vendorName") ?? $"Controller {slot + 1}";
+        lock (_sync)
+        {
+            using var scope = new PoolScope();
+            var controllers = ExtendedControllers();
+            if (slot < 0 || slot >= controllers.Count) return $"Controller {slot + 1}";
+            return ObjC.GetString(controllers[slot], "vendorName") ?? $"Controller {slot + 1}";
+        }
     }
 
     public PhysicalState? Read()
     {
         if (!_available) return null;
+        lock (_sync) return ReadLocked();
+    }
 
+    private PhysicalState? ReadLocked()
+    {
         using var scope = new PoolScope();
         var controllers = ExtendedControllers();
         if (controllers.Count == 0)
