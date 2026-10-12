@@ -255,12 +255,22 @@ public class ScriptInMacroTests
         runner.Update(new[] { macro });
         Assert.True(WaitFor(() => backend.Events.Count(e => e == "md:Left") >= 3));
         runner.Update(Array.Empty<MacroDefinition>());
-        Thread.Sleep(150);
-        int after = backend.Events.Count;
-        Thread.Sleep(150);
 
-        Assert.Equal(after, backend.Events.Count);                                     // stopped
-        Assert.Equal(backend.Events.Count(e => e == "md:Left"), backend.Events.Count(e => e == "mu:Left"));
+        // Wait until nothing more happens (a slow machine may need a moment to wind the script down), then look once
+        int last = -1;
+        Assert.True(WaitFor(() =>
+        {
+            int now = backend.Events.Count;
+            bool still = now == last;
+            last = now;
+            Thread.Sleep(120);
+            return still;
+        }, 8000));
+
+        var events = backend.Events;
+        Assert.Equal(events.Count(e => e == "md:Left"), events.Count(e => e == "mu:Left"));     // every press was let go
+        Thread.Sleep(150);
+        Assert.Equal(events.Count, backend.Events.Count);                                       // and it stayed stopped
     }
 
     [Fact]

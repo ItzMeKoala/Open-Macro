@@ -87,7 +87,7 @@ jobs:
         run: |
           SHORT="${SHA:0:7}"
           gh release delete latest --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
-          gh release create latest --repo "$GITHUB_REPOSITORY" --target "$SHA" --prerelease \
+          gh release create latest --repo "$GITHUB_REPOSITORY" --target "$SHA" --latest \
             --title "Latest build ($SHORT)" \
             --notes "commit: $SHA
 
