@@ -44,7 +44,10 @@ public enum MacroActionType
     Obs,
 
     /// <summary>Types text as key presses. Value = the text.</summary>
-    TypeText
+    TypeText,
+
+    /// <summary>Runs a JavaScript program. Value = the code.</summary>
+    Script
 }
 
 public enum MacroRepeatMode
@@ -77,7 +80,7 @@ public class MacroStep
     /// <summary>Actions whose value is free text (it may contain colons and semicolons) rather than a name.</summary>
     public static bool TakesText(MacroActionType action) =>
         action is MacroActionType.OpenUrl or MacroActionType.LaunchApp or MacroActionType.Shell
-            or MacroActionType.Webhook or MacroActionType.Obs or MacroActionType.TypeText;
+            or MacroActionType.Webhook or MacroActionType.Obs or MacroActionType.TypeText or MacroActionType.Script;
 
     public override string ToString() => Action switch
     {
@@ -112,6 +115,17 @@ public class MacroDefinition
     {
         RepeatMode = RepeatMode,
         Steps = Steps.Select(s => s.Clone()).ToList()
+    };
+
+    /// <summary>The code, if this macro is just one script (what the Script editor makes), otherwise null.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? SingleScript => Steps.Count == 1 && Steps[0].Action == MacroActionType.Script ? Steps[0].Value : null;
+
+    /// <summary>A macro that runs one script.</summary>
+    public static MacroDefinition FromScript(string code, MacroRepeatMode repeat = MacroRepeatMode.Once) => new()
+    {
+        RepeatMode = repeat,
+        Steps = { new MacroStep { Action = MacroActionType.Script, Value = code } }
     };
 
     /// <summary>Whether a step undoes an earlier press (or is just waiting), i.e. it is not needed to keep inputs held.</summary>

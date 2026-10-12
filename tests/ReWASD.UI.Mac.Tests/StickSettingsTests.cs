@@ -126,3 +126,88 @@ public class MacroEditorTests
         Directory.Delete(dir, true);
     }
 }
+
+public class ScriptEditorTests
+{
+    private static MainViewModel New() => new(Fakes.Platform(PlatformServices.MacOSInfo), new Fakes.Ui(), Fakes.TempProfiles());
+
+    [Fact]
+    public void EveryExample_IsAProgramTheAppAccepts()
+    {
+        var vm = New();
+        Assert.NotEmpty(vm.ScriptExamples);
+        foreach (var example in vm.ScriptExamples)
+            Assert.True(ReWASD.Engine.Scripting.JintScriptRunner.TryValidate(example.Code, out var error), $"{example.Label}: {error}");
+    }
+
+    private static void Select(MainViewModel vm, ControllerButton button) =>
+        vm.SelectButton(vm.ControllerButtons.First(b => b.Button == button));
+
+    [Fact]
+    public void ASavedScript_IsShownAgainAsAScript()
+    {
+        var vm = New();
+        Select(vm, ControllerButton.A);
+        vm.TargetMode = TargetMode.Script;
+        vm.ScriptCode = "press('Space');\nclick();";
+        vm.SelectedMacroRepeat = MacroRepeatMode.WhileHeld;
+
+        vm.SaveCurrentMappingCommand.Execute(null);
+
+        var saved = vm.SelectedProfile.ShiftLayers[0].Mappings[ControllerButton.A].Target;
+        Assert.Equal(TargetType.Macro, saved.Type);
+        Assert.Equal("press('Space');\nclick();", saved.Macro!.SingleScript);
+        Assert.Equal(MacroRepeatMode.WhileHeld, saved.Macro.RepeatMode);
+
+        Select(vm, ControllerButton.B);
+        Select(vm, ControllerButton.A);
+        Assert.Equal(TargetMode.Script, vm.TargetMode);
+        Assert.True(vm.IsScriptMode);
+        Assert.Equal("press('Space');\nclick();", vm.ScriptCode);
+        Assert.Equal("", vm.MacroScript);
+    }
+
+    [Fact]
+    public void AScriptWithASyntaxError_IsNotSaved_AndSaysWhy()
+    {
+        var vm = New();
+        Select(vm, ControllerButton.A);
+        var before = vm.SelectedProfile.ShiftLayers[0].Mappings[ControllerButton.A].Target.Type;
+        vm.TargetMode = TargetMode.Script;
+        vm.ScriptCode = "press('A'";
+
+        vm.SaveCurrentMappingCommand.Execute(null);
+
+        Assert.StartsWith("Script error", vm.ScriptError);
+        Assert.Equal(before, vm.SelectedProfile.ShiftLayers[0].Mappings[ControllerButton.A].Target.Type);
+        Assert.Contains("not saved", vm.StatusMessage);
+    }
+
+    [Fact]
+    public void MacrosAndScripts_StayApart()
+    {
+        var vm = New();
+        Select(vm, ControllerButton.A);
+        vm.TargetMode = TargetMode.Macro;
+        vm.MacroScript = "KeyTap:B; Delay:20";
+        vm.SaveCurrentMappingCommand.Execute(null);
+
+        Select(vm, ControllerButton.X);
+        Select(vm, ControllerButton.A);
+
+        Assert.Equal(TargetMode.Macro, vm.TargetMode);
+        Assert.Equal("KeyTap:B; Delay:20", vm.MacroScript);
+        Assert.Equal("", vm.ScriptCode);
+    }
+
+    [Fact]
+    public void AnExample_FillsTheEditor()
+    {
+        var vm = New();
+        vm.TargetMode = TargetMode.Script;
+
+        vm.UseScriptExampleCommand.Execute(vm.ScriptExamples[1]);
+
+        Assert.Equal(vm.ScriptExamples[1].Code, vm.ScriptCode);
+    }
+}

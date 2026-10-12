@@ -1,5 +1,7 @@
 using ReWASD.Core.Models;
 using ReWASD.Engine.Actions;
+using ReWASD.Engine.Foreground;
+using ReWASD.Engine.Scripting;
 
 namespace ReWASD.Engine.Input;
 
@@ -17,17 +19,25 @@ public sealed class MacroRunner : IDisposable
     private readonly IPadOutput? _pad;
     private readonly IRumbleOutput? _rumble;
     private readonly ISystemActions? _system;
+    private readonly IScriptRunner? _scripts;
+    private readonly Func<ForegroundApp?>? _foreground;
     private readonly object _gate = new();
     private readonly Dictionary<MacroDefinition, CancellationTokenSource> _running = new();
     private HashSet<MacroDefinition> _previouslyHeld = new();
 
-    public MacroRunner(IInputBackend backend, IPadOutput? pad = null, IRumbleOutput? rumble = null, ISystemActions? system = null)
+    public MacroRunner(IInputBackend backend, IPadOutput? pad = null, IRumbleOutput? rumble = null, ISystemActions? system = null,
+        IScriptRunner? scripts = null, Func<ForegroundApp?>? foreground = null)
     {
         _backend = backend;
         _pad = pad;
         _rumble = rumble;
         _system = system;
+        _scripts = scripts;
+        _foreground = foreground;
     }
+
+    /// <summary>Raised when a script calls notify(), so the app can show the message.</summary>
+    public event Action<string>? ScriptMessage;
 
     /// <summary>Raised when a macro step that talks to the outside world fails (no network, OBS not running...), so the app can say so.</summary>
     public event Action<string>? ActionFailed;
@@ -256,6 +266,15 @@ public sealed class MacroRunner : IDisposable
                 await TypeTextAsync(step.Value, token);
                 break;
 
+            case MacroActionType.Script:
+                if (_scripts != null)
+                {
+                    // Scripts are plain blocking code (delay() waits), so they run on their own thread
+                    var env = new ScriptEnvironment(this, s, token);
+                    await GuardAsync("Script", () => Task.Run(() => _scripts.Run(step.Value, env, token), token), token);
+                }
+                break;
+
             case MacroActionType.Rumble:
                 if (_rumble != null && MacroDefinition.TryParseRumble(step.Value, out double left, out double right))
                 {
@@ -272,6 +291,146 @@ public sealed class MacroRunner : IDisposable
         }
 
         return false;
+    }
+
+    /// <summary>What a script can do, tied to one macro run so that anything it leaves held is let go when the run ends.</summary>
+    private sealed class ScriptEnvironment : IScriptEnvironment
+    {
+        private readonly MacroRunner _r;
+        private readonly RunState _s;
+        private readonly CancellationToken _token;
+
+        public ScriptEnvironment(MacroRunner runner, RunState state, CancellationToken token)
+        {
+            _r = runner;
+            _s = state;
+            _token = token;
+        }
+
+        private void Pause(int ms)
+        {
+            if (_token.WaitHandle.WaitOne(ms)) throw new OperationCanceledException(_token);
+        }
+
+        public void Delay(int milliseconds) => Pause(milliseconds);
+
+        public void KeyDown(string key)
+        {
+            if (!KeyMap.TryGetVirtualKey(key, out var vk)) throw new ArgumentException($"'{key}' is not a key name");
+            lock (_s) { if (_s.Keys.Add(vk)) _r._backend.KeyDown(vk); }
+        }
+
+        public void KeyUp(string key)
+        {
+            if (!KeyMap.TryGetVirtualKey(key, out var vk)) throw new ArgumentException($"'{key}' is not a key name");
+            lock (_s) { if (_s.Keys.Remove(vk)) _r._backend.KeyUp(vk); }
+        }
+
+        public void KeyTap(string key)
+        {
+            KeyDown(key);
+            Pause(TapHoldMs);
+            KeyUp(key);
+        }
+
+        private MouseButtonKind Button(string name)
+        {
+            if (KeyMap.TryResolveMouse(name, out var button, out _) && button is { } b) return b;
+            throw new ArgumentException($"'{name}' is not a mouse button (left, right, middle)");
+        }
+
+        public void MouseDown(string button)
+        {
+            var b = Button(button);
+            lock (_s) { if (_s.Buttons.Add(b)) _r._backend.MouseDown(b); }
+        }
+
+        public void MouseUp(string button)
+        {
+            var b = Button(button);
+            lock (_s) { if (_s.Buttons.Remove(b)) _r._backend.MouseUp(b); }
+        }
+
+        public void MouseClick(string button)
+        {
+            MouseDown(button);
+            Pause(TapHoldMs);
+            MouseUp(button);
+        }
+
+        public void Scroll(double notches)
+        {
+            int amount = (int)Math.Round(notches * KeyMap.WheelNotch);
+            if (amount != 0) _r._backend.MouseWheel(amount);
+        }
+
+        public void MoveMouse(int dx, int dy)
+        {
+            if (dx != 0 || dy != 0) _r._backend.MouseMove(dx, dy);
+        }
+
+        public void TypeText(string text)
+        {
+            foreach (char c in text)
+            {
+                if (!KeyMap.TryGetTypedKey(c, out ushort vk, out bool shift)) continue;
+                if (shift) _r._backend.KeyDown(0xA0);
+                _r._backend.KeyDown(vk);
+                try { Pause(TypeKeyMs); }
+                finally
+                {
+                    _r._backend.KeyUp(vk);
+                    if (shift) _r._backend.KeyUp(0xA0);
+                }
+            }
+        }
+
+        private ControllerButton PadButton(string name)
+        {
+            if (ComboMapping.Names.TryParse(name, out var list, out _) && list.Count == 1) return list[0];
+            throw new ArgumentException($"'{name}' is not a gamepad button");
+        }
+
+        public void PadDown(string button)
+        {
+            var b = PadButton(button);
+            lock (_s) { if (_s.PadButtons.Add(b)) _r._pad?.SetButton(b, true); }
+        }
+
+        public void PadUp(string button)
+        {
+            var b = PadButton(button);
+            lock (_s) { if (_s.PadButtons.Remove(b)) _r._pad?.SetButton(b, false); }
+        }
+
+        public void PadTap(string button)
+        {
+            PadDown(button);
+            Pause(TapHoldMs);
+            PadUp(button);
+        }
+
+        public void RunShell(string command) => _r._system?.RunShell(command);
+        public void OpenUrl(string url) => _r._system?.OpenUrl(url);
+        public void LaunchApp(string appOrPath) => _r._system?.LaunchApp(appOrPath);
+
+        public void Webhook(WebhookRequest request)
+        {
+            if (_r._system != null) _r._system.SendWebhookAsync(request, _token).GetAwaiter().GetResult();
+        }
+
+        public void Obs(ObsRequest request)
+        {
+            if (_r._system != null) _r._system.SendObsAsync(request, _token).GetAwaiter().GetResult();
+        }
+
+        public void Notify(string message) => _r.ScriptMessage?.Invoke(message);
+
+        public ForegroundApp? CurrentApp()
+        {
+            try { return _r._foreground?.Invoke(); }
+            catch (Exception) { return null; }
+        }
     }
 
     // A network call that fails is reported and the macro goes on; cancelling the macro still cancels the call

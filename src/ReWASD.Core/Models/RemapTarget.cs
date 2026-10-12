@@ -44,7 +44,7 @@ public class RemapTarget
         TargetType.KeyboardKey => !string.IsNullOrEmpty(KeyboardKey) ? $"Key: {KeyboardKey}" : "Unassigned",
         TargetType.MouseButton => !string.IsNullOrEmpty(MouseButton) ? $"Mouse: {MouseButton}" : "Unassigned",
         TargetType.MouseScroll => ScrollDelta >= 0 ? "Scroll Up" : "Scroll Down",
-        TargetType.Macro => Macro is { Steps.Count: > 0 } ? $"Macro ({Macro.Steps.Count} steps)" : "Unassigned",
+        TargetType.Macro => Macro?.SingleScript != null ? "Script" : Macro is { Steps.Count: > 0 } ? $"Macro ({Macro.Steps.Count} steps)" : "Unassigned",
         TargetType.JumpToLayer => Layer == 0 ? "Layer: Main" : $"Layer: Shift {Layer}",
         _ => "Unassigned"
     };

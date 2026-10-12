@@ -22,6 +22,13 @@ public static class ProfileSafety
         return found;
     }
 
+    // A script can be long: show its first line
+    private static string Shorten(string value)
+    {
+        string line = value.Split('\n')[0].Trim();
+        return value.Contains('\n') || line.Length > 80 ? line[..Math.Min(line.Length, 80)] + " …" : line;
+    }
+
     private static void Scan(ButtonMapping mapping, string source, List<string> found)
     {
         foreach (var binding in mapping.AllBindings())
@@ -37,9 +44,10 @@ public static class ProfileSafety
                     MacroActionType.Webhook => "Sends a web request",
                     MacroActionType.Obs => "Controls OBS",
                     MacroActionType.OpenUrl => "Opens a web page",
+                    MacroActionType.Script => "Runs a script that can do anything above",
                     _ => null
                 };
-                if (what != null) found.Add($"{what}: {step.Value} (on {source})");
+                if (what != null) found.Add($"{what}: {Shorten(step.Value)} (on {source})");
             }
         }
     }

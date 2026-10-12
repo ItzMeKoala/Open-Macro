@@ -87,11 +87,13 @@
 
                 <!-- What it does: remap to something, or run a macro -->
                 <TextBlock Text="DO" Style="{StaticResource SectionLabel}" />
-                <UniformGrid Columns="2">
+                <UniformGrid Columns="3">
                     <RadioButton Content="Remap" Style="{StaticResource ShiftTabButtonStyle}"
                                  IsChecked="{Binding TargetMode, Converter={StaticResource EnumToBool}, ConverterParameter=Remap}" />
                     <RadioButton Content="Macro" Style="{StaticResource ShiftTabButtonStyle}"
                                  IsChecked="{Binding TargetMode, Converter={StaticResource EnumToBool}, ConverterParameter=Macro}" />
+                    <RadioButton Content="Script" Style="{StaticResource ShiftTabButtonStyle}" ToolTip="Write a small JavaScript program for this input"
+                                 IsChecked="{Binding TargetMode, Converter={StaticResource EnumToBool}, ConverterParameter=Script}" />
                 </UniformGrid>
 
                 <!-- Remap: one dropdown with every choice -->
@@ -114,6 +116,39 @@
                                 </GroupStyle.HeaderTemplate>
                             </GroupStyle>
                         </ComboBox.GroupStyle>
+                    </ComboBox>
+                </StackPanel>
+
+                <!-- Script: a small JavaScript program -->
+                <StackPanel Margin="0,12,0,0" Visibility="{Binding IsScriptMode, Converter={StaticResource BoolToVisibility}}">
+                    <TextBox Text="{Binding ScriptCode, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap" MinHeight="150" MaxHeight="260"
+                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                             Background="{StaticResource BrushBgCard}" Foreground="{StaticResource BrushTextPrimary}"
+                             BorderBrush="{StaticResource BrushBorder}" Padding="8,6" FontFamily="Consolas" FontSize="12"
+                             ToolTip="press('A'); hold('W'); click(); type('hi'); delay(100); shell('...'); openURL('...'); webhook('POST', url, body); obs('StartRecord'); notify('...'); app.name; state.x" />
+                    <TextBlock Text="{Binding ScriptError}" Foreground="#FF6B6B" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0" />
+                    <TextBlock Text="Examples" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" Margin="0,8,0,4" />
+                    <ItemsControl ItemsSource="{Binding ScriptExamples}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Content="{Binding Label}" Style="{StaticResource SecondaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,6,6"
+                                        Command="{Binding DataContext.UseScriptExampleCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="Functions: press, hold, release, click, mouseDown, mouseUp, scroll, moveMouse, type, delay, shell, openURL, openApp, webhook, obs, padPress, padHold, padRelease, notify. Objects: app (name, id, is), state (kept between runs)." Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" />
+                    <TextBlock Text="Repeat" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" Margin="0,10,0,6" />
+                    <ComboBox ItemsSource="{Binding AvailableMacroRepeatModes}" SelectedItem="{Binding SelectedMacroRepeat}" Padding="8,5">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={StaticResource RepeatLabel}}" Foreground="{StaticResource BrushTextPrimary}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
                     </ComboBox>
                 </StackPanel>
 

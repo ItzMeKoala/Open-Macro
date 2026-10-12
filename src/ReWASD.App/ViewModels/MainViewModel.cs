@@ -7,6 +7,7 @@ using ReWASD.Engine;
 using ReWASD.Engine.Actions;
 using ReWASD.UI.Profiles;
 using ReWASD.Engine.Foreground;
+using ReWASD.Engine.Scripting;
 using ReWASD.Engine.HidHide;
 using ReWASD.Engine.Input;
 using ReWASD.Engine.Platform;
@@ -28,7 +29,8 @@ public enum AppPage
 public enum TargetMode
 {
     Remap,
-    Macro
+    Macro,
+    Script
 }
 
 /// <summary>Which kind of input is being mapped: the controller, the keyboard or the mouse.</summary>
@@ -343,7 +345,8 @@ public partial class MainViewModel : ObservableObject
         _virtualService.Initialize();
         _injector = new KeyboardMouseInjector(_inputBackend);
         _macroPad = new MacroPadState();
-        _macros = new MacroRunner(_inputBackend, _macroPad, platform.Rumble, actions ?? new NullSystemActions());
+        _macros = new MacroRunner(_inputBackend, _macroPad, platform.Rumble, actions ?? new NullSystemActions(), new JintScriptRunner(), platform.Foreground);
+        _macros.ScriptMessage += message => _ui.Post(() => StatusMessage = message);
         _macros.ActionFailed += message => _ui.Post(() => StatusMessage = message);
         _hook = platform.CreateHook(_mappingEngine.IsKeySuppressed, _mappingEngine.IsMouseSuppressed);
         _hook.PanicRequested += OnPanicRequested;
@@ -922,6 +925,12 @@ public partial class MainViewModel : ObservableObject
         "Steps are separated by semicolons. Keys and mouse: KeyDown / KeyUp / KeyTap:W, MouseClick:Left Click, Wheel:1, MouseMove:up:20, Delay:100. " +
         "Outside the keyboard: OpenUrl:https://..., LaunchApp:Safari, Shell:command, TypeText:hello, " +
         "Webhook:POST https://... {json body}, Obs:Scene Name (or Obs:record, Obs:stream, Obs:mute Mic). Write \\; for a semicolon inside text.";
+
+    [RelayCommand]
+    private void UseScriptExample(ScriptExample? example)
+    {
+        if (example != null) ScriptCode = example.Code;
+    }
 
     [RelayCommand]
     private void AddMacroStep(MacroStepTemplate? template)
@@ -1518,9 +1527,30 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsMacroMode))]
     [NotifyPropertyChangedFor(nameof(IsRemapMode))]
+    [NotifyPropertyChangedFor(nameof(IsScriptMode))]
     private TargetMode _targetMode = TargetMode.Remap;
 
     public bool IsMacroMode => TargetMode == TargetMode.Macro;
+    public bool IsScriptMode => TargetMode == TargetMode.Script;
+
+    /// <summary>The JavaScript of the Script editor.</summary>
+    [ObservableProperty]
+    private string _scriptCode = string.Empty;
+
+    [ObservableProperty]
+    private string _scriptError = string.Empty;
+
+    public sealed record ScriptExample(string Label, string Code);
+
+    public IReadOnlyList<ScriptExample> ScriptExamples { get; } = new ScriptExample[]
+    {
+        new("Rapid click", "// Use with Repeat while held: clicks as fast as you like while the button is down\nclick();\ndelay(40);"),
+        new("Type a line", "type('Hello from my controller!');\npress('Enter');"),
+        new("Count presses", "// state keeps its values between presses\nstate.count = (state.count || 0) + 1;\nnotify('Pressed ' + state.count + ' times');"),
+        new("Only in one app", "if (app.is('chrome') || app.is('Safari')) {\n  press('F5');       // refresh the page\n} else {\n  notify('Not in a browser (' + app.name + ')');\n}"),
+        new("Open and wait", "openURL('https://example.com');\ndelay(1500);\npress('F11');"),
+        new("Ping a server", "webhook('POST', 'https://example.com/hook', { pressed: true, app: app.name });"),
+    };
     public bool IsRemapMode => TargetMode == TargetMode.Remap;
 
     private void BuildRemapOptions()
@@ -1602,7 +1632,7 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnSelectedRemapOptionChanged(RemapOption? value)
     {
-        if (_syncingOption || value == null || IsMacroMode) return;
+        if (_syncingOption || value == null || IsMacroMode || IsScriptMode) return;
         ApplyOption(value);
     }
 
@@ -1610,7 +1640,7 @@ public partial class MainViewModel : ObservableObject
     {
         if (_syncingOption) return;
 
-        if (value == TargetMode.Macro) SelectedTargetType = TargetType.Macro;
+        if (value == TargetMode.Macro || value == TargetMode.Script) SelectedTargetType = TargetType.Macro;
         else if (SelectedRemapOption != null) ApplyOption(SelectedRemapOption);
     }
 
@@ -1702,7 +1732,10 @@ public partial class MainViewModel : ObservableObject
         SelectedMouseButton = !string.IsNullOrEmpty(target.MouseButton) ? target.MouseButton : "Left Click";
         SelectedScrollDirection = target.ScrollDelta < 0 ? ScrollDownLabel : ScrollUpLabel;
         SelectedJumpLayer = target.Layer;
-        MacroScript = target.Macro?.ToScript() ?? string.Empty;
+        bool isScript = target.Macro?.SingleScript != null;
+        MacroScript = isScript ? string.Empty : target.Macro?.ToScript() ?? string.Empty;
+        ScriptCode = target.Macro?.SingleScript ?? string.Empty;
+        ScriptError = string.Empty;
         SelectedMacroRepeat = target.Macro?.RepeatMode ?? MacroRepeatMode.Once;
         MacroError = string.Empty;
         SelectedMode = binding?.Mode ?? MappingMode.Normal;
@@ -1714,7 +1747,7 @@ public partial class MainViewModel : ObservableObject
         try
         {
             SelectedRemapOption = FindOption(target.Type == TargetType.Macro ? DefaultTarget(button) : target) ?? RemapOptions[0];
-            TargetMode = target.Type == TargetType.Macro ? TargetMode.Macro : TargetMode.Remap;
+            TargetMode = target.Type == TargetType.Macro ? (isScript ? TargetMode.Script : TargetMode.Macro) : TargetMode.Remap;
         }
         finally
         {
@@ -1754,7 +1787,18 @@ public partial class MainViewModel : ObservableObject
         var source = SelectedButton;
 
         MacroDefinition? macro = null;
-        if (SelectedTargetType == TargetType.Macro)
+        ScriptError = string.Empty;
+        if (SelectedTargetType == TargetType.Macro && IsScriptMode)
+        {
+            if (!JintScriptRunner.TryValidate(ScriptCode, out var scriptProblem))
+            {
+                ScriptError = scriptProblem;
+                StatusMessage = $"Script not saved: {scriptProblem}";
+                return;
+            }
+            macro = MacroDefinition.FromScript(ScriptCode.Trim(), SelectedMacroRepeat);
+        }
+        else if (SelectedTargetType == TargetType.Macro)
         {
             if (!MacroDefinition.TryParseScript(MacroScript, SelectedMacroRepeat, out var parsed, out var error))
             {
