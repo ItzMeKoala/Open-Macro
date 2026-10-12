@@ -359,6 +359,14 @@ public sealed class ArtView : Decorator
         RequestFrame();
     }
 
+    /// <summary>The key of the part at a point given in drawing units, or null (for tests).</summary>
+    internal string? KeyAt(double x, double y)
+    {
+        if (_viewbox.Child is not Visual root) return null;
+        var point = root.TranslatePoint(new Point(x, y), this);
+        return point is { } p ? PartAt(p)?.Part.Key : null;
+    }
+
     /// <summary>The part under a point (in this control's coordinates), or null for the body and empty space.</summary>
     private PartVisual? PartAt(Point point)
     {

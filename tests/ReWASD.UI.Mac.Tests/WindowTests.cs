@@ -81,23 +81,21 @@ public class WindowTests
 
             void Click(double x, double y)
             {
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();          // lay out anything the last click changed first
                 var point = Avalonia.VisualExtensions.TranslatePoint(root, new Avalonia.Point(x, y), window)!.Value;
                 window.MouseDown(point, Avalonia.Input.MouseButton.Left);
                 window.MouseUp(point, Avalonia.Input.MouseButton.Left);
             }
 
-            var forward = ReWASD.Core.Skins.Art.MouseArt.ThumbButton(forward: true);
-            var back = ReWASD.Core.Skins.Art.MouseArt.ThumbButton(forward: false);
-            foreach (var (name, x, y) in new[]
+            // The middle of each button's own clickable area, read from the drawing
+            var scene = ReWASD.Core.Skins.Art.ArtLibrary.Mouse;
+            foreach (var name in new[] { "Left Click", "Right Click", "Wheel Up", "Middle Click", "Wheel Down", "Mouse Button 5", "Mouse Button 4" })
             {
-                ("Left Click", 210.0, 240.0), ("Right Click", 390.0, 240.0),
-                ("Wheel Up", 300.0, 170.0), ("Middle Click", 300.0, 228.0), ("Wheel Down", 300.0, 290.0),
-                ("Mouse Button 5", forward.X + forward.W / 2, forward.Y + forward.H / 2),
-                ("Mouse Button 4", back.X + back.W / 2, back.Y + back.H / 2)
-            })
-            {
+                var b = scene.PartForKey(name)!.HitBounds;
+                double x = b.CenterX, y = b.CenterY;
+                if (name is "Left Click" or "Right Click") { x = name == "Left Click" ? 210 : 390; y = 240; }     // the buttons are not boxes
                 Click(x, y);
-                Assert.Equal(name, vm.SelectedButton!.SourceName);
+                Assert.True(name == vm.SelectedButton!.SourceName, $"Clicking {name} at ({x}, {y}) selected {vm.SelectedButton.SourceName}; part there: {view.KeyAt(x, y) ?? "none"}");
             }
 
             Click(300, 650); // the palm: not a button
