@@ -224,10 +224,14 @@ public class KeyboardArtViewTests
             Assert.Equal(name, view.KeyAt(at));
         }
 
-        // The case, and a key that cannot be remapped, are not keys
-        var caps = KeyboardArt.Keys.First(k => k.Legend == "Caps Lock");
-        var capsRect = KeyboardArt.CapOf(caps);
-        Assert.Null(view.KeyAt(root.TransformToAncestor(view).Transform(new Point(capsRect.CenterX, capsRect.CenterY))));
+        // Caps Lock and the punctuation are keys on Windows; the case, and Fn (which no app sees), are not
+        foreach (var legend in new[] { "Caps Lock", ";", "/" })
+        {
+            var r = KeyboardArt.CapOf(KeyboardArt.Keys.First(k => k.Legend == legend));
+            Assert.NotNull(view.KeyAt(root.TransformToAncestor(view).Transform(new Point(r.CenterX, r.CenterY))));
+        }
+        var fn = KeyboardArt.CapOf(KeyboardArt.Keys.First(k => k.Legend == "Fn"));
+        Assert.Null(view.KeyAt(root.TransformToAncestor(view).Transform(new Point(fn.CenterX, fn.CenterY))));
         Assert.Null(view.KeyAt(root.TransformToAncestor(view).Transform(new Point(10, 10))));
     });
 }
