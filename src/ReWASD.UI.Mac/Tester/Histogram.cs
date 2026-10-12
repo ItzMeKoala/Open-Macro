@@ -70,12 +70,7 @@ public sealed class Histogram : Control
         }
 
         var color = Color.Parse(BarColor);
-        var fill = new LinearGradientBrush
-        {
-            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
-            EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
-            GradientStops = { new GradientStop(color, 0), new GradientStop(Color.FromArgb(0x70, color.R, color.G, color.B), 1) }
-        };
+        var fill = new SolidColorBrush(color);
         double slot = (w - 8) / data.Length;
         double barWidth = Math.Max(1.5, slot * 0.72);
         for (int i = 0; i < data.Length; i++)

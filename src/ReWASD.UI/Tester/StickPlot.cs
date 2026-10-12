@@ -32,9 +32,7 @@ public sealed class StickPlot : FrameworkElement
         return pen;
     }
 
-    private static readonly Brush Face = Frozen(new RadialGradientBrush(
-        new GradientStopCollection { new GradientStop((Color)ColorConverter.ConvertFromString("#232833"), 0), new GradientStop((Color)ColorConverter.ConvertFromString("#12151B"), 1) })
-        { Center = new Point(0.5, 0.5), GradientOrigin = new Point(0.5, 0.42), RadiusX = 0.5, RadiusY = 0.5 });
+    private static readonly Brush Face = B("#15181E");
     private static readonly Pen Rim = P("#5A6070", 1.8);
     private static readonly Pen Tick = P("#3E4452", 1);
     private static readonly Pen TickMajor = P("#6A7184", 1.6);
@@ -46,13 +44,9 @@ public sealed class StickPlot : FrameworkElement
     private static readonly Pen OuterRing = P("#5BC0EB", 1.2, new DashStyle(new double[] { 3, 3 }, 0));
     private static readonly Brush ShapeFill = B("#2EE9C46A");
     private static readonly Pen ShapeEdge = P("#E9C46A", 2.2);
-    private static readonly Pen ShapeGlow = P("#40E9C46A", 7);
     private static readonly Brush Dot = B("#2EF2A0");
     private static readonly Pen DotRing = P("#0B2E1B", 2);
-    private static readonly Pen DotHalo = P("#FFFFFF", 1.6);
     private static readonly Pen Lead = P("#802EF2A0", 1.5);
-    private static readonly Brush Glow = Frozen(new RadialGradientBrush(
-        new GradientStopCollection { new GradientStop((Color)ColorConverter.ConvertFromString("#802EF2A0"), 0), new GradientStop((Color)ColorConverter.ConvertFromString("#002EF2A0"), 1) }));
 
     private static Brush Frozen(Brush brush)
     {
@@ -116,8 +110,7 @@ public sealed class StickPlot : FrameworkElement
             for (int i = 1; i < shape.Count; i++) figure.Segments.Add(new LineSegment(shape[i], true));
             var geometry = new PathGeometry();
             geometry.Figures.Add(figure);
-            context.DrawGeometry(full ? ShapeFill : null, ShapeGlow, geometry);
-            context.DrawGeometry(null, ShapeEdge, geometry);
+            context.DrawGeometry(full ? ShapeFill : null, ShapeEdge, geometry);
         }
 
         // The path just taken, fading with age
@@ -126,7 +119,6 @@ public sealed class StickPlot : FrameworkElement
             double f = (double)i / s.Trail.Length;
             var a = ToScreen(s.Trail[i - 1], centre, r);
             var b = ToScreen(s.Trail[i], centre, r);
-            context.DrawLine(FadePen((byte)(20 + 60 * f), 5 * f + 1), a, b);
             context.DrawLine(FadePen((byte)(40 + 190 * f), 1.6), a, b);
         }
 
@@ -138,9 +130,7 @@ public sealed class StickPlot : FrameworkElement
             context.DrawLine(Guide, new Point(now.X, centre.Y - r), new Point(now.X, centre.Y + r));
         }
         context.DrawLine(Lead, centre, now);
-        context.DrawEllipse(Glow, null, now, 24, 24);
         context.DrawEllipse(Dot, DotRing, now, 7.5, 7.5);
-        context.DrawEllipse(null, DotHalo, now, 10.5, 10.5);
     }
 
     private static Pen FadePen(byte alpha, double width)

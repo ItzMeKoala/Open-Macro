@@ -51,17 +51,11 @@
             <Setter Property="LetterSpacing" Value="1" />
         </Style>
         <Style Selector="Border.tile">
-            <Setter Property="BorderBrush" Value="#2A303C" />
+            <Setter Property="BorderBrush" Value="#262B35" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="18" />
-            <Setter Property="BoxShadow" Value="0 12 32 0 #66000000" />
-            <Setter Property="Background">
-                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
-                    <GradientStop Color="#1B1F28" Offset="0" />
-                    <GradientStop Color="#13161D" Offset="1" />
-                </LinearGradientBrush>
-            </Setter>
+            <Setter Property="Background" Value="#171A21" />
         </Style>
         <Style Selector="Button.chip">
             <Setter Property="Padding" Value="11,5" />
@@ -91,13 +85,7 @@
         </Style>
         <Style Selector="ProgressBar.pressure">
             <Setter Property="Height" Value="14" />
-            <Setter Property="Foreground">
-                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
-                    <GradientStop Color="#2EC4B6" Offset="0" />
-                    <GradientStop Color="#E9C46A" Offset="0.7" />
-                    <GradientStop Color="#FF6B6B" Offset="1" />
-                </LinearGradientBrush>
-            </Setter>
+            <Setter Property="Foreground" Value="{StaticResource BrushCyan}" />
             <Setter Property="Background" Value="#10131A" />
             <Setter Property="CornerRadius" Value="7" />
         </Style>
@@ -134,31 +122,13 @@
         <Style Selector="Border.react.done"><Setter Property="Background" Value="#1F3A5A" /></Style>
     </UserControl.Styles>
 
-    <Grid RowDefinitions="Auto,*">
-        <Grid.Background>
-            <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
-                <GradientStop Color="#090B0F" Offset="0" />
-                <GradientStop Color="#10131A" Offset="1" />
-            </LinearGradientBrush>
-        </Grid.Background>
+    <Grid RowDefinitions="Auto,*" Background="#0E1015">
 
         <!-- Title bar of the tester -->
-        <Border Grid.Row="0" Padding="28,14" BorderBrush="#262B36" BorderThickness="0,0,0,1">
-            <Border.Background>
-                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
-                    <GradientStop Color="#1C202A" Offset="0" />
-                    <GradientStop Color="#12151C" Offset="1" />
-                </LinearGradientBrush>
-            </Border.Background>
+        <Border Grid.Row="0" Padding="28,14" BorderBrush="#262B35" BorderThickness="0,0,0,1" Background="#14171D">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
-                    <Border Width="42" Height="42" CornerRadius="12" BoxShadow="0 0 22 0 #55E9C46A">
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-                                <GradientStop Color="#F2D68F" Offset="0" />
-                                <GradientStop Color="#C79A3A" Offset="1" />
-                            </LinearGradientBrush>
-                        </Border.Background>
+                    <Border Width="40" Height="40" CornerRadius="10" Background="{StaticResource BrushCyan}">
                         <PathIcon Data="{StaticResource IconTester}" Width="22" Height="22" Foreground="#14161B" />
                     </Border>
                     <StackPanel VerticalAlignment="Center">
@@ -226,13 +196,8 @@
                 <Border Grid.Row="0" Grid.Column="1" Classes="tile" Margin="0,0,14,14">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,6"><Border Classes="bar" /><TextBlock Text="LIVE" Classes="h" /></StackPanel>
-                        <Border CornerRadius="14" Padding="0,8" BorderBrush="#222733" BorderThickness="1">
-                            <Border.Background>
-                                <RadialGradientBrush Center="50%,45%" RadiusX="60%" RadiusY="60%">
-                                    <GradientStop Color="#2A3040" Offset="0" />
-                                    <GradientStop Color="#12151B" Offset="1" />
-                                </RadialGradientBrush>
-                            </Border.Background>
+                        <Border CornerRadius="10" Padding="0,8" BorderBrush="#222733" BorderThickness="1" Background="#12151B">
+
                             <art:ArtView Height="250" IsHitTestVisible="False" ShowEditing="False" Scene="{Binding SkinArt}" Sources="{Binding ControllerButtons}" />
                         </Border>
                         <TextBlock Text="{Binding PressedText}" Classes="mono" HorizontalAlignment="Center" Margin="0,8,0,0" MinHeight="16" />

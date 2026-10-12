@@ -52,7 +52,6 @@ public sealed class RingGauge : Control
                 c.ArcTo(p1, new Size(r, r), 0, sweep > Math.PI, SweepDirection.Clockwise);
                 c.EndFigure(false);
             }
-            context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(0x40, accent.R, accent.G, accent.B)), thickness + 8, lineCap: PenLineCap.Round), geometry);
             context.DrawGeometry(null, new Pen(new SolidColorBrush(accent), thickness, lineCap: PenLineCap.Round), geometry);
         }
 

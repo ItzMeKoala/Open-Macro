@@ -1,5 +1,17 @@
 # Features
 
+## Using the app
+
+- **Editing:** click a button on the controller, choose what it does, and the Save button lights up. Click another button, change
+  activator or layer, or switch config, and a pending change is saved for you; a change that cannot be saved (a macro with an error) is
+  dropped and the status bar says why.
+- **Configs save themselves** a moment after a change, when you switch config and when you close the app (Settings → Configs turns it
+  off). Older copies are kept under History.
+- **Settings** has six sections down the left: Sticks, Combos and timing, Configs, Integrations, Window, System.
+- **Shortcuts:** Cmd/Ctrl+S saves now, Cmd/Ctrl+comma opens and closes settings, Cmd/Ctrl+Enter starts or stops remapping, F11 is the full-screen
+  tester, Esc leaves settings or full screen.
+- New users see three plain steps under the tabs until they press "Got it" or start remapping once.
+
 Everything below works on Windows and macOS unless it says otherwise. It is all set up in the window (Preferences holds most of
 it) and saved with your configs. The ideas come from the feature list of
 [ControllerKeys](https://github.com/NSEvent/xbox-controller-mapper), a macOS-only app; ReWASD's versions are written from scratch for

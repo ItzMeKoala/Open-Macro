@@ -53,23 +53,11 @@
             <Setter Property="FontWeight" Value="Bold" />
         </Style>
         <Style x:Key="Tile" TargetType="Border">
-            <Setter Property="BorderBrush" Value="#2A303C" />
+            <Setter Property="BorderBrush" Value="#262B35" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="18" />
-            <Setter Property="Background">
-                <Setter.Value>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#1B1F28" Offset="0" />
-                        <GradientStop Color="#13161D" Offset="1" />
-                    </LinearGradientBrush>
-                </Setter.Value>
-            </Setter>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect BlurRadius="28" ShadowDepth="8" Direction="270" Opacity="0.4" Color="Black" />
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Background" Value="#171A21" />
         </Style>
 
         <Style x:Key="Chip" TargetType="Button">
@@ -132,11 +120,7 @@
                             <Border x:Name="PART_Track">
                                 <Border x:Name="PART_Indicator" HorizontalAlignment="Left" CornerRadius="7">
                                     <Border.Background>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                            <GradientStop Color="#2EC4B6" Offset="0" />
-                                            <GradientStop Color="#E9C46A" Offset="0.7" />
-                                            <GradientStop Color="#FF6B6B" Offset="1" />
-                                        </LinearGradientBrush>
+                                        <SolidColorBrush Color="#E9C46A" />
                                     </Border.Background>
                                 </Border>
                             </Border>
@@ -201,26 +185,14 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid>
-        <Grid.Background>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                <GradientStop Color="#090B0F" Offset="0" />
-                <GradientStop Color="#10131A" Offset="1" />
-            </LinearGradientBrush>
-        </Grid.Background>
+    <Grid Background="#0E1015">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
         <!-- Title bar of the tester -->
-        <Border Grid.Row="0" Padding="28,14" BorderBrush="#262B36" BorderThickness="0,0,0,1">
-            <Border.Background>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                    <GradientStop Color="#1C202A" Offset="0" />
-                    <GradientStop Color="#12151C" Offset="1" />
-                </LinearGradientBrush>
-            </Border.Background>
+        <Border Grid.Row="0" Padding="28,14" BorderBrush="#262B35" BorderThickness="0,0,0,1" Background="#14171D">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -228,14 +200,7 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Width="42" Height="42" CornerRadius="12" Margin="0,0,14,0">
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Color="#F2D68F" Offset="0" />
-                                <GradientStop Color="#C79A3A" Offset="1" />
-                            </LinearGradientBrush>
-                        </Border.Background>
-                        <Border.Effect><DropShadowEffect BlurRadius="22" ShadowDepth="0" Color="#E9C46A" Opacity="0.35" /></Border.Effect>
+                    <Border Width="40" Height="40" CornerRadius="10" Margin="0,0,14,0" Background="{StaticResource BrushCyan}">
                         <Ellipse Width="22" Height="22" Stroke="#14161B" StrokeThickness="2.4" />
                     </Border>
                     <StackPanel VerticalAlignment="Center">
@@ -316,13 +281,8 @@
                 <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource Tile}" Margin="0,0,14,14">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6"><Border Style="{StaticResource Bar}" /><TextBlock Text="LIVE" Style="{StaticResource H}" /></StackPanel>
-                        <Border CornerRadius="14" Padding="0,8" BorderBrush="#222733" BorderThickness="1">
-                            <Border.Background>
-                                <RadialGradientBrush Center="0.5,0.45" GradientOrigin="0.5,0.45" RadiusX="0.6" RadiusY="0.6">
-                                    <GradientStop Color="#2A3040" Offset="0" />
-                                    <GradientStop Color="#12151B" Offset="1" />
-                                </RadialGradientBrush>
-                            </Border.Background>
+                        <Border CornerRadius="10" Padding="0,8" BorderBrush="#222733" BorderThickness="1" Background="#12151B">
+
                             <art:ArtView Height="250" IsHitTestVisible="False" ShowEditing="False" Scene="{Binding SkinArt}" Sources="{Binding ControllerButtons}" />
                         </Border>
                         <TextBlock Text="{Binding PressedText}" Style="{StaticResource Mono}" HorizontalAlignment="Center" Margin="0,8,0,0" MinHeight="16" />

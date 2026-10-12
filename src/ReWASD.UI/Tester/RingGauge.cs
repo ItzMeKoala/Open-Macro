@@ -52,9 +52,7 @@ public sealed class RingGauge : FrameworkElement
             var geometry = new PathGeometry();
             geometry.Figures.Add(figure);
 
-            var glow = new Pen(new SolidColorBrush(Color.FromArgb(0x40, accent.R, accent.G, accent.B)), thickness + 8) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
             var ring = new Pen(new SolidColorBrush(accent), thickness) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
-            context.DrawGeometry(null, glow, geometry);
             context.DrawGeometry(null, ring, geometry);
         }
 

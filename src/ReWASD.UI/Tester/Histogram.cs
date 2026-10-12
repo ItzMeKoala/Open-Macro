@@ -73,7 +73,7 @@ public sealed class Histogram : FrameworkElement
         }
 
         var color = C(BarColor);
-        var fill = new LinearGradientBrush(color, Color.FromArgb(0x70, color.R, color.G, color.B), 90);
+        var fill = new SolidColorBrush(color);
         fill.Freeze();
         double slot = (w - 8) / data.Length;
         double barWidth = Math.Max(1.5, slot * 0.72);

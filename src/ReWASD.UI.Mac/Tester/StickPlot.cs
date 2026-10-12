@@ -18,14 +18,7 @@ public sealed class StickPlot : Control
     private static IBrush Solid(string hex) => new SolidColorBrush(Color.Parse(hex)).ToImmutable();
     private static IPen Stroke(string hex, double width, DashStyle? dash = null) => new Pen(Solid(hex), width, dash).ToImmutable();
 
-    private static readonly IBrush Face = new RadialGradientBrush
-    {
-        Center = new RelativePoint(0.5, 0.5, RelativeUnit.Relative),
-        GradientOrigin = new RelativePoint(0.5, 0.42, RelativeUnit.Relative),
-        RadiusX = RelativeScalar.Parse("50%"),
-        RadiusY = RelativeScalar.Parse("50%"),
-        GradientStops = { new GradientStop(Color.Parse("#232833"), 0), new GradientStop(Color.Parse("#12151B"), 1) }
-    }.ToImmutable();
+    private static readonly IBrush Face = Solid("#15181E");
     private static readonly IPen Rim = Stroke("#5A6070", 1.8);
     private static readonly IPen Tick = Stroke("#3E4452", 1);
     private static readonly IPen TickMajor = Stroke("#6A7184", 1.6);
@@ -37,15 +30,9 @@ public sealed class StickPlot : Control
     private static readonly IPen OuterRing = Stroke("#5BC0EB", 1.2, new DashStyle(new double[] { 3, 3 }, 0));
     private static readonly IBrush ShapeFill = Solid("#2EE9C46A");
     private static readonly IPen ShapeEdge = Stroke("#E9C46A", 2.2);
-    private static readonly IPen ShapeGlow = Stroke("#40E9C46A", 7);
     private static readonly IBrush Dot = Solid("#2EF2A0");
     private static readonly IPen DotRing = Stroke("#0B2E1B", 2);
-    private static readonly IPen DotHalo = Stroke("#FFFFFF", 1.6);
     private static readonly IPen Lead = Stroke("#802EF2A0", 1.5);
-    private static readonly IBrush Glow = new RadialGradientBrush
-    {
-        GradientStops = { new GradientStop(Color.Parse("#802EF2A0"), 0), new GradientStop(Color.Parse("#002EF2A0"), 1) }
-    }.ToImmutable();
 
     static StickPlot()
     {
@@ -111,8 +98,7 @@ public sealed class StickPlot : Control
                 for (int i = 1; i < shape.Count; i++) c.LineTo(shape[i]);
                 c.EndFigure(full);
             }
-            context.DrawGeometry(full ? ShapeFill : null, ShapeGlow, geometry);
-            context.DrawGeometry(null, ShapeEdge, geometry);
+            context.DrawGeometry(full ? ShapeFill : null, ShapeEdge, geometry);
         }
 
         // The path just taken, fading with age
@@ -121,7 +107,6 @@ public sealed class StickPlot : Control
             double f = (double)i / s.Trail.Length;
             var a = ToScreen(s.Trail[i - 1], centre, r);
             var b = ToScreen(s.Trail[i], centre, r);
-            context.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb((byte)(20 + 60 * f), 46, 242, 160)), 5 * f + 1), a, b);
             context.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb((byte)(40 + 190 * f), 46, 242, 160)), 1.6), a, b);
         }
 
@@ -133,9 +118,7 @@ public sealed class StickPlot : Control
             context.DrawLine(Guide, new Point(now.X, centre.Y - r), new Point(now.X, centre.Y + r));
         }
         context.DrawLine(Lead, centre, now);
-        context.DrawEllipse(Glow, null, now, 24, 24);
         context.DrawEllipse(Dot, DotRing, now, 7.5, 7.5);
-        context.DrawEllipse(null, DotHalo, now, 10.5, 10.5);
     }
 
     private static Point ToScreen((double X, double Y) p, Point centre, double r) => new(centre.X + p.X * r, centre.Y - p.Y * r);   // up is positive
