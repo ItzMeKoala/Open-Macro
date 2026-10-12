@@ -41,8 +41,19 @@ public sealed class ScopeGraph : FrameworkElement
     public double Minimum { get => (double)GetValue(MinimumProperty); set => SetValue(MinimumProperty, value); }
     public double Maximum { get => (double)GetValue(MaximumProperty); set => SetValue(MaximumProperty, value); }
 
-    /// <summary>Which of the six series this graph draws.</summary>
-    public int[] Channels { get; set; } = { 0, 1, 2, 3, 4, 5 };
+    /// <summary>Which of the six series this graph draws, as numbers separated by commas ("0,1,2,3").</summary>
+    public string Channels
+    {
+        get => string.Join(",", _channels);
+        set
+        {
+            _channels = (value ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(t => int.TryParse(t, out int n) ? n : -1).Where(n => n >= 0).ToArray();
+            InvalidateVisual();
+        }
+    }
+
+    private int[] _channels = { 0, 1, 2, 3, 4, 5 };
 
     protected override void OnRender(DrawingContext context)
     {
@@ -62,7 +73,7 @@ public sealed class ScopeGraph : FrameworkElement
         if (series == null) return;
 
         double dx = w / (TesterModel.ScopeSamples - 1);
-        foreach (int ch in Channels)
+        foreach (int ch in _channels)
         {
             if (ch < 0 || ch >= series.Length || series[ch].Length < 2) continue;
 

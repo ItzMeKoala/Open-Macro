@@ -151,7 +151,7 @@ public class TesterControlTests
     {
         var snapshot = CircleSnapshot();
         var plot = new ReWASD.UI.TesterControls.StickPlot { Snapshot = snapshot.Left, DeadzoneMin = 0.1, DeadzoneMax = 0.9, Width = 260, Height = 260 };
-        var graph = new ReWASD.UI.TesterControls.ScopeGraph { Series = snapshot.Scope, Channels = new[] { 0, 1 }, Width = 400, Height = 150 };
+        var graph = new ReWASD.UI.TesterControls.ScopeGraph { Series = snapshot.Scope, Channels = "0,1", Width = 400, Height = 150 };
 
         foreach (FrameworkElement element in new FrameworkElement[] { plot, graph })
         {
