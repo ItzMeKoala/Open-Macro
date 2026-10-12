@@ -423,6 +423,9 @@ public sealed class ArtView : Decorator
     /// <summary>The ButtonViewModel-backed part under a point (in this control's coordinates), or null for the body and empty space.</summary>
     internal ControllerButton? ButtonAt(Point point) => PartAt(point)?.Part.Button;
 
+    /// <summary>The keyboard key under a point, or null (for tests).</summary>
+    internal string? KeyAt(Point point) => PartAt(point)?.Part.Key;
+
     private PartVisual? PartAt(Point point)
     {
         PartVisual? found = null;

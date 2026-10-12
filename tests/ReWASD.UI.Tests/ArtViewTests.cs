@@ -217,16 +217,17 @@ public class KeyboardArtViewTests
 
         var scene = ArtLibrary.Keyboard;
         var root = ((Viewbox)view.Child).Child;
-        foreach (var name in new[] { "Escape", "Q", "Space", "Left" })
+        foreach (var name in new[] { "Escape", "Q", "Space", "Left", "PageDown" })
         {
             var b = scene.PartForKey(name)!.HitBounds;
-            var at = root.TransformToAncestor(view).Transform(new Point(b.CenterX - scene.OriginX, b.CenterY - scene.OriginY));
-            var hit = view.InputHitTest(at);
-            Assert.NotNull(hit);
-            bool found = false;
-            for (DependencyObject? d = hit as DependencyObject; d != null && !ReferenceEquals(d, view); d = System.Windows.Media.VisualTreeHelper.GetParent(d))
-                if (d is FrameworkElement { Tag: not null and not double }) { found = true; break; }
-            Assert.True(found, name);
+            var at = root.TransformToAncestor(view).Transform(new Point(b.CenterX, b.CenterY));    // drawing units; the root moves the origin itself
+            Assert.Equal(name, view.KeyAt(at));
         }
+
+        // The case, and a key that cannot be remapped, are not keys
+        var caps = KeyboardArt.Keys.First(k => k.Legend == "Caps Lock");
+        var capsRect = KeyboardArt.CapOf(caps);
+        Assert.Null(view.KeyAt(root.TransformToAncestor(view).Transform(new Point(capsRect.CenterX, capsRect.CenterY))));
+        Assert.Null(view.KeyAt(root.TransformToAncestor(view).Transform(new Point(10, 10))));
     });
 }

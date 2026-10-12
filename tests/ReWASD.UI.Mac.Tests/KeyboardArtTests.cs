@@ -156,11 +156,19 @@ public class KeyboardArtTests
         {
             var b = scene.PartForKey(name)!.HitBounds;
             var canvas = view.GetVisualDescendants().OfType<Viewbox>().First().Child!;
-            var point = Avalonia.VisualExtensions.TranslatePoint(canvas, new Avalonia.Point(b.CenterX - scene.OriginX, b.CenterY - scene.OriginY), window)!.Value;
+            var point = Avalonia.VisualExtensions.TranslatePoint(canvas, new Avalonia.Point(b.CenterX, b.CenterY), window)!.Value;     // drawing units; the root moves the origin itself
             window.MouseDown(point, Avalonia.Input.MouseButton.Left);
             window.MouseUp(point, Avalonia.Input.MouseButton.Left);
             Assert.Equal(name, vm.SelectedButton!.SourceName);
         }
+
+        // A key that cannot be remapped selects nothing
+        var caps = KeyboardArt.CapOf(KeyboardArt.Keys.First(k => k.Legend == "Caps Lock"));
+        var root = view.GetVisualDescendants().OfType<Viewbox>().First().Child!;
+        var at = Avalonia.VisualExtensions.TranslatePoint(root, new Avalonia.Point(caps.CenterX, caps.CenterY), window)!.Value;
+        window.MouseDown(at, Avalonia.Input.MouseButton.Left);
+        window.MouseUp(at, Avalonia.Input.MouseButton.Left);
+        Assert.Equal("PageDown", vm.SelectedButton!.SourceName);
         vm.Shutdown();
     }
 
