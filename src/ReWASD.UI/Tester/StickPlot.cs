@@ -32,18 +32,33 @@ public sealed class StickPlot : FrameworkElement
         return pen;
     }
 
-    private static readonly Brush Face = B("#17191E");
-    private static readonly Pen Rim = P("#4A4F5C", 1.6);
-    private static readonly Pen Grid = P("#2C303A", 1);
-    private static readonly Pen Axis = P("#383D49", 1);
-    private static readonly Brush InnerFill = B("#26FFAA00");
+    private static readonly Brush Face = Frozen(new RadialGradientBrush(
+        new GradientStopCollection { new GradientStop((Color)ColorConverter.ConvertFromString("#232833"), 0), new GradientStop((Color)ColorConverter.ConvertFromString("#12151B"), 1) })
+        { Center = new Point(0.5, 0.5), GradientOrigin = new Point(0.5, 0.42), RadiusX = 0.5, RadiusY = 0.5 });
+    private static readonly Pen Rim = P("#5A6070", 1.8);
+    private static readonly Pen Tick = P("#3E4452", 1);
+    private static readonly Pen TickMajor = P("#6A7184", 1.6);
+    private static readonly Pen Grid = P("#2A2F3A", 1);
+    private static readonly Pen Axis = P("#3A4050", 1);
+    private static readonly Pen Guide = P("#552EC4B6", 1, new DashStyle(new double[] { 2, 4 }, 0));
+    private static readonly Brush InnerFill = B("#22FFAA00");
     private static readonly Pen InnerRing = P("#FFAA00", 1.2, new DashStyle(new double[] { 3, 3 }, 0));
     private static readonly Pen OuterRing = P("#5BC0EB", 1.2, new DashStyle(new double[] { 3, 3 }, 0));
-    private static readonly Brush ShapeFill = B("#30E9C46A");
-    private static readonly Pen ShapeEdge = P("#E9C46A", 2);
-    private static readonly Brush Dot = B("#00E676");
+    private static readonly Brush ShapeFill = B("#2EE9C46A");
+    private static readonly Pen ShapeEdge = P("#E9C46A", 2.2);
+    private static readonly Pen ShapeGlow = P("#40E9C46A", 7);
+    private static readonly Brush Dot = B("#2EF2A0");
     private static readonly Pen DotRing = P("#0B2E1B", 2);
-    private static readonly Pen Lead = P("#8000E676", 1.5);
+    private static readonly Pen DotHalo = P("#FFFFFF", 1.6);
+    private static readonly Pen Lead = P("#802EF2A0", 1.5);
+    private static readonly Brush Glow = Frozen(new RadialGradientBrush(
+        new GradientStopCollection { new GradientStop((Color)ColorConverter.ConvertFromString("#802EF2A0"), 0), new GradientStop((Color)ColorConverter.ConvertFromString("#002EF2A0"), 1) }));
+
+    private static Brush Frozen(Brush brush)
+    {
+        brush.Freeze();
+        return brush;
+    }
 
     public StickSnapshot? Snapshot { get => (StickSnapshot?)GetValue(SnapshotProperty); set => SetValue(SnapshotProperty, value); }
     public double DeadzoneMin { get => (double)GetValue(DeadzoneMinProperty); set => SetValue(DeadzoneMinProperty, value); }
@@ -68,9 +83,19 @@ public sealed class StickPlot : FrameworkElement
         if (size < 40) return;
 
         var centre = new Point(ActualWidth / 2, ActualHeight / 2);
-        double r = size / 2 - 8;
+        double r = size / 2 - 10;
 
         context.DrawEllipse(Face, Rim, centre, r, r);
+
+        // A scale around the rim: a tick every 15 degrees, longer ones at the four directions
+        for (int deg = 0; deg < 360; deg += 15)
+        {
+            double a = deg * Math.PI / 180;
+            bool major = deg % 90 == 0;
+            double inner = r + (major ? 1 : 2), outer = r + (major ? 8 : 5);
+            context.DrawLine(major ? TickMajor : Tick, new Point(centre.X + Math.Cos(a) * inner, centre.Y - Math.Sin(a) * inner), new Point(centre.X + Math.Cos(a) * outer, centre.Y - Math.Sin(a) * outer));
+        }
+
         foreach (double ring in new[] { 0.25, 0.5, 0.75 }) context.DrawEllipse(null, Grid, centre, r * ring, r * ring);
         context.DrawLine(Axis, new Point(centre.X - r, centre.Y), new Point(centre.X + r, centre.Y));
         context.DrawLine(Axis, new Point(centre.X, centre.Y - r), new Point(centre.X, centre.Y + r));
@@ -82,7 +107,7 @@ public sealed class StickPlot : FrameworkElement
         var s = Snapshot;
         if (s == null) return;
 
-        // The shape the stick has made so far
+        // The shape the stick has made so far, with a soft glow under it
         var shape = ShapePoints(s, centre, r);
         if (shape.Count >= 3)
         {
@@ -91,23 +116,40 @@ public sealed class StickPlot : FrameworkElement
             for (int i = 1; i < shape.Count; i++) figure.Segments.Add(new LineSegment(shape[i], true));
             var geometry = new PathGeometry();
             geometry.Figures.Add(figure);
-            context.DrawGeometry(full ? ShapeFill : null, ShapeEdge, geometry);
+            context.DrawGeometry(full ? ShapeFill : null, ShapeGlow, geometry);
+            context.DrawGeometry(null, ShapeEdge, geometry);
         }
 
         // The path just taken, fading with age
         for (int i = 1; i < s.Trail.Length; i++)
         {
-            byte alpha = (byte)(30 + 190.0 * i / s.Trail.Length);
-            var brush = new SolidColorBrush(Color.FromArgb(alpha, 0, 230, 118));
-            brush.Freeze();
-            var pen = new Pen(brush, 1.4);
-            pen.Freeze();
-            context.DrawLine(pen, ToScreen(s.Trail[i - 1], centre, r), ToScreen(s.Trail[i], centre, r));
+            double f = (double)i / s.Trail.Length;
+            var a = ToScreen(s.Trail[i - 1], centre, r);
+            var b = ToScreen(s.Trail[i], centre, r);
+            context.DrawLine(FadePen((byte)(20 + 60 * f), 5 * f + 1), a, b);
+            context.DrawLine(FadePen((byte)(40 + 190 * f), 1.6), a, b);
         }
 
         var now = ToScreen((s.X, s.Y), centre, r);
+        if (s.Magnitude > 0.02)
+        {
+            // Faint guide lines from the stick out to the two axes, like the cursor of a scope
+            context.DrawLine(Guide, new Point(centre.X - r, now.Y), new Point(centre.X + r, now.Y));
+            context.DrawLine(Guide, new Point(now.X, centre.Y - r), new Point(now.X, centre.Y + r));
+        }
         context.DrawLine(Lead, centre, now);
-        context.DrawEllipse(Dot, DotRing, now, 7, 7);
+        context.DrawEllipse(Glow, null, now, 24, 24);
+        context.DrawEllipse(Dot, DotRing, now, 7.5, 7.5);
+        context.DrawEllipse(null, DotHalo, now, 10.5, 10.5);
+    }
+
+    private static Pen FadePen(byte alpha, double width)
+    {
+        var brush = new SolidColorBrush(Color.FromArgb(alpha, 46, 242, 160));
+        brush.Freeze();
+        var pen = new Pen(brush, width);
+        pen.Freeze();
+        return pen;
     }
 
     private static Point ToScreen((double X, double Y) p, Point centre, double r) => new(centre.X + p.X * r, centre.Y - p.Y * r);   // up is positive
