@@ -49,6 +49,7 @@ public partial class MainViewModel : ObservableObject
 
     private readonly PlatformBackends _platform;
     private readonly ProfileHistory _history;
+    private IDisposable? _autoSaveTimer;
     private readonly Func<ForegroundApp?>? _foreground;
     private System.Threading.Timer? _foregroundTimer;
     private Profile? _manualProfile;
@@ -170,11 +171,17 @@ public partial class MainViewModel : ObservableObject
         bool ok = _virtualService.Connect(SelectedVirtualController);
         _reader.ExcludedUserIndex = ok && SelectedVirtualController == ControllerType.Xbox360 ? FindNewSlot(before) : -1;
 
-        StatusMessage = ok ? $"🟢 REMAPPING ACTIVE — Virtual {SelectedVirtualController} connected" : "Could not connect the virtual controller";
+        StatusMessage = ok ? $"Remapping is on. Games see a virtual {VirtualControllerOptions.First(o => o.Type == SelectedVirtualController).Name} controller." : "Could not connect the virtual controller.";
         PopulateConnectedDevices();
     }
 
     public IReadOnlyList<int> SlotNumbers { get; } = new[] { 1, 2, 3, 4 };
+
+    /// <summary>What the big button at the bottom does right now.</summary>
+    public string ApplyButtonText => IsRemappingActive ? "Stop remapping" : "Start remapping";
+
+    /// <summary>One plain line saying whether the controller is doing anything.</summary>
+    public string RemappingStateText => IsRemappingActive ? "Remapping is on" : "Remapping is off";
 
     partial void OnActiveSlotChanged(int value)
     {
@@ -235,10 +242,11 @@ public partial class MainViewModel : ObservableObject
     private int _activeShiftLayer = 0;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ApplyButtonText), nameof(RemappingStateText))]
     private bool _isRemappingActive = false;
 
     [ObservableProperty]
-    private string _statusMessage = "Ready — Emulation Idle";
+    private string _statusMessage = "Remapping is off.";
 
     [ObservableProperty]
     private ButtonViewModel? _selectedButton;
@@ -363,6 +371,7 @@ public partial class MainViewModel : ObservableObject
 
         // Drives the live button, trigger and stick display (and pad recording) from the UI thread
         _liveTimer = _ui.StartTimer(TimeSpan.FromMilliseconds(16), OnLiveTick);
+        _autoSaveTimer = _ui.StartTimer(TimeSpan.FromSeconds(1), AutoSaveTick);
 
         RefreshPermissions();
         PopulateInspectorOptions();
@@ -385,6 +394,7 @@ public partial class MainViewModel : ObservableObject
         LoadBackgroundSettings();
         if (HideDockIcon && CanHideDockIcon) _ui.SetDockIconHidden(true);
         _manualProfile = _selectedProfile;
+        _lastSavedJson = CurrentProfileJson();
         RefreshHistory();
         LoadStats();
         if (AutoCheckUpdates && _updates is not NoUpdates) _ = CheckAfterStartupAsync();
@@ -437,6 +447,12 @@ public partial class MainViewModel : ObservableObject
 
         // Keep the engine on the profile being edited
         _mappingEngine.CurrentProfile = value;
+        if (_constructed)
+        {
+            _lastSavedJson = CurrentProfileJson();      // what is in memory is what was loaded; only later edits count as changes
+            _pendingJson = string.Empty;
+            SaveStateText = "Saved";
+        }
         if (!value.ShiftLayers.ContainsKey(ActiveShiftLayer)) ActiveShiftLayer = 0;
         _mappingEngine.SetShiftLayer(ActiveShiftLayer);
         LoadProfileSettings(value);
@@ -517,6 +533,9 @@ public partial class MainViewModel : ObservableObject
                 KeepCopyOfSavedFile(path);
                 ProfileSerializer.SaveToFile(SelectedProfile, path);
             }
+            _lastSavedJson = CurrentProfileJson();
+            _pendingJson = string.Empty;
+            SaveStateText = "Saved";
             RefreshHistory();
             StatusMessage = $"Saved config to {path}";
         }
@@ -851,6 +870,84 @@ public partial class MainViewModel : ObservableObject
         });
     }
 
+    // ---- Saving configs by themselves ----------------------------------------------------------------------------------
+
+    /// <summary>Configs are written to disk a moment after they change, so nothing is lost by forgetting to save.</summary>
+    [ObservableProperty]
+    private bool _autoSaveProfiles = true;
+
+    /// <summary>Whether what is on screen is what is in the config's file.</summary>
+    [ObservableProperty]
+    private string _saveStateText = "Saved";
+
+    private string _lastSavedJson = string.Empty;
+    private string _pendingJson = string.Empty;
+    private DateTime _lastAutoSnapshot = DateTime.MinValue;
+
+    partial void OnAutoSaveProfilesChanged(bool value) => SaveBackgroundSettings();
+
+    private string CurrentProfileJson()
+    {
+        lock (_mappingEngine.SyncRoot) return ProfileSerializer.ToJson(SelectedProfile);
+    }
+
+    /// <summary>Called about once a second: writes the config if it changed and has stayed the same for a moment.</summary>
+    public void AutoSaveTick()
+    {
+        if (!_constructed || !AutoSaveProfiles) return;
+
+        string json = CurrentProfileJson();
+        if (json == _lastSavedJson)
+        {
+            _pendingJson = string.Empty;
+            SaveStateText = "Saved";
+            return;
+        }
+
+        SaveStateText = "Unsaved changes";
+        if (json != _pendingJson)
+        {
+            _pendingJson = json;                 // still changing: wait for the next look
+            return;
+        }
+
+        WriteProfileFile(snapshotRarely: true);
+    }
+
+    /// <summary>Writes any change now (before switching config or closing).</summary>
+    public void FlushAutoSave()
+    {
+        if (!_constructed || !AutoSaveProfiles) return;
+        if (CurrentProfileJson() != _lastSavedJson) WriteProfileFile(snapshotRarely: true);
+    }
+
+    private void WriteProfileFile(bool snapshotRarely)
+    {
+        try
+        {
+            string path = SavedPathFor(SelectedProfile);
+            lock (_mappingEngine.SyncRoot)
+            {
+                // The file about to be replaced is kept as a restore point, but not for every autosave
+                if (!snapshotRarely || DateTime.Now - _lastAutoSnapshot > TimeSpan.FromMinutes(10))
+                {
+                    KeepCopyOfSavedFile(path);
+                    _lastAutoSnapshot = DateTime.Now;
+                }
+                ProfileSerializer.SaveToFile(SelectedProfile, path);
+                _lastSavedJson = ProfileSerializer.ToJson(SelectedProfile);
+            }
+            _pendingJson = string.Empty;
+            SaveStateText = "Saved";
+            RefreshHistory();
+        }
+        catch (Exception ex)
+        {
+            SaveStateText = "Could not save";
+            StatusMessage = $"Could not save {SelectedProfile.Name}: {ex.Message}";
+        }
+    }
+
     // ---- Running in the background (tray / menu bar) ---------------------------------------------------------------------
 
     /// <summary>Closing the window hides it and ReWASD keeps running from the tray or menu bar; Quit there ends it.</summary>
@@ -882,7 +979,7 @@ public partial class MainViewModel : ObservableObject
         try
         {
             System.IO.Directory.CreateDirectory(_profilesDirectory);
-            System.IO.File.WriteAllText(BackgroundSettingPath, $"background={(KeepRunningInBackground ? "on" : "off")}\ndock={(HideDockIcon ? "hidden" : "shown")}\n");
+            System.IO.File.WriteAllText(BackgroundSettingPath, $"background={(KeepRunningInBackground ? "on" : "off")}\ndock={(HideDockIcon ? "hidden" : "shown")}\nautosave={(AutoSaveProfiles ? "on" : "off")}\n");
         }
         catch (Exception)
         {
@@ -897,6 +994,7 @@ public partial class MainViewModel : ObservableObject
             if (!System.IO.File.Exists(BackgroundSettingPath)) return;
             var lines = System.IO.File.ReadAllLines(BackgroundSettingPath);
             KeepRunningInBackground = lines.Contains("background=on");
+            AutoSaveProfiles = !lines.Contains("autosave=off");
             if (CanHideDockIcon) HideDockIcon = lines.Contains("dock=hidden");
         }
         catch (Exception)
@@ -950,6 +1048,7 @@ public partial class MainViewModel : ObservableObject
 
         Profiles.Add(profile);
         SelectedProfile = profile;
+        _lastSavedJson = string.Empty;                    // a new config has no file yet: the next look at it writes one
         UpdateForegroundWatching();
         UpdateAllButtonDisplays();
         StatusMessage = $"Created {profile.Name}: {preset.Description}";
@@ -1263,6 +1362,7 @@ public partial class MainViewModel : ObservableObject
 
         Profiles.Add(imported);
         SelectedProfile = imported;
+        _lastSavedJson = string.Empty;
         UpdateForegroundWatching();
         StatusMessage = $"Imported {name}";
     }
@@ -2129,6 +2229,22 @@ public partial class MainViewModel : ObservableObject
 
     public void SelectButton(ButtonViewModel button)
     {
+        if (!ReferenceEquals(button, SelectedButton)) AutoApplyPending();
+
+        _loadingEditor++;
+        try
+        {
+            LoadEditorFor(button);
+        }
+        finally
+        {
+            _loadingEditor--;
+        }
+        IsInspectorDirty = false;
+    }
+
+    private void LoadEditorFor(ButtonViewModel button)
+    {
         foreach (var b in AllSources) b.IsSelected = false;
         button.IsSelected = true;
         SelectedButton = button;
@@ -2172,6 +2288,55 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    // ---- Editing without losing work ---------------------------------------------------------------------------------
+
+    private int _loadingEditor;
+
+    /// <summary>The inspector shows changes that are not stored in the mapping yet.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SaveButtonText))]
+    private bool _isInspectorDirty;
+
+    public string SaveButtonText => IsInspectorDirty ? "Save change" : "Saved";
+
+    private static readonly HashSet<string> EditorProperties = new()
+    {
+        nameof(SelectedTargetType), nameof(SelectedVirtualButton), nameof(SelectedKeyboardKey), nameof(SelectedMouseButton),
+        nameof(SelectedScrollDirection), nameof(SelectedJumpLayer), nameof(MacroScript), nameof(SelectedMacroRepeat), nameof(ScriptCode),
+        nameof(SelectedMode), nameof(TurboRateMs), nameof(IsMuted), nameof(TargetMode), nameof(SelectedRemapOption)
+    };
+
+    protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+        if (_constructed && _loadingEditor == 0 && e.PropertyName != null && EditorProperties.Contains(e.PropertyName)) IsInspectorDirty = true;
+    }
+
+    /// <summary>
+    /// Stores an edit the person made but did not save, before the inspector moves to something else (another input, activator, layer
+    /// or config). Nothing is lost by clicking away; an edit that cannot be stored (a macro with an error) is dropped and says so.
+    /// </summary>
+    private void AutoApplyPending()
+    {
+        if (!IsInspectorDirty || SelectedButton == null) return;
+
+        string name = SelectedButton.FriendlyName;
+        if (TrySaveCurrentMapping()) StatusMessage = $"Saved your change to {name}";
+        else
+        {
+            StatusMessage = $"Your change to {name} was not saved: {(IsScriptMode ? ScriptError : MacroError)}";
+            IsInspectorDirty = false;
+        }
+    }
+
+    partial void OnSelectedActivatorChanging(ActivatorType value) => AutoApplyPending();
+    partial void OnActiveShiftLayerChanging(int value) => AutoApplyPending();
+    partial void OnSelectedProfileChanging(Profile value)
+    {
+        AutoApplyPending();
+        FlushAutoSave();
+    }
+
     partial void OnSelectedActivatorChanged(ActivatorType value)
     {
         if (SelectedButton != null) SelectButton(SelectedButton);
@@ -2198,9 +2363,12 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void SaveCurrentMapping()
+    private void SaveCurrentMapping() => TrySaveCurrentMapping();
+
+    /// <summary>Stores what the inspector shows as the selected input's mapping. False (and nothing stored) if the macro or script has an error.</summary>
+    private bool TrySaveCurrentMapping()
     {
-        if (SelectedButton == null) return;
+        if (SelectedButton == null) return true;
         var source = SelectedButton;
 
         MacroDefinition? macro = null;
@@ -2211,7 +2379,7 @@ public partial class MainViewModel : ObservableObject
             {
                 ScriptError = scriptProblem;
                 StatusMessage = $"Script not saved: {scriptProblem}";
-                return;
+                return false;
             }
             macro = MacroDefinition.FromScript(ScriptCode.Trim(), SelectedMacroRepeat);
         }
@@ -2221,7 +2389,7 @@ public partial class MainViewModel : ObservableObject
             {
                 MacroError = error;
                 StatusMessage = $"Macro not saved: {error}";
-                return;
+                return false;
             }
             macro = parsed;
         }
@@ -2265,6 +2433,8 @@ public partial class MainViewModel : ObservableObject
         StatusMessage = SelectedTargetType == TargetType.None && SelectedActivator != ActivatorType.Single
             ? $"Cleared {SelectedActivator} on {source.FriendlyName}"
             : $"Mapped {source.FriendlyName} ({SelectedActivator}) -> {target.DisplayText}";
+        IsInspectorDirty = false;
+        return true;
     }
 
     [RelayCommand]
@@ -2431,22 +2601,22 @@ public partial class MainViewModel : ObservableObject
             _pipeline.Start();
             PopulateConnectedDevices();
             StatusMessage = ok
-                ? $"🟢 REMAPPING ACTIVE — Virtual {VirtualControllerOptions.First(o => o.Type == SelectedVirtualController).Name} controller connected"
+                ? $"Remapping is on. Games see a virtual {VirtualControllerOptions.First(o => o.Type == SelectedVirtualController).Name} controller."
                 : !SupportsVirtualController
-                    ? $"🟢 REMAPPING ACTIVE — controller to keyboard, mouse and macros ({Platform.Name} has no virtual controller)"
-                    : "🟡 REMAPPING ACTIVE — Virtual Output (ViGEm Driver not detected, running in simulation mode)";
+                    ? "Remapping is on: controller to keyboard, mouse and macros."
+                    : "Remapping is on, but the ViGEmBus driver is missing, so games can't see a virtual controller.";
             if (!_pipeline.KeyboardMouseHooked)
             {
-                StatusMessage += " — keyboard/mouse hook unavailable";
-                if (HasPermissionIssue) StatusMessage += $". {MissingPermissions}";
+                StatusMessage += " The keyboard and mouse hook is unavailable.";
+                if (HasPermissionIssue) StatusMessage += $" {MissingPermissions}";
             }
             else if (HasPermissionIssue)
             {
-                StatusMessage += $" — {MissingPermissions}";
+                StatusMessage += $" {MissingPermissions}";
             }
             if (hide != null)
             {
-                StatusMessage += hide.Success ? " — physical controller hidden" : $" — NOT hidden: {hide.Message}";
+                StatusMessage += hide.Success ? " The physical controller is hidden." : $" The physical controller is NOT hidden: {hide.Message}";
             }
         }
         else
@@ -2460,7 +2630,7 @@ public partial class MainViewModel : ObservableObject
                 _hidHide.Restore();
                 HideStatusText = "Physical controller is not hidden";
             }
-            StatusMessage = "⚪ REMAPPING PAUSED — Emulation Disconnected";
+            StatusMessage = "Remapping is off.";
 
             // The driver removes the virtual pad asynchronously; refreshing immediately would still list it
             await Task.Delay(500);
@@ -2666,6 +2836,10 @@ public partial class MainViewModel : ObservableObject
     /// <summary>Stops polling and releases every held key and the virtual pad. Call when the window closes.</summary>
     public void Shutdown()
     {
+        AutoApplyPending();
+        FlushAutoSave();
+        _autoSaveTimer?.Dispose();
+        _autoSaveTimer = null;
         _sampler?.Stop();
         StopVibration();
         _stats.Save(StatsPath);
@@ -2683,6 +2857,7 @@ public partial class MainViewModel : ObservableObject
         var newP = Profile.CreateDefault($"New Profile {Profiles.Count + 1}");
         Profiles.Add(newP);
         SelectedProfile = newP;
+        _lastSavedJson = string.Empty;
         UpdateAllButtonDisplays();
         StatusMessage = $"Created profile: {newP.Name}";
     }
