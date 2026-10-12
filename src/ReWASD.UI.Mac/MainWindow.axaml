@@ -77,6 +77,9 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button Name="TesterButton" Classes="icon" ToolTip.Tip="Controller tester: full screen (F11)">
+                        <PathIcon Data="{StaticResource IconTester}" Width="17" Height="17" />
+                    </Button>
                     <Button Classes="icon" ToolTip.Tip="Preferences" Command="{Binding ToggleSettingsCommand}">
                         <PathIcon Data="{StaticResource IconSettings}" Width="17" Height="17" />
                     </Button>
@@ -657,5 +660,8 @@
             </Grid>
         </Border>
 
+
+        <!-- The full-screen tester, created only while the window is full screen -->
+        <ContentControl Name="TesterHost" Grid.RowSpan="6" IsVisible="False" />
     </Grid>
 </Window>

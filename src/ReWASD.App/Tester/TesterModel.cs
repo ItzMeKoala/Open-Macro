@@ -20,8 +20,20 @@ public sealed record StickSnapshot(
 /// <summary>What the tester knows about one trigger.</summary>
 public sealed record TriggerSnapshot(double Value, double Peak, double FirstMovement, double HeldMs, long Presses);
 
-/// <summary>How often the controller reported something new.</summary>
-public sealed record RateSnapshot(double ChangesPerSecond, double PeakChangesPerSecond, double AverageIntervalMs, double WorstIntervalMs, long TotalChanges);
+/// <summary>How often the controller reported something new, and how evenly.</summary>
+public sealed record RateSnapshot(double ChangesPerSecond, double PeakChangesPerSecond, double AverageIntervalMs, double WorstIntervalMs, long TotalChanges, double JitterMs, double SteadyShare);
+
+public enum ReactionState
+{
+    Idle,
+    Waiting,
+    Go,
+    Result,
+    TooEarly
+}
+
+/// <summary>The reaction-time game: wait for the signal, press any button, see how long it took.</summary>
+public sealed record ReactionSnapshot(ReactionState State, double LastMs, double BestMs, double AverageMs, int Attempts);
 
 /// <summary>Everything the tester shows, copied under one lock so a drawing never sees half an update.</summary>
 public sealed record TesterSnapshot(
@@ -29,7 +41,7 @@ public sealed record TesterSnapshot(
     StickSnapshot Left, StickSnapshot Right, TriggerSnapshot LeftTrigger, TriggerSnapshot RightTrigger,
     IReadOnlyList<ButtonSnapshot> Buttons, RateSnapshot Rate,
     long LogVersion, IReadOnlyList<string> Log,
-    double[][] Scope);
+    double[][] Scope, ReactionSnapshot Reaction);
 
 /// <summary>
 /// The numbers behind the controller tester: live values, press counts and hold times, switch bounce, the shape a stick makes when
@@ -125,6 +137,10 @@ public sealed class TesterModel
     private double _peakRate;
     private long _logVersion;
 
+    private ReactionState _reaction = ReactionState.Idle;
+    private double _goAt, _goShownAt, _lastReaction;
+    private readonly List<double> _reactions = new();
+
     public TesterModel(Func<DateTime>? wallClock = null)
     {
         _wallClock = wallClock ?? (() => DateTime.Now);
@@ -152,6 +168,8 @@ public sealed class TesterModel
             _peakRate = 0;
             _firstSeenAt = _connected ? _now : double.NaN;
             _previous = null;
+            _reaction = ReactionState.Idle;
+            _reactions.Clear();
         }
     }
 
@@ -202,6 +220,7 @@ public sealed class TesterModel
             }
 
             CountChange(state, nowMs);
+            UpdateReaction(state, nowMs);
             foreach (var b in ListedButtons) UpdateButton(b, state.Buttons.Contains(b), nowMs);
             UpdateStick(_left, "Left stick", state.LeftStickX, state.LeftStickY);
             UpdateStick(_right, "Right stick", state.RightStickX, state.RightStickY);
@@ -234,6 +253,57 @@ public sealed class TesterModel
 
         while (_recentChanges.Count > 0 && now - _recentChanges.Peek() > 1000) _recentChanges.Dequeue();
         _peakRate = Math.Max(_peakRate, _recentChanges.Count);
+    }
+
+    // ---- the reaction-time game ----------------------------------------------------------------------------------------
+
+    /// <summary>Starts a round: a random wait of one to four seconds, then the signal.</summary>
+    public void StartReaction(double nowMs, Random? random = null)
+    {
+        lock (_gate)
+        {
+            _reaction = ReactionState.Waiting;
+            _goAt = nowMs + (random ?? Random.Shared).Next(1200, 4000);
+        }
+    }
+
+    public void CancelReaction()
+    {
+        lock (_gate) _reaction = ReactionState.Idle;
+    }
+
+    // A new press of any button, or a trigger pulled past halfway
+    private bool NewPress(PhysicalState s) =>
+        ListedButtons.Any(b => s.Buttons.Contains(b) && !_buttons[b].Down)
+        || (s.LeftTrigger > 0.5 && _lt.Value <= 0.5) || (s.RightTrigger > 0.5 && _rt.Value <= 0.5);
+
+    private void UpdateReaction(PhysicalState s, double now)
+    {
+        switch (_reaction)
+        {
+            case ReactionState.Waiting:
+                if (NewPress(s))
+                {
+                    _reaction = ReactionState.TooEarly;
+                    Log("Reaction test: pressed too early");
+                }
+                else if (now >= _goAt)
+                {
+                    _reaction = ReactionState.Go;
+                    _goShownAt = now;
+                }
+                break;
+
+            case ReactionState.Go:
+                if (NewPress(s))
+                {
+                    _lastReaction = now - _goShownAt;
+                    _reactions.Add(_lastReaction);
+                    _reaction = ReactionState.Result;
+                    Log($"Reaction test: {_lastReaction:0} ms");
+                }
+                break;
+        }
     }
 
     // ---- buttons ------------------------------------------------------------------------------------------------------
@@ -394,14 +464,19 @@ public sealed class TesterModel
             double average = _recentIntervals.Count > 0 ? _recentIntervals.Average() : 0;
             double worst = _recentIntervals.Count > 0 ? _recentIntervals.Max() : 0;
 
+            // How even the reports are: the spread of the gaps, and the share of gaps within a quarter of the usual one
+            double jitter = _recentIntervals.Count > 1 ? Math.Sqrt(_recentIntervals.Average(g => (g - average) * (g - average))) : 0;
+            double steady = _recentIntervals.Count > 0 && average > 0 ? _recentIntervals.Count(g => Math.Abs(g - average) <= average * 0.25) / (double)_recentIntervals.Count : 0;
+
             var scope = _scope.Select(c => c.AsSpan(0, _scopeFilled).ToArray()).ToArray();
 
             return new TesterSnapshot(
                 _connected, elapsed,
                 Snapshot(_left), Snapshot(_right),
                 Snapshot(_lt), Snapshot(_rt),
-                buttons, new RateSnapshot(perSecond, _peakRate, average, worst, _totalChanges),
-                _logVersion, _log.ToList(), scope);
+                buttons, new RateSnapshot(perSecond, _peakRate, average, worst, _totalChanges, jitter, steady),
+                _logVersion, _log.ToList(), scope,
+                new ReactionSnapshot(_reaction, _lastReaction, _reactions.Count > 0 ? _reactions.Min() : 0, _reactions.Count > 0 ? _reactions.Average() : 0, _reactions.Count));
         }
     }
 

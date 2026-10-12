@@ -334,4 +334,117 @@ public class TesterModelTests
         Assert.Equal("A", TesterModel.NameOf(ControllerButton.A));
         Assert.All(TesterModel.ListedButtons, b => Assert.False(string.IsNullOrWhiteSpace(TesterModel.NameOf(b))));
     }
+
+    // ---- jitter and the reaction game ----------------------------------------------------------------------------------
+
+    [Fact]
+    public void ASteadyPad_HasNoJitter_AndAnUnevenOneDoes()
+    {
+        _m.Feed(Pad(), 0);
+        for (int i = 1; i <= 100; i++) _m.Feed(Pad(lx: i * 0.001), i * 8);
+        var steady = _m.Snapshot().Rate;
+        Assert.Equal(0, steady.JitterMs, 3);
+        Assert.Equal(1.0, steady.SteadyShare, 3);
+
+        var uneven = new TesterModel();
+        uneven.Feed(Pad(), 0);
+        double t = 0;
+        for (int i = 1; i <= 100; i++) uneven.Feed(Pad(lx: i * 0.001), t += i % 2 == 0 ? 4 : 12);
+        var rate = uneven.Snapshot().Rate;
+        Assert.Equal(4, rate.JitterMs, 1);
+        Assert.Equal(0, rate.SteadyShare, 3);
+    }
+
+    private sealed class FixedRandom : Random
+    {
+        private readonly int _value;
+        public FixedRandom(int value) => _value = value;
+        public override int Next(int minValue, int maxValue) => _value;
+    }
+
+    [Fact]
+    public void TheReactionGame_WaitsThenTimesTheFirstPress()
+    {
+        _m.Feed(Pad(), 0);
+        _m.StartReaction(100, new FixedRandom(2000));
+        Assert.Equal(ReactionState.Waiting, _m.Snapshot().Reaction.State);
+
+        _m.Feed(Pad(), 1000);
+        Assert.Equal(ReactionState.Waiting, _m.Snapshot().Reaction.State);
+
+        _m.Feed(Pad(), 2100);                                      // the signal
+        Assert.Equal(ReactionState.Go, _m.Snapshot().Reaction.State);
+
+        _m.Feed(Pad(), 2200);
+        _m.Feed(Pad(down: ControllerButton.A), 2342);
+
+        var r = _m.Snapshot().Reaction;
+        Assert.Equal(ReactionState.Result, r.State);
+        Assert.Equal(242, r.LastMs);
+        Assert.Equal(242, r.BestMs);
+        Assert.Equal(1, r.Attempts);
+        Assert.Contains(_m.Snapshot().Log, l => l.EndsWith("Reaction test: 242 ms"));
+    }
+
+    [Fact]
+    public void ApressBeforeTheSignal_IsTooEarly_AndATriggerCountsAsAPress()
+    {
+        _m.Feed(Pad(), 0);
+        _m.StartReaction(0, new FixedRandom(3000));
+        _m.Feed(Pad(down: ControllerButton.B), 500);
+        Assert.Equal(ReactionState.TooEarly, _m.Snapshot().Reaction.State);
+        Assert.Equal(0, _m.Snapshot().Reaction.Attempts);
+
+        _m.Feed(Pad(), 600);
+        _m.StartReaction(600, new FixedRandom(1000));
+        _m.Feed(Pad(), 1700);
+        Assert.Equal(ReactionState.Go, _m.Snapshot().Reaction.State);
+        _m.Feed(Pad(rt: 0.9), 1850);
+        Assert.Equal(150, _m.Snapshot().Reaction.LastMs);
+    }
+
+    [Fact]
+    public void RoundsKeepBestAndAverage_AndAButtonHeldFromBeforeDoesNotCount()
+    {
+        _m.Feed(Pad(down: ControllerButton.A), 0);                 // already held when the game starts: not a new press
+        _m.StartReaction(0, new FixedRandom(1000));
+        _m.Feed(Pad(down: ControllerButton.A), 1000);              // the signal, with A still held
+        Assert.Equal(ReactionState.Go, _m.Snapshot().Reaction.State);
+        _m.Feed(Pad(), 1100);                                      // letting go is not a press either
+        Assert.Equal(ReactionState.Go, _m.Snapshot().Reaction.State);
+        _m.Feed(Pad(down: ControllerButton.X), 1300);              // 300 ms after the signal
+        Assert.Equal(300, _m.Snapshot().Reaction.LastMs);
+        _m.Feed(Pad(), 1400);
+
+        double t = 2000;
+        foreach (double reaction in new[] { 200.0, 250.0 })
+        {
+            _m.StartReaction(t, new FixedRandom(1000));
+            _m.Feed(Pad(), t += 1000);                              // the signal
+            _m.Feed(Pad(down: ControllerButton.X), t += reaction);
+            _m.Feed(Pad(), t += 100);
+            t += 500;
+        }
+
+        var r = _m.Snapshot().Reaction;
+        Assert.Equal(3, r.Attempts);
+        Assert.Equal(200, r.BestMs);
+        Assert.Equal(250, r.AverageMs);
+        Assert.Equal(250, r.LastMs);
+    }
+
+    [Fact]
+    public void ResetAndCancel_EndTheGame()
+    {
+        _m.Feed(Pad(), 0);
+        _m.StartReaction(0, new FixedRandom(1500));
+        _m.CancelReaction();
+        _m.Feed(Pad(), 5000);
+        Assert.Equal(ReactionState.Idle, _m.Snapshot().Reaction.State);
+
+        _m.StartReaction(5000, new FixedRandom(1000));
+        _m.Reset();
+        Assert.Equal(ReactionState.Idle, _m.Snapshot().Reaction.State);
+        Assert.Equal(0, _m.Snapshot().Reaction.Attempts);
+    }
 }

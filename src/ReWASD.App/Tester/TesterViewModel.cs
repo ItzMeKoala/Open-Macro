@@ -145,6 +145,19 @@ public sealed partial class TesterViewModel : ObservableObject
     [ObservableProperty] private string _intervalText = "—";
     [ObservableProperty] private string _peakRateText = "—";
     [ObservableProperty] private string _totalText = "0 changes";
+    [ObservableProperty] private string _jitterText = "—";
+
+    // The reaction game
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ReactionGo), nameof(ReactionWait), nameof(ReactionBad), nameof(ReactionDone))]
+    private ReactionState _reactionState = ReactionState.Idle;
+
+    public bool ReactionGo => ReactionState == ReactionState.Go;
+    public bool ReactionWait => ReactionState == ReactionState.Waiting;
+    public bool ReactionBad => ReactionState == ReactionState.TooEarly;
+    public bool ReactionDone => ReactionState == ReactionState.Result;
+    [ObservableProperty] private string _reactionText = "Press Start";
+    [ObservableProperty] private string _reactionDetail = "Press any button when the box turns green";
 
     /// <summary>The graph's six lines: left x and y, right x and y, left and right trigger.</summary>
     [ObservableProperty] private double[][] _scope = Array.Empty<double[]>();
@@ -165,6 +178,21 @@ public sealed partial class TesterViewModel : ObservableObject
         IntervalText = rate.TotalChanges < 3 ? "—" : $"avg {rate.AverageIntervalMs:0.0} ms   worst {rate.WorstIntervalMs:0.0} ms";
         PeakRateText = rate.TotalChanges < 2 ? "—" : $"peak {rate.PeakChangesPerSecond:0}/s";
         TotalText = $"{rate.TotalChanges:N0} changes";
+        JitterText = rate.TotalChanges < 6 ? "—" : $"jitter {rate.JitterMs:0.0} ms   steady {rate.SteadyShare:P0}";
+
+        var r = snap.Reaction;
+        ReactionState = r.State;
+        ReactionText = r.State switch
+        {
+            ReactionState.Waiting => "Wait for it…",
+            ReactionState.Go => "NOW!",
+            ReactionState.Result => $"{r.LastMs:0} ms",
+            ReactionState.TooEarly => "Too early!",
+            _ => "Press Start"
+        };
+        ReactionDetail = r.Attempts == 0
+            ? "Press any button when the box turns green"
+            : $"best {r.BestMs:0} ms   average {r.AverageMs:0} ms   {r.Attempts} {(r.Attempts == 1 ? "try" : "tries")}";
 
         Left.Update(snap.Left, leftSettings);
         Right.Update(snap.Right, rightSettings);

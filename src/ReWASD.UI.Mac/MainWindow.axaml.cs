@@ -1,4 +1,6 @@
 using Avalonia.Controls;
+using Avalonia.Input;
+using ReWASD.UI.Mac.Tester;
 using ReWASD.UI.ViewModels;
 
 namespace ReWASD.UI.Mac;
@@ -19,6 +21,18 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         DataContextChanged += (_, _) => Watch(DataContext as MainViewModel);
+
+        // Full screen is the controller tester: F11 or the button toggles it, Esc leaves it, and the green button of a Mac window counts too
+        this.FindControl<Button>("TesterButton")!.Click += (_, _) => ToggleFullScreen();
+        KeyDown += (_, e) =>
+        {
+            if (e.Key == Key.F11) { ToggleFullScreen(); e.Handled = true; }
+            else if (e.Key == Key.Escape && WindowState == WindowState.FullScreen) { WindowState = WindowState.Normal; e.Handled = true; }
+        };
+        PropertyChanged += (_, e) =>
+        {
+            if (e.Property == WindowStateProperty) ShowTester(WindowState == WindowState.FullScreen);
+        };
         Closing += (_, e) =>
         {
             // With "keep running in the background" the close button only hides the window; quitting from the tray, the system
@@ -26,6 +40,7 @@ public partial class MainWindow : Window
             if (e.CloseReason == WindowCloseReason.WindowClosing && DataContext is MainViewModel { KeepRunningInBackground: true, IsQuitting: false })
             {
                 e.Cancel = true;
+                if (WindowState == WindowState.FullScreen) WindowState = WindowState.Normal;    // the tester must not keep reading while hidden
                 Hide();
                 return;
             }
@@ -36,6 +51,43 @@ public partial class MainWindow : Window
             vm?.StopLiveUpdates();
             vm?.Shutdown();
         };
+    }
+
+    /// <summary>The tester screen while the window is full screen (for tests).</summary>
+    internal TesterView? Tester { get; private set; }
+
+    private WindowState _stateBeforeFullScreen = WindowState.Normal;
+
+    private void ToggleFullScreen()
+    {
+        if (WindowState == WindowState.FullScreen) WindowState = _stateBeforeFullScreen == WindowState.FullScreen ? WindowState.Normal : _stateBeforeFullScreen;
+        else
+        {
+            _stateBeforeFullScreen = WindowState;
+            WindowState = WindowState.FullScreen;
+        }
+    }
+
+    private void ShowTester(bool on)
+    {
+        var host = this.FindControl<ContentControl>("TesterHost")!;
+        var vm = DataContext as MainViewModel;
+
+        if (on && Tester == null)
+        {
+            Tester = new TesterView { DataContext = vm };
+            Tester.ExitRequested += (_, _) => WindowState = WindowState.Normal;
+            host.Content = Tester;
+            host.IsVisible = true;
+            if (vm != null) vm.IsTesterMode = true;
+        }
+        else if (!on && Tester != null)
+        {
+            if (vm != null) vm.IsTesterMode = false;
+            host.IsVisible = false;
+            host.Content = null;
+            Tester = null;
+        }
     }
 
     private void Watch(MainViewModel? vm)

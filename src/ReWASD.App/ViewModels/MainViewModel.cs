@@ -639,6 +639,9 @@ public partial class MainViewModel : ObservableObject
     private void ResetTester() => Tester.Model.Reset();
 
     [RelayCommand]
+    private void StartReactionTest() => Tester.Model.StartReaction(TesterSampler.NowMs());
+
+    [RelayCommand]
     private void ResetTesterLeftStick() => Tester.Model.ResetStickMeasurements(left: true);
 
     [RelayCommand]
