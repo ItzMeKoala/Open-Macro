@@ -71,6 +71,23 @@ corner. Controllers without a picture show the pressed buttons as text.
 A menu bar (macOS) / notification-area (Windows) icon: show the window, start or stop remapping, lock, overlay, quit. **Keep running when
 the window is closed** makes the close button hide the window; on macOS the Dock icon can be hidden too.
 
+## Controller tester (full screen)
+
+Go full screen (the green button on a Mac, **F11**, or the **Tester** button; **Esc** leaves) and the window becomes a controller tester:
+
+- **Sticks:** each as a circle with the live position, the path just taken, and the dashed deadzone rings from the config. Roll a stick
+  around its edge and the **circularity test** draws the shape it makes, with *roundness* (smallest radius over largest), *coverage*, min,
+  mean and max radius, peak, angle and the stick's **rest drift** (where it sits when let go, and the worst drift).
+- **Triggers:** pressure bars with percent, the 0 – 255 value, peak, the smallest reading above zero (where the trigger "wakes up"),
+  how long it is held and how often it was pulled.
+- **Buttons:** every button's state, press count, current and last hold time, shortest and longest hold, and **switch bounce** (a release
+  and press under 30 ms apart).
+- **Timing:** how many times a second the pad reports something new, the average and worst gap, jitter and how steady the gaps are, read by a
+  fast thread so the figures are real. A **reaction test** (press any button when the box turns green) keeps best and average.
+- **Graph** of the last six seconds of all axes, a **timestamped event log**, the animated controller picture, and a **vibration test**
+  (left motor, right motor, both) where the system can shake the pad (Windows).
+- **Reset** per stick or for everything. Nothing is read faster than normal until the tester is open.
+
 ## Usage counts
 
 Preferences shows how often each button was pressed, how many macros ran and for how long remapping was on. Counted on this computer

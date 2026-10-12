@@ -53,7 +53,7 @@ dotnet test ReWASD.sln
 
 Remap a controller, keyboard or mouse to keys, mouse buttons, scrolling, macros, scripts and a virtual controller (Windows); sticks that
 drive the mouse, wheel or keys; chords and sequences; shift layers; a command wheel; profiles that follow the app in front; import,
-export and history; a stream overlay; a lock; usage counts; macro steps that open pages, start apps, run commands, call webhooks and
+export and history; a full-screen controller tester (circle test, trigger pressure, timing, bounce, reaction test); a stream overlay; a lock; usage counts; macro steps that open pages, start apps, run commands, call webhooks and
 control OBS. See [docs/features.md](docs/features.md) for all of it, and what is not included.
 
 ### Project Structure

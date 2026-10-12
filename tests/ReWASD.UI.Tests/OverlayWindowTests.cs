@@ -118,3 +118,48 @@ public class OverlayWindowTests
         wheel.UpdateLayout();
     });
 }
+
+/// <summary>The drawing controls of the full-screen tester: they need no app resources, so they can be checked on their own.</summary>
+public class TesterControlTests
+{
+    private static ReWASD.Engine.Input.PhysicalState Pad(double lx, double ly) =>
+        new(new HashSet<ReWASD.Core.Models.ControllerButton>(), lx, ly, 0, 0, 0, 0);
+
+    private static ReWASD.UI.Tester.TesterSnapshot CircleSnapshot()
+    {
+        var model = new ReWASD.UI.Tester.TesterModel();
+        for (int deg = 0; deg < 360; deg += 2)
+        {
+            double a = deg * Math.PI / 180;
+            model.Feed(Pad(Math.Cos(a), Math.Sin(a)), deg * 2);
+        }
+        return model.Snapshot();
+    }
+
+    [Fact]
+    public void TheStickPlot_PlacesTheMeasuredShapeOnTheCircle() => Sta.Run(() =>
+    {
+        var points = ReWASD.UI.TesterControls.StickPlot.ShapePoints(CircleSnapshot().Left, new Point(100, 100), 80);
+
+        Assert.Equal(ReWASD.UI.Tester.TesterModel.AngleBins, points.Count);
+        Assert.All(points, p => Assert.Equal(80, Math.Sqrt((p.X - 100) * (p.X - 100) + (p.Y - 100) * (p.Y - 100)), 1));
+        Assert.True(points[0].Y < 100);          // screen y goes down, the stick's goes up
+    });
+
+    [Fact]
+    public void ThePlotsDraw_WithoutFailing() => Sta.Run(() =>
+    {
+        var snapshot = CircleSnapshot();
+        var plot = new ReWASD.UI.TesterControls.StickPlot { Snapshot = snapshot.Left, DeadzoneMin = 0.1, DeadzoneMax = 0.9, Width = 260, Height = 260 };
+        var graph = new ReWASD.UI.TesterControls.ScopeGraph { Series = snapshot.Scope, Channels = new[] { 0, 1 }, Width = 400, Height = 150 };
+
+        foreach (FrameworkElement element in new FrameworkElement[] { plot, graph })
+        {
+            element.Measure(new Size(element.Width, element.Height));
+            element.Arrange(new Rect(0, 0, element.Width, element.Height));
+            var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap((int)element.Width, (int)element.Height, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+            bitmap.Render(element);                                   // runs OnRender
+            Assert.Equal((int)element.Width, bitmap.PixelWidth);
+        }
+    });
+}

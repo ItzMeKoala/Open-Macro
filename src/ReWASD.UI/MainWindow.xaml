@@ -141,6 +141,8 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button x:Name="TesterButton" Style="{StaticResource SecondaryButtonStyle}" Content="Tester" Padding="12,5" Margin="0,0,8,0" VerticalAlignment="Center"
+                            ToolTip="Controller tester: full screen (F11)" />
                     <Button Style="{StaticResource IconButton}" Content="&#xE713;" ToolTip="Preferences" Command="{Binding ToggleSettingsCommand}" />
                 </StackPanel>
             </Grid>
@@ -740,5 +742,8 @@
             </Grid>
         </Border>
 
+
+        <!-- The full-screen tester, created only while the window is full screen -->
+        <ContentControl x:Name="TesterHost" Grid.RowSpan="5" Visibility="Collapsed" Panel.ZIndex="100" />
     </Grid>
 </Window>

@@ -27,12 +27,75 @@ public partial class MainWindow : Window
     internal WheelWindow? Wheel => _wheel;
 
     private TrayIconHost? _tray;
+    private Views.TesterView? _tester;
+
+    // What the window looked like before full screen, so leaving it puts everything back
+    private bool _fullScreen;
+    private WindowStyle _styleBefore;
+    private ResizeMode _resizeBefore;
+    private WindowState _stateBefore;
+
+    /// <summary>The tester screen while the window is full screen (for tests).</summary>
+    internal Views.TesterView? Tester => _tester;
+
+    /// <summary>True while the window is full screen and showing the tester.</summary>
+    internal bool IsFullScreen => _fullScreen;
+
+    /// <summary>Full screen is the controller tester: F11 or the button toggles it, Esc leaves it.</summary>
+    internal void SetFullScreen(bool on)
+    {
+        if (on == _fullScreen) return;
+        var vm = DataContext as ViewModels.MainViewModel;
+
+        if (on)
+        {
+            _styleBefore = WindowStyle;
+            _resizeBefore = ResizeMode;
+            _stateBefore = WindowState;
+
+            // Normal first, so maximizing again covers the taskbar too
+            WindowState = WindowState.Normal;
+            WindowStyle = WindowStyle.None;
+            ResizeMode = ResizeMode.NoResize;
+            WindowState = WindowState.Maximized;
+            _fullScreen = true;
+
+            _tester = new Views.TesterView { DataContext = vm };
+            _tester.ExitRequested += (_, _) => SetFullScreen(false);
+            TesterHost.Content = _tester;
+            TesterHost.Visibility = Visibility.Visible;
+            if (vm != null) vm.IsTesterMode = true;
+        }
+        else
+        {
+            if (vm != null) vm.IsTesterMode = false;
+            TesterHost.Visibility = Visibility.Collapsed;
+            TesterHost.Content = null;
+            _tester = null;
+
+            _fullScreen = false;
+            WindowState = WindowState.Normal;
+            WindowStyle = _styleBefore;
+            ResizeMode = _resizeBefore;
+            WindowState = _stateBefore == WindowState.Minimized ? WindowState.Normal : _stateBefore;
+        }
+    }
 
     public MainWindow()
     {
         InitializeComponent();
         DataContextChanged += (_, _) => Watch(DataContext as ViewModels.MainViewModel);
         Watch(DataContext as ViewModels.MainViewModel);   // the XAML may already have created it
+
+        TesterButton.Click += (_, _) => SetFullScreen(!_fullScreen);
+
+        // `REWASD_START_TESTER=1` opens straight into the tester (the build checks that the tester screen loads this way)
+        if (Environment.GetEnvironmentVariable("REWASD_START_TESTER") == "1") Loaded += (_, _) => SetFullScreen(true);
+        PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key == Key.F11) { SetFullScreen(!_fullScreen); e.Handled = true; }
+            else if (e.Key == Key.Escape && _fullScreen) { SetFullScreen(false); e.Handled = true; }
+        };
 
         try
         {
@@ -55,6 +118,7 @@ public partial class MainWindow : Window
             if (DataContext is ViewModels.MainViewModel { KeepRunningInBackground: true, IsQuitting: false })
             {
                 e.Cancel = true;
+                SetFullScreen(false);       // the tester must not keep reading while hidden
                 Hide();
                 return;
             }
