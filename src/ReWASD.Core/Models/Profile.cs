@@ -20,6 +20,9 @@ public class Profile
 
     public int LockHoldMs { get; set; } = 1000;
 
+    /// <summary>A radial menu opened by holding a button. Off unless a button is chosen and it has at least two slices.</summary>
+    public CommandWheel Wheel { get; set; } = new();
+
     /// <summary>Button combinations (chords and sequences) that do something of their own.</summary>
     public List<ComboMapping> Combos { get; set; } = new();
 

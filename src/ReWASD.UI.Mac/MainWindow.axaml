@@ -485,6 +485,38 @@
                             </StackPanel>
                         </Border>
 
+                        <TextBlock Text="COMMAND WHEEL (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                        <Border Classes="card">
+                            <StackPanel>
+                                <TextBlock Text="Hold a button, point a stick at a slice, let go of the button to run it. Opens on top of your game without taking focus." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" />
+                                <TextBlock Text="Open it by holding" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,10,0,4" />
+                                <ComboBox ItemsSource="{x:Static vm:MainViewModel.WheelButtonNames}" SelectedIndex="{Binding WheelButtonIndex}" HorizontalAlignment="Stretch" />
+                                <TextBlock Text="Point with" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" Margin="0,8,0,4" />
+                                <ComboBox ItemsSource="{x:Static vm:MainViewModel.WheelStickNames}" SelectedIndex="{Binding WheelStickIndex}" HorizontalAlignment="Stretch" />
+                                <DockPanel Margin="0,8,0,0">
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding WheelThreshold, StringFormat='{}{0:P0}'}" Foreground="{StaticResource BrushCyan}" FontSize="12" />
+                                    <TextBlock Text="Push this far to choose" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" />
+                                </DockPanel>
+                                <Slider Minimum="0.2" Maximum="0.9" SmallChange="0.05" LargeChange="0.1" Value="{Binding WheelThreshold}" Margin="0,4,0,0" />
+
+                                <ItemsControl ItemsSource="{Binding WheelItems}" Margin="0,10,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel Margin="0,0,0,6">
+                                                <Button DockPanel.Dock="Right" Content="Remove" Classes="secondary" Padding="10,3" FontSize="11"
+                                                        Command="{Binding $parent[ItemsControl].DataContext.RemoveWheelItemCommand}" CommandParameter="{Binding}" />
+                                                <TextBlock Text="{Binding Label}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBox Text="{Binding NewWheelLabel}" Watermark="Slice name, e.g. Browser" Margin="0,6,0,0" />
+                                <TextBox Text="{Binding NewWheelAction}" Watermark="Action, e.g. LaunchApp:Safari" Margin="0,6,0,0" />
+                                <Button Content="Add slice" Command="{Binding AddWheelItemCommand}" Classes="secondary" Padding="12,5" Margin="0,8,0,0" HorizontalAlignment="Left" />
+                                <TextBlock Text="{Binding WheelMessage}" Foreground="{StaticResource BrushOrange}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0" />
+                            </StackPanel>
+                        </Border>
+
                         <TextBlock Text="ACTIVATOR TIMING (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
                         <Border Classes="card">
                             <StackPanel>

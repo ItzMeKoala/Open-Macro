@@ -356,6 +356,7 @@ public partial class MainViewModel : ObservableObject
         _foreground = platform.Foreground;
         _mappingEngine.LockChanged += locked => _ui.Post(() => OnEngineLockChanged(locked));
         _pipeline = new InputPipeline(_mappingEngine, _reader, _virtualService, _injector, _macros, _macroPad, _hook);
+        _pipeline.FrameProcessed += OnWheelFrame;
         _recordKey = _recorder.OnKey;
         _recordMouse = _recorder.OnMouse;
 
@@ -458,6 +459,7 @@ public partial class MainViewModel : ObservableObject
     private void LoadProfileSettings(Profile profile)
     {
         LoadLockChord(profile);
+        LoadWheel(profile);
         RefreshCombos();
         _loadingProfile = true;
         try { ChordWindowMs = profile.ChordWindowMs; }
@@ -580,6 +582,140 @@ public partial class MainViewModel : ObservableObject
             stick.DeadzoneMax = value;
             stick.CalibrationText = $"Full push now counts from {value:P0}";
         }
+    }
+
+    // ---- Command wheel -------------------------------------------------------------------------------------------------
+
+    public static IReadOnlyList<ControllerButton> WheelButtons { get; } = new[]
+    {
+        ControllerButton.None, ControllerButton.LeftBumper, ControllerButton.RightBumper, ControllerButton.LeftTrigger, ControllerButton.RightTrigger,
+        ControllerButton.LeftStickClick, ControllerButton.RightStickClick, ControllerButton.View, ControllerButton.Menu
+    };
+
+    public static IReadOnlyList<string> WheelButtonNames { get; } =
+        WheelButtons.Select(b => b == ControllerButton.None ? "Off" : ComboMapping.Names.Friendly(b)).ToList();
+
+    public static IReadOnlyList<string> WheelStickNames { get; } = new[] { "Right stick", "Left stick" };
+
+    public ObservableCollection<WheelItem> WheelItems { get; } = new();
+
+    [ObservableProperty]
+    private int _wheelButtonIndex;
+
+    [ObservableProperty]
+    private int _wheelStickIndex;
+
+    [ObservableProperty]
+    private double _wheelThreshold = 0.5;
+
+    [ObservableProperty]
+    private string _newWheelLabel = string.Empty;
+
+    [ObservableProperty]
+    private string _newWheelAction = string.Empty;
+
+    [ObservableProperty]
+    private string _wheelMessage = string.Empty;
+
+    /// <summary>The wheel is open on screen (its button is held).</summary>
+    [ObservableProperty]
+    private bool _wheelVisible;
+
+    /// <summary>The slice the stick points at, or -1.</summary>
+    [ObservableProperty]
+    private int _wheelSelectedIndex = -1;
+
+    private volatile bool _wheelSeenOpen;
+    private int _wheelSeenIndex = -1;
+
+    private void LoadWheel(Profile profile)
+    {
+        profile.Wheel ??= new CommandWheel();
+        _loadingProfile = true;
+        try
+        {
+            WheelButtonIndex = Math.Max(0, WheelButtons.ToList().IndexOf(profile.Wheel.Button));
+            WheelStickIndex = profile.Wheel.UseRightStick ? 0 : 1;
+            WheelThreshold = profile.Wheel.Threshold;
+        }
+        finally
+        {
+            _loadingProfile = false;
+        }
+        WheelItems.Clear();
+        foreach (var item in profile.Wheel.Items) WheelItems.Add(item);
+    }
+
+    partial void OnWheelButtonIndexChanged(int value)
+    {
+        if (_loadingProfile || value < 0 || value >= WheelButtons.Count) return;
+        lock (_mappingEngine.SyncRoot) SelectedProfile.Wheel.Button = WheelButtons[value];
+    }
+
+    partial void OnWheelStickIndexChanged(int value)
+    {
+        if (_loadingProfile) return;
+        lock (_mappingEngine.SyncRoot) SelectedProfile.Wheel.UseRightStick = value == 0;
+    }
+
+    partial void OnWheelThresholdChanged(double value)
+    {
+        if (_loadingProfile) return;
+        lock (_mappingEngine.SyncRoot) SelectedProfile.Wheel.Threshold = value;
+    }
+
+    [RelayCommand]
+    private void AddWheelItem()
+    {
+        WheelMessage = string.Empty;
+        if (WheelItems.Count >= CommandWheel.MaxItems)
+        {
+            WheelMessage = $"A wheel has at most {CommandWheel.MaxItems} slices";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(NewWheelLabel))
+        {
+            WheelMessage = "Give the slice a name";
+            return;
+        }
+        if (!MacroDefinition.TryParseScript(NewWheelAction, MacroRepeatMode.Once, out var macro, out var error))
+        {
+            WheelMessage = error;
+            return;
+        }
+
+        var item = new WheelItem { Label = NewWheelLabel.Trim(), Macro = macro };
+        lock (_mappingEngine.SyncRoot) SelectedProfile.Wheel.Items.Add(item);
+        WheelItems.Add(item);
+        NewWheelLabel = string.Empty;
+        NewWheelAction = string.Empty;
+        WheelMessage = SelectedProfile.Wheel.IsOn
+            ? $"Added {item.Label}"
+            : WheelButtonIndex == 0 ? $"Added {item.Label}. Choose the button that opens the wheel to switch it on" : $"Added {item.Label}. A wheel needs at least two slices";
+    }
+
+    [RelayCommand]
+    private void RemoveWheelItem(WheelItem? item)
+    {
+        if (item == null) return;
+        lock (_mappingEngine.SyncRoot) SelectedProfile.Wheel.Items.Remove(item);
+        WheelItems.Remove(item);
+        WheelMessage = $"Removed {item.Label}";
+    }
+
+    // Called on the input thread after every frame: only tell the window when something changed
+    internal void OnWheelFrame(RemappedState state)
+    {
+        if (state.WheelOpen == _wheelSeenOpen && state.WheelIndex == _wheelSeenIndex) return;
+        bool open = state.WheelOpen;
+        int index = state.WheelIndex;
+        _wheelSeenOpen = open;
+        _wheelSeenIndex = index;
+        _ui.Post(() =>
+        {
+            WheelSelectedIndex = index;
+            WheelVisible = open;
+        });
     }
 
     // ---- Running in the background (tray / menu bar) ---------------------------------------------------------------------

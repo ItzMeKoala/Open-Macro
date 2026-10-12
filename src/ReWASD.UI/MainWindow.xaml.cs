@@ -17,10 +17,14 @@ namespace ReWASD.UI;
 public partial class MainWindow : Window
 {
     private OverlayWindow? _overlay;
+    private WheelWindow? _wheel;
     private ViewModels.MainViewModel? _watched;
 
     /// <summary>The overlay window while it is open (for tests).</summary>
     internal OverlayWindow? Overlay => _overlay;
+
+    /// <summary>The command wheel while it is on screen (for tests).</summary>
+    internal WheelWindow? Wheel => _wheel;
 
     private TrayIconHost? _tray;
 
@@ -58,6 +62,7 @@ public partial class MainWindow : Window
             _tray?.Dispose();
             _tray = null;
             CloseOverlay();
+            CloseWheel();
             var vm = DataContext as ViewModels.MainViewModel;
             vm?.StopLiveUpdates();
             vm?.Shutdown();
@@ -74,7 +79,16 @@ public partial class MainWindow : Window
 
     private void OnViewModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(ViewModels.MainViewModel.ShowOverlay) || _watched == null) return;
+        if (_watched == null) return;
+
+        if (e.PropertyName == nameof(ViewModels.MainViewModel.WheelVisible))
+        {
+            if (_watched.WheelVisible) OpenWheel(_watched);
+            else CloseWheel();
+            return;
+        }
+
+        if (e.PropertyName != nameof(ViewModels.MainViewModel.ShowOverlay)) return;
 
         if (_watched.ShowOverlay) OpenOverlay(_watched);
         else CloseOverlay();
@@ -91,6 +105,20 @@ public partial class MainWindow : Window
             if (vm.ShowOverlay) vm.ShowOverlay = false;      // closed from its own window: keep the switch honest
         };
         _overlay.Show();
+    }
+
+    private void OpenWheel(ViewModels.MainViewModel vm)
+    {
+        if (_wheel != null) return;
+        _wheel = new WheelWindow(vm);
+        _wheel.Show();
+    }
+
+    private void CloseWheel()
+    {
+        var wheel = _wheel;
+        _wheel = null;
+        wheel?.Close();
     }
 
     private void CloseOverlay()

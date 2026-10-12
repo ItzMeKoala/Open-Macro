@@ -21,6 +21,12 @@ public class RemappedState
     /// <summary>Layer requested by an active JumpToLayer mapping this frame; the engine applies it on the next frame.</summary>
     public int? RequestedLayer { get; set; }
 
+    /// <summary>The command wheel is open (its button is held).</summary>
+    public bool WheelOpen { get; set; }
+
+    /// <summary>The slice the stick points at while the wheel is open, or -1.</summary>
+    public int WheelIndex { get; set; } = -1;
+
     /// <summary>Cursor velocity from sticks in Mouse mode, in pixels per second (positive x = right, positive y = down).</summary>
     public double MouseVelocityX { get; set; }
     public double MouseVelocityY { get; set; }
@@ -58,6 +64,10 @@ public class MappingEngine
     public event Action<bool>? LockChanged;
 
     private readonly ComboTracker _combos = new();
+    private bool _wheelWasOpen;
+    private int _wheelIndex = -1;
+    private MacroDefinition? _wheelMacro;
+    private long _wheelMacroUntil;
     private readonly HashSet<ComboMapping> _activeCombos = new();
     private long _lockChordSince = -1;
     private bool _lockChordSpent;
@@ -176,6 +186,9 @@ public class MappingEngine
         _chordHeld.Clear();
         _toggledLayers.Clear();
         _combos.Reset();
+        _wheelWasOpen = false;
+        _wheelIndex = -1;
+        _wheelMacro = null;
         _pendingJump = null;
         _currentLayer = null;
     }
@@ -221,6 +234,36 @@ public class MappingEngine
             pressedButtons = new HashSet<ControllerButton>();
             rawLeftStickX = rawLeftStickY = rawRightStickX = rawRightStickY = rawLeftTrigger = rawRightTrigger = 0;
         }
+
+        // The command wheel: while its button is held the button and the pointing stick belong to it
+        bool wheelOpen = false;
+        int wheelIndex = -1;
+        var wheel = CurrentProfile.Wheel;
+        if (wheel is { IsOn: true })
+        {
+            wheelOpen = pressedButtons.Contains(wheel.Button);
+            if (wheelOpen)
+            {
+                var stick = wheel.UseRightStick ? CurrentProfile.RightStick : CurrentProfile.LeftStick;
+                var (sx, sy) = wheel.UseRightStick ? stick.TransformStick(rawRightStickX, rawRightStickY) : stick.TransformStick(rawLeftStickX, rawLeftStickY);
+                wheelIndex = CommandWheel.SliceAt(sx, sy, wheel.Items.Count, wheel.Threshold);
+
+                pressedButtons = pressedButtons.Where(b => b != wheel.Button).ToHashSet();
+                if (wheel.UseRightStick) rawRightStickX = rawRightStickY = 0;
+                else rawLeftStickX = rawLeftStickY = 0;
+            }
+            else if (_wheelWasOpen && _wheelIndex >= 0 && _wheelIndex < wheel.Items.Count)
+            {
+                // Let go with a slice chosen: run it
+                _wheelMacro = wheel.Items[_wheelIndex].Macro;
+                _wheelMacroUntil = now + Math.Max(timings.PulseMs, 40);
+            }
+        }
+        _wheelWasOpen = wheelOpen;
+        _wheelIndex = wheelIndex;
+        result.WheelOpen = wheelOpen;
+        result.WheelIndex = wheelIndex;
+        if (_wheelMacro != null && now < _wheelMacroUntil) result.ActiveMacros.Add(_wheelMacro);
 
         // Chords and sequences: they take their buttons away from the ordinary mappings, and fire on their own
         _activeCombos.Clear();

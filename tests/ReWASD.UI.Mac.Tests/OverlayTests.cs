@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
 using ReWASD.Core.Models;
@@ -210,5 +211,156 @@ public class BackgroundTests
     {
         var vm = new MainViewModel(Fakes.Platform(PlatformServices.WindowsInfo), new Fakes.Ui(), Fakes.TempProfiles());
         Assert.False(vm.CanHideDockIcon);
+    }
+}
+
+public class WheelTests
+{
+    private static (MainViewModel Vm, MainWindow Window) Open()
+    {
+        var vm = new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo), new Fakes.Ui(), Fakes.TempProfiles());
+        var window = new MainWindow { DataContext = vm };
+        window.Show();
+        return (vm, window);
+    }
+
+    private static void AddItem(MainViewModel vm, string label, string action)
+    {
+        vm.NewWheelLabel = label;
+        vm.NewWheelAction = action;
+        vm.AddWheelItemCommand.Execute(null);
+    }
+
+    [Fact]
+    public void TheSettings_WriteIntoTheProfile()
+    {
+        var vm = new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo), new Fakes.Ui(), Fakes.TempProfiles());
+
+        vm.WheelButtonIndex = MainViewModel.WheelButtons.ToList().IndexOf(ControllerButton.LeftTrigger);
+        vm.WheelStickIndex = 1;
+        vm.WheelThreshold = 0.7;
+        AddItem(vm, "Browser", "LaunchApp:Safari");
+        AddItem(vm, "Notes", "OpenUrl:https://example.com");
+
+        var wheel = vm.SelectedProfile.Wheel;
+        Assert.Equal(ControllerButton.LeftTrigger, wheel.Button);
+        Assert.False(wheel.UseRightStick);
+        Assert.Equal(0.7, wheel.Threshold);
+        Assert.Equal(new[] { "Browser", "Notes" }, wheel.Items.Select(i => i.Label));
+        Assert.True(wheel.IsOn);
+        Assert.Equal(2, vm.WheelItems.Count);
+    }
+
+    [Fact]
+    public void BadSlices_AreRefusedWithAReason()
+    {
+        var vm = new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo), new Fakes.Ui(), Fakes.TempProfiles());
+
+        AddItem(vm, "", "KeyTap:A");
+        Assert.Contains("name", vm.WheelMessage);
+
+        AddItem(vm, "X", "Nonsense:1");
+        Assert.Contains("Unknown action", vm.WheelMessage);
+
+        for (int i = 0; i < CommandWheel.MaxItems; i++) AddItem(vm, "S" + i, "KeyTap:A");
+        AddItem(vm, "One too many", "KeyTap:A");
+        Assert.Contains("at most", vm.WheelMessage);
+        Assert.Equal(CommandWheel.MaxItems, vm.SelectedProfile.Wheel.Items.Count);
+    }
+
+    [Fact]
+    public void RemovingASlice_TakesItOut_AndEachProfileShowsItsOwnWheel()
+    {
+        var vm = new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo), new Fakes.Ui(), Fakes.TempProfiles());
+        var first = vm.SelectedProfile;
+        AddItem(vm, "A", "KeyTap:A");
+        AddItem(vm, "B", "KeyTap:B");
+        vm.RemoveWheelItemCommand.Execute(vm.WheelItems[0]);
+        Assert.Equal(new[] { "B" }, first.Wheel.Items.Select(i => i.Label));
+
+        vm.NewProfileCommand.Execute(null);
+        Assert.Empty(vm.WheelItems);
+        Assert.Equal(0, vm.WheelButtonIndex);
+
+        vm.SelectedProfile = first;
+        Assert.Equal(new[] { "B" }, vm.WheelItems.Select(i => i.Label));
+    }
+
+    [Fact]
+    public void TheFrameState_OpensAndClosesTheWheelOnScreen_OnlyWhenSomethingChanges()
+    {
+        var vm = new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo), new Fakes.Ui(), Fakes.TempProfiles());
+        var changes = new List<string>();
+        vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(MainViewModel.WheelVisible) or nameof(MainViewModel.WheelSelectedIndex)) changes.Add(e.PropertyName!);
+        };
+
+        vm.OnWheelFrame(new ReWASD.Engine.Remapper.RemappedState());
+        Assert.Empty(changes);                                                      // nothing new: no work for the window
+
+        vm.OnWheelFrame(new ReWASD.Engine.Remapper.RemappedState { WheelOpen = true, WheelIndex = 2 });
+        Assert.True(vm.WheelVisible);
+        Assert.Equal(2, vm.WheelSelectedIndex);
+
+        int count = changes.Count;
+        vm.OnWheelFrame(new ReWASD.Engine.Remapper.RemappedState { WheelOpen = true, WheelIndex = 2 });
+        Assert.Equal(count, changes.Count);                                         // the same frame again changes nothing
+
+        vm.OnWheelFrame(new ReWASD.Engine.Remapper.RemappedState());
+        Assert.False(vm.WheelVisible);
+        Assert.Equal(-1, vm.WheelSelectedIndex);
+    }
+
+    [AvaloniaFact]
+    public void TheWheelWindow_AppearsWithTheSlices_HighlightsTheChosenOne_AndGoesAway()
+    {
+        var (vm, window) = Open();
+        AddItem(vm, "Browser", "LaunchApp:Safari");
+        AddItem(vm, "Notes", "OpenUrl:https://example.com");
+        AddItem(vm, "Music", "KeyTap:A");
+        Assert.Null(window.Wheel);
+
+        vm.WheelVisible = true;
+
+        var wheel = window.Wheel!;
+        Assert.NotNull(wheel);
+        Assert.True(wheel.Topmost);
+        Assert.False(wheel.ShowActivated);          // it must never take the keyboard from a game
+        Assert.Equal(3, wheel.SliceCount);
+        Assert.Equal(-1, wheel.DrawnSelection);
+
+        vm.WheelSelectedIndex = 1;
+        string? shots = Environment.GetEnvironmentVariable("REWASD_SHOTS");
+        if (!string.IsNullOrEmpty(shots))
+        {
+            Directory.CreateDirectory(shots);
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            wheel.CaptureRenderedFrame()?.Save(Path.Combine(shots, "wheel.png"));
+        }
+        Assert.Equal(1, wheel.DrawnSelection);
+        Assert.Equal("Notes", wheel.CentreText);
+
+        vm.WheelSelectedIndex = -1;
+        Assert.Equal(-1, wheel.DrawnSelection);
+        Assert.Equal("", wheel.CentreText);
+
+        vm.WheelVisible = false;
+        Assert.Null(window.Wheel);
+    }
+
+    [AvaloniaFact]
+    public void ClosingTheMainWindow_ClosesTheWheelToo()
+    {
+        var (vm, window) = Open();
+        AddItem(vm, "A", "KeyTap:A");
+        AddItem(vm, "B", "KeyTap:B");
+        vm.WheelVisible = true;
+        var wheel = window.Wheel!;
+
+        window.Close();
+
+        Assert.Null(window.Wheel);
+        Assert.False(wheel.IsVisible);
     }
 }
