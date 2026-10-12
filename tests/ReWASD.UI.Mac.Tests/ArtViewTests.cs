@@ -19,7 +19,7 @@ public class ArtViewTests
         var window = new MainWindow { DataContext = vm };
         window.Show();
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-        var view = window.GetVisualDescendants().OfType<ArtView>().Single(v => v.Name != "KeyboardArt");
+        var view = window.GetVisualDescendants().OfType<ArtView>().Single(v => v.Name is not ("KeyboardArt" or "MouseArt"));
         return (vm, window, view);
     }
 
@@ -260,7 +260,7 @@ public class ArtViewTests
         view.Settle();
 
         Assert.True(Look(view, ControllerButton.A).Glow > 0.5);
-        Assert.Single(window.GetVisualDescendants().OfType<ArtView>().Where(v => v.Name != "KeyboardArt"));
+        Assert.Single(window.GetVisualDescendants().OfType<ArtView>().Where(v => v.Name is not ("KeyboardArt" or "MouseArt")));
     }
 
     [AvaloniaFact]
@@ -285,7 +285,7 @@ public class XboxArtViewTests
         var window = new MainWindow { DataContext = vm };
         window.Show();
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-        return (vm, window, window.GetVisualDescendants().OfType<ArtView>().Single(v => v.Name != "KeyboardArt"));
+        return (vm, window, window.GetVisualDescendants().OfType<ArtView>().Single(v => v.Name is not ("KeyboardArt" or "MouseArt")));
     }
 
     private static ButtonViewModel Pad(MainViewModel vm, ControllerButton b) => vm.ControllerButtons.First(x => x.Button == b);

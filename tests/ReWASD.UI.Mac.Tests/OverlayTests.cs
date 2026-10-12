@@ -36,7 +36,7 @@ public class OverlayTests
         Assert.True(window.Overlay.Art.IsVisible);
 
         vm.ShowOverlay = true;                                    // nothing doubles up
-        Assert.Single(window.GetVisualDescendants().OfType<ArtView>().Where(v => v.Name != "KeyboardArt"));
+        Assert.Single(window.GetVisualDescendants().OfType<ArtView>().Where(v => v.Name is not ("KeyboardArt" or "MouseArt")));
 
         vm.ShowOverlay = false;
         Assert.Null(window.Overlay);
@@ -124,7 +124,7 @@ public class OverlayTests
         vm.ShowOverlay = true;
         vm.SelectButton(vm.ControllerButtons.First(b => b.Button == ControllerButton.X));
 
-        var editor = window.GetVisualDescendants().OfType<ArtView>().Single(v => v.Name != "KeyboardArt");
+        var editor = window.GetVisualDescendants().OfType<ArtView>().Single(v => v.Name is not ("KeyboardArt" or "MouseArt"));
         Assert.True(editor.ShowEditing);
         Assert.False(window.Overlay!.Art.ShowEditing);
     }

@@ -252,3 +252,35 @@ public class WpfWindowKeyTests
         Assert.Equal("PageDown", WindowKeys.ToSourceName(System.Windows.Input.Key.PageDown.ToString()));
     }
 }
+
+/// <summary>The detailed mouse on Windows: it builds, its buttons follow the mouse and each one is found where it is drawn.</summary>
+public class MouseArtViewTests
+{
+    [Fact]
+    public void TheMouse_Builds_AndEachButtonIsWhereItIsDrawn() => Sta.Run(() =>
+    {
+        var buttons = ReWASD.Core.Skins.InputLayouts.Mouse.Select(m => new ButtonViewModel { Kind = SourceKind.Mouse, SourceName = m.Name, FriendlyName = m.Name }).ToList();
+        var view = new ArtView { Scene = ArtLibrary.Mouse, Sources = buttons };
+        view.Measure(new Size(700, 900));
+        view.Arrange(new Rect(0, 0, 700, 900));
+        view.UpdateLayout();
+        Assert.False(view.HasFailed);
+
+        var root = ((Viewbox)view.Child).Child;
+        Point At(double x, double y) => root.TransformToAncestor(view).Transform(new Point(x, y));
+        var forward = MouseArt.ThumbButton(forward: true);
+        var back = MouseArt.ThumbButton(forward: false);
+        Assert.Equal("Left Click", view.KeyAt(At(210, 240)));
+        Assert.Equal("Right Click", view.KeyAt(At(390, 240)));
+        Assert.Equal("Wheel Up", view.KeyAt(At(300, 170)));
+        Assert.Equal("Middle Click", view.KeyAt(At(300, 228)));
+        Assert.Equal("Wheel Down", view.KeyAt(At(300, 290)));
+        Assert.Equal("Mouse Button 5", view.KeyAt(At(forward.X + forward.W / 2, forward.Y + forward.H / 2)));
+        Assert.Equal("Mouse Button 4", view.KeyAt(At(back.X + back.W / 2, back.Y + back.H / 2)));
+        Assert.Null(view.KeyAt(At(300, 650)));       // the palm
+
+        buttons.First(b => b.SourceName == "Left Click").IsPressed = true;
+        view.Settle();
+        Assert.True(view.Inspect("Left Click")!.Value.Transform.OffsetY > 1);
+    });
+}

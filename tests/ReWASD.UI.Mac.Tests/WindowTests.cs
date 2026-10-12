@@ -61,12 +61,14 @@ public class WindowTests
 
         vm.SelectedInputTab = InputTab.Mouse;
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-        Assert.Equal(vm.MouseSources.Count, window.GetVisualDescendants().OfType<Button>().Count(b => b.Classes.Contains("src")));
+        var mouseArt = window.GetVisualDescendants().OfType<Art.ArtView>().Single(v => v.Name == "MouseArt");
+        Assert.True(mouseArt.IsEffectivelyVisible);
+        Assert.All(vm.MouseSources, m => Assert.NotNull(mouseArt.Inspect(m.SourceName)));
         Shot(window, "mouse");
     }
 
     [AvaloniaFact]
-    public void MouseRegions_CanEachBeSelectedWithoutOverlapping()
+    public void MouseParts_CanEachBeSelectedWithoutOverlapping()
     {
         var vm = NewViewModel();
         var window = Show(vm);
@@ -74,29 +76,31 @@ public class WindowTests
         {
             vm.SelectedInputTab = InputTab.Mouse;
             Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-            var surface = window.GetVisualDescendants().OfType<Views.InputSurface>().Single();
-            var drawing = surface.GetVisualDescendants().OfType<Viewbox>().Single(v => v.IsEffectivelyVisible).Child!;
+            var view = window.GetVisualDescendants().OfType<Art.ArtView>().Single(v => v.Name == "MouseArt");
+            var root = view.GetVisualDescendants().OfType<Viewbox>().First().Child!;
 
             void Click(double x, double y)
             {
-                var point = Avalonia.VisualExtensions.TranslatePoint(drawing, new Avalonia.Point(x, y), window)!.Value;
+                var point = Avalonia.VisualExtensions.TranslatePoint(root, new Avalonia.Point(x, y), window)!.Value;
                 window.MouseDown(point, Avalonia.Input.MouseButton.Left);
                 window.MouseUp(point, Avalonia.Input.MouseButton.Left);
             }
 
+            var forward = ReWASD.Core.Skins.Art.MouseArt.ThumbButton(forward: true);
+            var back = ReWASD.Core.Skins.Art.MouseArt.ThumbButton(forward: false);
             foreach (var (name, x, y) in new[]
             {
-                ("Right Click", 410.0, 125.0), ("Left Click", 290.0, 125.0),
-                ("Wheel Up", 350.0, 87.0), ("Middle Click", 350.0, 120.0),
-                ("Wheel Down", 350.0, 153.0), ("Mouse Button 5", 268.0, 241.0),
-                ("Mouse Button 4", 268.0, 283.0)
+                ("Left Click", 210.0, 240.0), ("Right Click", 390.0, 240.0),
+                ("Wheel Up", 300.0, 170.0), ("Middle Click", 300.0, 228.0), ("Wheel Down", 300.0, 290.0),
+                ("Mouse Button 5", forward.X + forward.W / 2, forward.Y + forward.H / 2),
+                ("Mouse Button 4", back.X + back.W / 2, back.Y + back.H / 2)
             })
             {
                 Click(x, y);
                 Assert.Equal(name, vm.SelectedButton!.SourceName);
             }
 
-            Click(350, 330); // unmapped body: no source should claim it
+            Click(300, 650); // the palm: not a button
             Assert.Equal("Mouse Button 4", vm.SelectedButton!.SourceName);
         }
         finally

@@ -9,6 +9,24 @@ public static class ArtLibrary
     private static readonly Lazy<ArtScene> XboxOneScene = new(() => Load("xboxone.svg"));
     private static readonly Lazy<ArtScene> KeyboardScene = new(() => SvgArtParser.Parse(KeyboardArt.Svg()));
 
+    private static readonly Lazy<ArtScene> MouseScene = new(() => SvgArtParser.Parse(MouseArt.Svg()));
+
+    /// <summary>A gaming mouse seen from above, drawn by <see cref="MouseArt"/>.</summary>
+    public static ArtScene Mouse => MouseScene.Value;
+
+    /// <summary>The mouse drawing, or null if it cannot be built (the mouse tab then shows its plain outline).</summary>
+    public static ArtScene? TryGetMouse()
+    {
+        try
+        {
+            return Mouse;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
     /// <summary>A tenkeyless keyboard, drawn from <see cref="KeyboardArt"/>.</summary>
     public static ArtScene Keyboard => KeyboardScene.Value;
 

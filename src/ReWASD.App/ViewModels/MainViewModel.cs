@@ -124,6 +124,7 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsGamepadTab))]
     [NotifyPropertyChangedFor(nameof(ShowSkinArt))]
     [NotifyPropertyChangedFor(nameof(ShowKeyboardArt))]
+    [NotifyPropertyChangedFor(nameof(ShowMouseArt))]
     [NotifyPropertyChangedFor(nameof(ShowOutline))]
     private InputTab _selectedInputTab = InputTab.Gamepad;
 
@@ -1991,8 +1992,14 @@ public partial class MainViewModel : ObservableObject
     /// <summary>True when the detailed keyboard replaces the key boxes: the keyboard tab is open and the drawing was built.</summary>
     public bool ShowKeyboardArt => KeyboardArt != null && SelectedInputTab == InputTab.Keyboard;
 
+    /// <summary>The detailed mouse drawing (null if it could not be built: the mouse tab then shows the plain outline).</summary>
+    public ArtScene? MouseArt { get; } = ArtLibrary.TryGetMouse();
+
+    /// <summary>True when the detailed mouse replaces the outline: the mouse tab is open and the drawing was built.</summary>
+    public bool ShowMouseArt => MouseArt != null && SelectedInputTab == InputTab.Mouse;
+
     /// <summary>True when the plain outline drawing is shown (no detailed drawing for this tab).</summary>
-    public bool ShowOutline => !ShowSkinArt && !ShowKeyboardArt;
+    public bool ShowOutline => !ShowSkinArt && !ShowKeyboardArt && !ShowMouseArt;
 
     partial void OnSelectedSkinChanged(SkinKind value)
     {
@@ -2962,7 +2969,10 @@ public partial class MainViewModel : ObservableObject
 
         foreach (var vm in KeyboardSources)
             vm.IsPressed = keys.Contains(vm.SourceName, StringComparer.OrdinalIgnoreCase) || _windowKeys.Contains(vm.SourceName);
-        foreach (var vm in MouseSources) vm.IsPressed = mouse.Contains(vm.SourceName, StringComparer.OrdinalIgnoreCase);
+        long nowMs = Environment.TickCount64;
+        foreach (var vm in MouseSources)
+            vm.IsPressed = mouse.Contains(vm.SourceName, StringComparer.OrdinalIgnoreCase) || _windowMouse.Contains(vm.SourceName)
+                           || (_windowWheelUntil.TryGetValue(vm.SourceName, out long until) && until > nowMs);
     }
 
     // Keys held down in this window, by profile name
@@ -2983,9 +2993,40 @@ public partial class MainViewModel : ObservableObject
         if (source != null) source.IsPressed = down || (_hook.IsInstalled && _hook.Snapshot().Keys.Contains(name, StringComparer.OrdinalIgnoreCase));
     }
 
+    // Mouse buttons held down in this window, and how long a wheel notch it saw stays lit
+    private readonly HashSet<string> _windowMouse = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, long> _windowWheelUntil = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>How long a wheel notch seen by the window shows on the mouse drawing.</summary>
+    public const int WheelFlashMs = 140;
+
+    /// <summary>
+    /// A mouse button ("Left Click", "Right Click", "Middle Click", "Mouse Button 4", "Mouse Button 5") went down or up over the app's own
+    /// window. Shown on the mouse drawing straight away, so it follows the real mouse even when remapping is off.
+    /// </summary>
+    public void NoteWindowMouse(string name, bool down)
+    {
+        var source = MouseSources.FirstOrDefault(m => string.Equals(m.SourceName, name, StringComparison.OrdinalIgnoreCase));
+        if (source == null) return;
+        if (down) _windowMouse.Add(source.SourceName);
+        else _windowMouse.Remove(source.SourceName);
+        source.IsPressed = down || (_hook.IsInstalled && _hook.Snapshot().Mouse.Contains(source.SourceName, StringComparer.OrdinalIgnoreCase));
+    }
+
+    /// <summary>The wheel turned a notch over the app's own window: that half of the wheel lights for a moment.</summary>
+    public void NoteWindowWheel(bool up)
+    {
+        string name = up ? "Wheel Up" : "Wheel Down";
+        var source = MouseSources.FirstOrDefault(m => m.SourceName == name);
+        if (source == null) return;
+        _windowWheelUntil[name] = Environment.TickCount64 + WheelFlashMs;
+        source.IsPressed = true;
+    }
+
     /// <summary>The window lost focus: the key-ups will not reach it, so let go of everything it saw held.</summary>
     public void ReleaseWindowKeys()
     {
+        foreach (var name in _windowMouse.ToList()) NoteWindowMouse(name, false);
         if (_windowKeys.Count == 0) return;
         var held = _windowKeys.ToList();
         _windowKeys.Clear();

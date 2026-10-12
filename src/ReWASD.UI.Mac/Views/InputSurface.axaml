@@ -109,6 +109,9 @@
         <!-- The keyboard, drawn the same way -->
         <art:ArtView Name="KeyboardArt" Margin="24,16" Scene="{Binding KeyboardArt}" Sources="{Binding KeyboardSources}" IsVisible="{Binding ShowKeyboardArt}" />
 
+        <!-- And the mouse -->
+        <art:ArtView Name="MouseArt" Margin="16" Scene="{Binding MouseArt}" Sources="{Binding MouseSources}" IsVisible="{Binding ShowMouseArt}" />
+
         <Viewbox Stretch="Uniform" Margin="16" IsVisible="{Binding ShowOutline}">
             <Canvas Width="700" Height="440" RenderTransformOrigin="0.5,0.5">
                 <Canvas.RenderTransform>

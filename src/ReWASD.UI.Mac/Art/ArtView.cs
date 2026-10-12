@@ -110,7 +110,7 @@ public sealed class ArtView : Decorator
             group.Children.Add(visual.Marker);
 
             visual.Source = part.Key != null
-                ? sources.FirstOrDefault(s => s.Kind == SourceKind.Key && string.Equals(s.SourceName, part.Key, StringComparison.OrdinalIgnoreCase))
+                ? sources.FirstOrDefault(s => s.Kind is SourceKind.Key or SourceKind.Mouse && string.Equals(s.SourceName, part.Key, StringComparison.OrdinalIgnoreCase))
                 : sources.FirstOrDefault(s => s.Kind == SourceKind.Pad && s.Button == part.Button);
             Attach(visual);
             _parts.Add(visual);

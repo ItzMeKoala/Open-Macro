@@ -149,7 +149,7 @@ public sealed class ArtPart
     /// <summary>The controller input that drives this part (None for a keyboard key).</summary>
     public required ControllerButton Button { get; init; }
 
-    /// <summary>For a keyboard key, its profile name (for example "A", "Escape", "ShiftKey"); null for controller parts.</summary>
+    /// <summary>For a keyboard key or mouse button, its profile name (for example "A", "ShiftKey", "Left Click"); null for controller parts.</summary>
     public string? Key { get; init; }
     public required ArtMotion Motion { get; init; }
     public required ArtGroup Group { get; init; }

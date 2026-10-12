@@ -109,6 +109,14 @@ public partial class MainWindow : Window
             (DataContext as ViewModels.MainViewModel)?.NoteWindowKey((e.Key == Key.System ? e.SystemKey : e.Key).ToString(), false)), handledEventsToo: true);
         Deactivated += (_, _) => (DataContext as ViewModels.MainViewModel)?.ReleaseWindowKeys();
 
+        // And the mouse buttons and wheel, so the mouse drawing follows the real mouse
+        AddHandler(PreviewMouseDownEvent, new MouseButtonEventHandler((_, e) => NoteMouse(e.ChangedButton, true)), handledEventsToo: true);
+        AddHandler(PreviewMouseUpEvent, new MouseButtonEventHandler((_, e) => NoteMouse(e.ChangedButton, false)), handledEventsToo: true);
+        AddHandler(PreviewMouseWheelEvent, new MouseWheelEventHandler((_, e) =>
+        {
+            if (e.Delta != 0) (DataContext as ViewModels.MainViewModel)?.NoteWindowWheel(e.Delta > 0);
+        }), handledEventsToo: true);
+
         PreviewKeyDown += (_, e) =>
         {
             var vm = DataContext as ViewModels.MainViewModel;
@@ -180,6 +188,20 @@ public partial class MainWindow : Window
     }
 
     private void OnTesterRequested(object? sender, EventArgs e) => SetFullScreen(true);
+
+    private void NoteMouse(MouseButton button, bool down)
+    {
+        string? name = button switch
+        {
+            MouseButton.Left => "Left Click",
+            MouseButton.Right => "Right Click",
+            MouseButton.Middle => "Middle Click",
+            MouseButton.XButton1 => "Mouse Button 4",
+            MouseButton.XButton2 => "Mouse Button 5",
+            _ => null
+        };
+        if (name != null) (DataContext as ViewModels.MainViewModel)?.NoteWindowMouse(name, down);
+    }
 
     private void OnViewModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {

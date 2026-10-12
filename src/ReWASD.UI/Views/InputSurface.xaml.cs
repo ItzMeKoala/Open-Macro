@@ -20,5 +20,10 @@ public partial class InputSurface : UserControl
             KeysArt.Visibility = Visibility.Collapsed;
             Legacy.Visibility = Visibility.Visible;
         };
+        MouseArt.RenderFailed += (_, _) =>
+        {
+            MouseArt.Visibility = Visibility.Collapsed;
+            Legacy.Visibility = Visibility.Visible;
+        };
     }
 }

@@ -112,7 +112,7 @@ public class TesterViewTests
         vm.OpenTesterCommand.Execute(null);
         window.WindowState = WindowState.Normal;
 
-        Assert.Single(window.GetVisualDescendants().OfType<ArtView>().Where(v => v.Name != "KeyboardArt"));
+        Assert.Single(window.GetVisualDescendants().OfType<ArtView>().Where(v => v.Name is not ("KeyboardArt" or "MouseArt")));
         vm.Shutdown();
     }
 

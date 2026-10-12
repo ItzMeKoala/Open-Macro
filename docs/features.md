@@ -19,6 +19,9 @@
   (handled inside the keyboard; no app sees it). On a Mac, Win is Command, and Caps Lock, Menu, Print Screen, Scroll Lock and Pause
   are drawn with quieter legends because macOS has no such keys or cannot press them.
 - The right-hand Shift, Ctrl and Alt are separate keys: a mapping on Shift is the left one.
+- **Mouse tab:** a wired gaming mouse seen from above, drawn the same way: a matte domed shell, two main buttons split by a seam, a
+  ribbed wheel in a recessed slot (its top and bottom light for a notch up or down, the whole wheel sinks when pressed), rubber grips
+  and two thumb buttons. Buttons follow the real mouse while ReWASD is in front, and everywhere while remapping runs.
 - **Live readings:** make the window bigger (maximise it, or full screen on a Mac) and the controller keeps its size while live readings
   appear under it: both sticks with their circle, push, angle, roundness and drift, trigger pressure with the highest pull, how often the
   pad reports, a health score and, with enough height, a graph of the last six seconds. The controller is only measured while they are on

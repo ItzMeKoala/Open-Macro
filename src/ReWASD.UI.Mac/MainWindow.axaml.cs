@@ -45,6 +45,14 @@ public partial class MainWindow : Window
             Avalonia.Interactivity.RoutingStrategies.Tunnel, handledEventsToo: true);
         Deactivated += (_, _) => (DataContext as MainViewModel)?.ReleaseWindowKeys();
 
+        // And the mouse buttons and wheel, so the mouse drawing follows the real mouse
+        AddHandler(PointerPressedEvent, (_, e) => NoteMouse(e.GetCurrentPoint(this).Properties.PointerUpdateKind),
+            Avalonia.Interactivity.RoutingStrategies.Tunnel, handledEventsToo: true);
+        AddHandler(PointerReleasedEvent, (_, e) => NoteMouse(e.GetCurrentPoint(this).Properties.PointerUpdateKind),
+            Avalonia.Interactivity.RoutingStrategies.Tunnel, handledEventsToo: true);
+        AddHandler(PointerWheelChangedEvent, (_, e) => { if (e.Delta.Y != 0) (DataContext as MainViewModel)?.NoteWindowWheel(e.Delta.Y > 0); },
+            Avalonia.Interactivity.RoutingStrategies.Tunnel, handledEventsToo: true);
+
         PropertyChanged += (_, e) =>
         {
             if (e.Property == WindowStateProperty && WindowState != WindowState.FullScreen) ShowTester(false);
@@ -149,6 +157,25 @@ public partial class MainWindow : Window
     }
 
     private void OnTesterRequested(object? sender, EventArgs e) => OpenTester();
+
+    private void NoteMouse(PointerUpdateKind kind)
+    {
+        var (name, down) = kind switch
+        {
+            PointerUpdateKind.LeftButtonPressed => ("Left Click", true),
+            PointerUpdateKind.LeftButtonReleased => ("Left Click", false),
+            PointerUpdateKind.RightButtonPressed => ("Right Click", true),
+            PointerUpdateKind.RightButtonReleased => ("Right Click", false),
+            PointerUpdateKind.MiddleButtonPressed => ("Middle Click", true),
+            PointerUpdateKind.MiddleButtonReleased => ("Middle Click", false),
+            PointerUpdateKind.XButton1Pressed => ("Mouse Button 4", true),
+            PointerUpdateKind.XButton1Released => ("Mouse Button 4", false),
+            PointerUpdateKind.XButton2Pressed => ("Mouse Button 5", true),
+            PointerUpdateKind.XButton2Released => ("Mouse Button 5", false),
+            _ => ((string?)null, false)
+        };
+        if (name != null) (DataContext as MainViewModel)?.NoteWindowMouse(name, down);
+    }
 
     private void OnViewModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
