@@ -449,6 +449,10 @@ public partial class MainViewModel : ObservableObject
     private void LoadProfileSettings(Profile profile)
     {
         LoadLockChord(profile);
+        RefreshCombos();
+        _loadingProfile = true;
+        try { ChordWindowMs = profile.ChordWindowMs; }
+        finally { _loadingProfile = false; }
         profile.LeftStick ??= new StickSettings();
         profile.RightStick ??= new StickSettings();
         LeftStickSettings.Load(profile.LeftStick);
@@ -508,6 +512,135 @@ public partial class MainViewModel : ObservableObject
         {
             StatusMessage = $"Could not save config: {ex.Message}";
         }
+    }
+
+    // ---- Combos: chords and sequences ----------------------------------------------------------------------------------
+
+    public static IReadOnlyList<string> ComboKindNames { get; } = new[] { "Chord (together)", "Sequence (in order)" };
+
+    public ObservableCollection<ComboMapping> Combos { get; } = new();
+
+    [ObservableProperty]
+    private int _newComboKindIndex;
+
+    /// <summary>Button names for the new combo, like "A + B" or "Up Up Down Down" (or press the buttons and use Capture).</summary>
+    [ObservableProperty]
+    private string _newComboButtons = string.Empty;
+
+    /// <summary>What the new combo does, written like a macro: KeyTap:Space, or KeyDown:W with the Hold repeat setting.</summary>
+    [ObservableProperty]
+    private string _newComboAction = string.Empty;
+
+    [ObservableProperty]
+    private int _newComboRepeatIndex;
+
+    public static IReadOnlyList<string> ComboRepeatNames { get; } = new[] { "Run once", "Repeat while held", "Hold until released" };
+
+    /// <summary>How close together (ms) chord buttons must go down. Buttons in a chord wait this long before acting alone.</summary>
+    [ObservableProperty]
+    private int _chordWindowMs = new Profile().ChordWindowMs;
+
+    partial void OnChordWindowMsChanged(int value)
+    {
+        if (_constructed && !_loadingProfile) lock (_mappingEngine.SyncRoot) SelectedProfile.ChordWindowMs = value;
+    }
+
+    [ObservableProperty]
+    private string _comboMessage = string.Empty;
+
+    [ObservableProperty]
+    private bool _isCapturingCombo;
+
+    private readonly ComboCapture _capture = new();
+
+    private static long NowMs() => System.Diagnostics.Stopwatch.GetTimestamp() * 1000 / System.Diagnostics.Stopwatch.Frequency;
+
+    private void RefreshCombos()
+    {
+        Combos.Clear();
+        foreach (var combo in SelectedProfile.Combos ??= new List<ComboMapping>()) Combos.Add(combo);
+    }
+
+    [RelayCommand]
+    private void CaptureComboButtons()
+    {
+        if (_capture.IsCapturing)
+        {
+            _capture.Cancel();
+            IsCapturingCombo = false;
+            ComboMessage = "Capture cancelled";
+            return;
+        }
+
+        var kind = NewComboKindIndex == 1 ? ComboKind.Sequence : ComboKind.Chord;
+        _capture.Start(kind, NowMs());
+        IsCapturingCombo = true;
+        ComboMessage = kind == ComboKind.Chord
+            ? "Press and hold the buttons together on your controller, then let go"
+            : "Press the buttons one after another on your controller";
+    }
+
+    private void FeedComboCapture(PhysicalState? phys)
+    {
+        if (!_capture.IsCapturing) return;
+
+        var done = _capture.Feed(phys?.Buttons ?? new HashSet<ControllerButton>(), NowMs());
+        if (done == null) return;
+
+        IsCapturingCombo = false;
+        NewComboButtons = string.Join(_capture.Kind == ComboKind.Chord ? " + " : " ", done.Select(ComboMapping.Names.Friendly));
+        ComboMessage = $"Captured {NewComboButtons}. Now say what it does and press Add.";
+    }
+
+    [RelayCommand]
+    private void AddCombo()
+    {
+        ComboMessage = string.Empty;
+
+        if (!ComboMapping.Names.TryParse(NewComboButtons, out var buttons, out var error))
+        {
+            ComboMessage = error;
+            return;
+        }
+        var kind = NewComboKindIndex == 1 ? ComboKind.Sequence : ComboKind.Chord;
+        if (buttons.Count < 2)
+        {
+            ComboMessage = kind == ComboKind.Chord ? "A chord needs at least two buttons" : "A sequence needs at least two presses";
+            return;
+        }
+        if (kind == ComboKind.Chord && buttons.Distinct().Count() != buttons.Count)
+        {
+            ComboMessage = "A chord cannot use the same button twice";
+            return;
+        }
+
+        var repeat = AvailableMacroRepeatModes[Math.Clamp(NewComboRepeatIndex, 0, AvailableMacroRepeatModes.Count - 1)];
+        if (!MacroDefinition.TryParseScript(NewComboAction, repeat, out var macro, out var macroError))
+        {
+            ComboMessage = macroError;
+            return;
+        }
+
+        var combo = new ComboMapping
+        {
+            Kind = kind,
+            Buttons = buttons,
+            Binding = new ActivatorBinding { Target = new RemapTarget { Type = TargetType.Macro, Macro = macro } }
+        };
+        lock (_mappingEngine.SyncRoot) SelectedProfile.Combos.Add(combo);
+        Combos.Add(combo);
+        NewComboButtons = string.Empty;
+        NewComboAction = string.Empty;
+        ComboMessage = $"Added {combo.Description}";
+    }
+
+    [RelayCommand]
+    private void RemoveCombo(ComboMapping? combo)
+    {
+        if (combo == null) return;
+        lock (_mappingEngine.SyncRoot) SelectedProfile.Combos.RemoveAll(c => c.Id == combo.Id);
+        Combos.Remove(combo);
+        ComboMessage = $"Removed {combo.Description}";
     }
 
     // ---- Config files: delete, import, export, and the history that undoes them -------------------------------------
@@ -1861,6 +1994,7 @@ public partial class MainViewModel : ObservableObject
         }
 
         if (IsRecording && phys != null) _recorder.OnPad(phys.Buttons);
+        FeedComboCapture(phys);
 
         foreach (var vm in ControllerButtons)
         {

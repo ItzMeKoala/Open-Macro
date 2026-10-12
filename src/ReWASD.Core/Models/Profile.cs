@@ -20,6 +20,12 @@ public class Profile
 
     public int LockHoldMs { get; set; } = 1000;
 
+    /// <summary>Button combinations (chords and sequences) that do something of their own.</summary>
+    public List<ComboMapping> Combos { get; set; } = new();
+
+    /// <summary>Chords: how close together in time the buttons must go down to count as one chord. Buttons that are part of a chord wait this long before acting alone.</summary>
+    public int ChordWindowMs { get; set; } = 120;
+
     public StickSettings LeftStick { get; set; } = new();
     public StickSettings RightStick { get; set; } = new();
 

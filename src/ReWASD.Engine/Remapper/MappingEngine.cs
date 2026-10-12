@@ -57,6 +57,8 @@ public class MappingEngine
     public bool IsLocked { get; private set; }
     public event Action<bool>? LockChanged;
 
+    private readonly ComboTracker _combos = new();
+    private readonly HashSet<ComboMapping> _activeCombos = new();
     private long _lockChordSince = -1;
     private bool _lockChordSpent;
 
@@ -173,6 +175,7 @@ public class MappingEngine
         _latched.Clear();
         _chordHeld.Clear();
         _toggledLayers.Clear();
+        _combos.Reset();
         _pendingJump = null;
         _currentLayer = null;
     }
@@ -219,6 +222,11 @@ public class MappingEngine
             rawLeftStickX = rawLeftStickY = rawRightStickX = rawRightStickY = rawLeftTrigger = rawRightTrigger = 0;
         }
 
+        // Chords and sequences: they take their buttons away from the ordinary mappings, and fire on their own
+        _activeCombos.Clear();
+        pressedButtons = _combos.Process(pressedButtons, now, CurrentProfile.Combos ?? new List<ComboMapping>(),
+            Math.Max(0, CurrentProfile.ChordWindowMs), timings.PulseMs, _activeCombos);
+
         // 1. Pick the active layer (and note which buttons were spent on switching it)
         var consumed = new HashSet<ControllerButton>();
         var layer = ResolveLayer(pressedButtons, consumed);
@@ -246,6 +254,11 @@ public class MappingEngine
             string key = "mouse:" + m.ToLowerInvariant();
             if (seen.Add(key)) sources.Add((key, SourceKind.Mouse, m, ControllerButton.None, true));
         }
+        foreach (var combo in _activeCombos)
+        {
+            string key = "combo:" + combo.Id;
+            if (seen.Add(key)) sources.Add((key, SourceKind.Combo, combo.Id.ToString(), ControllerButton.None, true));
+        }
         foreach (var (key, tracker) in _trackers)
         {
             if (!seen.Contains(key)) sources.Add((key, tracker.Kind, tracker.Name, tracker.Pad, false));
@@ -254,7 +267,7 @@ public class MappingEngine
         // 3. Run each source through the activator state machine
         foreach (var (key, kind, name, pad, down) in sources)
         {
-            var current = LookupSource(layer, kind, name, pad);
+            var current = kind == SourceKind.Combo ? ComboSource(name) : LookupSource(layer, kind, name, pad);
 
             if (!_trackers.TryGetValue(key, out var tracker))
             {
@@ -449,6 +462,14 @@ public class MappingEngine
         SourceKind.Key => LookupKey(layer, name),
         _ => LookupMouse(layer, name)
     };
+
+    // A combo is run through the same activator machinery as any button, with its own action as the single outcome
+    private ButtonMapping? ComboSource(string id)
+    {
+        var combo = CurrentProfile.Combos?.FirstOrDefault(c => c.Id.ToString() == id);
+        if (combo == null) return null;
+        return new ButtonMapping { Target = combo.Binding.Target, Mode = combo.Binding.Mode, TurboRateMs = combo.Binding.TurboRateMs };
+    }
 
     private ButtonMapping? LookupPad(ShiftLayer layer, ControllerButton button)
     {

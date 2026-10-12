@@ -109,7 +109,10 @@ public enum SourceKind
 {
     Pad,
     Key,
-    Mouse
+    Mouse,
+
+    /// <summary>A chord or sequence of pad buttons (see <see cref="ComboMapping"/>).</summary>
+    Combo
 }
 
 /// <summary>What a stick drives while remapping is on.</summary>
