@@ -14,8 +14,11 @@
 - **Layout:** the top bar holds the config, Tester and Settings; one toolbar holds Gamepad / Keyboard / Mouse, the layer and the controller
   picture; the bottom bar starts remapping and names the controller in use (with a warning only when something needs attention).
 - **Keyboard tab:** a detailed tenkeyless keyboard drawn like the controllers: an aluminium case, sculpted two-tone keycaps and their
-  shadows. Keys sink and light while held, the key being edited has a gold outline and remapped keys carry a dot. Keys that cannot be
-  remapped yet (punctuation, Caps Lock, the right-hand modifiers, Print Screen…) are drawn for a complete board with quieter legends.
+  shadows. Keys sink and light while held (also with remapping off, while ReWASD is in front), the key being edited has a gold outline
+  and remapped keys carry a dot. Every key can be remapped, punctuation and the right-hand Shift, Ctrl and Alt included, except Fn
+  (handled inside the keyboard; no app sees it). On a Mac, Win is Command, and Caps Lock, Menu, Print Screen, Scroll Lock and Pause
+  are drawn with quieter legends because macOS has no such keys or cannot press them.
+- The right-hand Shift, Ctrl and Alt are separate keys: a mapping on Shift is the left one.
 - **Live readings:** make the window bigger (maximise it, or full screen on a Mac) and the controller keeps its size while live readings
   appear under it: both sticks with their circle, push, angle, roundness and drift, trigger pressure with the highest pull, how often the
   pad reports, a health score and, with enough height, a graph of the last six seconds. The controller is only measured while they are on

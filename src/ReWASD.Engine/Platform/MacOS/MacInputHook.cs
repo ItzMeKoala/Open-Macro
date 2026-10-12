@@ -41,6 +41,7 @@ public sealed class MacInputHook : IInputHook
                 if ((flags & MacNative.FlagShift) != 0) flags |= MacNative.DeviceLShift | MacNative.DeviceRShift;
                 if ((flags & MacNative.FlagControl) != 0) flags |= MacNative.DeviceLControl | MacNative.DeviceRControl;
                 if ((flags & MacNative.FlagAlternate) != 0) flags |= MacNative.DeviceLAlt | MacNative.DeviceRAlt;
+                if ((flags & MacNative.FlagCommand) != 0) flags |= MacNative.DeviceLCommand | MacNative.DeviceRCommand;
                 return flags;
             }
         }
@@ -251,7 +252,9 @@ public sealed class MacInputHook : IInputHook
             case MacKeyCodes.RightControl: (deviceBit, familyBit) = (MacNative.DeviceRControl, MacNative.FlagControl); break;
             case MacKeyCodes.LeftOption: (deviceBit, familyBit) = (MacNative.DeviceLAlt, MacNative.FlagAlternate); break;
             case MacKeyCodes.RightOption: (deviceBit, familyBit) = (MacNative.DeviceRAlt, MacNative.FlagAlternate); break;
-            default: return false; // Command, Caps Lock and Fn are not sources
+            case MacKeyCodes.LeftCommand: (deviceBit, familyBit) = (MacNative.DeviceLCommand, MacNative.FlagCommand); break;
+            case MacKeyCodes.RightCommand: (deviceBit, familyBit) = (MacNative.DeviceRCommand, MacNative.FlagCommand); break;
+            default: return false; // Caps Lock and Fn are not sources
         }
 
         if (!MacKeyCodes.TryGetVirtualKey(code, out ushort vk)) return false;
@@ -261,7 +264,8 @@ public sealed class MacInputHook : IInputHook
         {
             // The side-specific bit is the truth; if the system doesn't report it, fall back to toggling
             bool hasDeviceBits = (flags & (MacNative.DeviceLShift | MacNative.DeviceRShift | MacNative.DeviceLControl
-                                           | MacNative.DeviceRControl | MacNative.DeviceLAlt | MacNative.DeviceRAlt)) != 0;
+                                           | MacNative.DeviceRControl | MacNative.DeviceLAlt | MacNative.DeviceRAlt
+                                           | MacNative.DeviceLCommand | MacNative.DeviceRCommand)) != 0;
             down = hasDeviceBits ? (flags & deviceBit) != 0 : (flags & familyBit) != 0 && !_downModifiers.Contains(code);
 
             if (down) _downModifiers.Add(code);
@@ -288,6 +292,7 @@ public sealed class MacInputHook : IInputHook
                 {
                     MacKeyCodes.LeftShift or MacKeyCodes.RightShift => MacNative.FlagShift,
                     MacKeyCodes.LeftControl or MacKeyCodes.RightControl => MacNative.FlagControl,
+                    MacKeyCodes.LeftCommand or MacKeyCodes.RightCommand => MacNative.FlagCommand,
                     _ => MacNative.FlagAlternate
                 };
             }

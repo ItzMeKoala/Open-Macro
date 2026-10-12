@@ -66,6 +66,16 @@ public sealed class Win32InputBackend : IInputBackend
 
     private static void SendKey(ushort vk, bool up)
     {
+        if (KeyMap.SendsByVirtualKey(vk))
+        {
+            Send(new Input
+            {
+                type = InputKeyboard,
+                u = new InputUnion { ki = new KeyboardInput { wVk = vk, wScan = 0, dwFlags = up ? KeyEventKeyUp : 0 } }
+            });
+            return;
+        }
+
         uint flags = KeyEventScanCode | (up ? KeyEventKeyUp : 0) | (KeyMap.IsExtended(vk) ? KeyEventExtendedKey : 0);
         var input = new Input
         {

@@ -1,4 +1,5 @@
 using ReWASD.Core.Models;
+using ReWASD.Core.Skins.Art;
 
 namespace ReWASD.Core.Skins;
 
@@ -10,7 +11,7 @@ namespace ReWASD.Core.Skins;
 /// For those sources <see cref="Place"/> only says where the legend is printed.
 /// </summary>
 public sealed record SourcePlacement(string Name, string Legend, Placement Place, IconShape Shape, double Radius = 6, double FontSize = 12,
-    string? ShapeData = null, string? ClipData = null);
+    string? ShapeData = null, string? ClipData = null, string? Title = null);
 
 /// <summary>The keyboard and mouse drawings that sources are picked from.</summary>
 public static class InputLayouts
@@ -21,66 +22,29 @@ public static class InputLayouts
     private const double OriginY = 96;
 
     /// <summary>A key placed on a grid of key-widths: (x, y) of the top-left corner and width, all in units.</summary>
-    private static SourcePlacement Key(string name, string legend, double ux, double uy, double uw = 1, double fontSize = 11)
+    private static SourcePlacement Key(string name, string legend, double ux, double uy, double uw, string? title)
     {
         double w = uw * Unit - KeyGap;
         double h = Unit - KeyGap;
         double cx = OriginX + ux * Unit + w / 2;
         double cy = OriginY + uy * Unit + h / 2;
-        return new SourcePlacement(name, legend, new Placement(cx, cy, w, h), IconShape.KeyCap, 5, fontSize);
+        double fontSize = legend.Length <= 1 ? 13 : legend.Length <= 3 ? 11 : 9;
+        return new SourcePlacement(name, legend, new Placement(cx, cy, w, h), IconShape.KeyCap, 5, fontSize, Title: title);
     }
 
-    public static IReadOnlyList<SourcePlacement> Keyboard { get; } = BuildKeyboard();
+    /// <summary>Every key that can be remapped, laid out like the keyboard drawing (the plain drawing, if the detailed one cannot be shown).</summary>
+    public static IReadOnlyList<SourcePlacement> Keyboard { get; } = KeyboardArt.Keys
+        .Where(k => k.Name != null)
+        .Select(k => Key(k.Name!, Short(k), k.X, k.Y, k.Width, k.Title))
+        .ToList();
 
-    private static IReadOnlyList<SourcePlacement> BuildKeyboard()
-    {
-        var keys = new List<SourcePlacement>
-        {
-            Key("Escape", "Esc", 0, 0)
-        };
-
-        // Function row in groups of four
-        double[] fx = { 2, 3, 4, 5, 6.5, 7.5, 8.5, 9.5, 11, 12, 13, 14 };
-        for (int i = 0; i < 12; i++) keys.Add(Key("F" + (i + 1), "F" + (i + 1), fx[i], 0));
-
-        // Number row (digits only) and Backspace
-        for (int i = 0; i < 10; i++)
-        {
-            string d = ((i + 1) % 10).ToString();
-            keys.Add(Key(d, d, i, 1.4));
-        }
-        keys.Add(Key("Back", "Bksp", 10, 1.4, 2));
-
-        // QWERTY rows
-        keys.Add(Key("Tab", "Tab", 0, 2.4, 1.5));
-        AddRow(keys, "QWERTYUIOP", 1.5, 2.4);
-
-        AddRow(keys, "ASDFGHJKL", 1.75, 3.4);
-        keys.Add(Key("Enter", "Enter", 10.75, 3.4, 2.25));
-
-        keys.Add(Key("ShiftKey", "Shift", 0, 4.4, 2.25));
-        AddRow(keys, "ZXCVBNM", 2.25, 4.4);
-
-        keys.Add(Key("ControlKey", "Ctrl", 0, 5.4, 1.5));
-        keys.Add(Key("Alt", "Alt", 1.75, 5.4, 1.5));
-        keys.Add(Key("Space", "Space", 3.5, 5.4, 6.25));
-
-        // Navigation block and arrows
-        keys.Add(Key("Insert", "Ins", 15.5, 1.4)); keys.Add(Key("Home", "Home", 16.5, 1.4)); keys.Add(Key("PageUp", "PgUp", 17.5, 1.4));
-        keys.Add(Key("Delete", "Del", 15.5, 2.4)); keys.Add(Key("End", "End", 16.5, 2.4)); keys.Add(Key("PageDown", "PgDn", 17.5, 2.4));
-        keys.Add(Key("Up", "▲", 16.5, 4.4)); keys.Add(Key("Left", "◀", 15.5, 5.4));
-        keys.Add(Key("Down", "▼", 16.5, 5.4)); keys.Add(Key("Right", "▶", 17.5, 5.4));
-
-        return keys;
-    }
-
-    private static void AddRow(List<SourcePlacement> keys, string letters, double startX, double y)
-    {
-        for (int i = 0; i < letters.Length; i++) keys.Add(Key(letters[i].ToString(), letters[i].ToString(), startX + i, y));
-    }
+    // The plain drawing has small boxes: long words are shortened and arrows drawn as triangles
+    private static string Short(KeyboardArt.KeyDef k) => k.Style == KeyboardArt.KeyStyle.Arrow
+        ? k.Legend switch { "Up" => "▲", "Down" => "▼", "Left" => "◀", _ => "▶" }
+        : k.Legend switch { "Backspace" => "Bksp", "Caps Lock" => "Caps", "" => "Space", _ => k.Legend };
 
     public static IReadOnlyList<DecorShape> KeyboardDecor { get; } =
-        ControllerSkins.Neon(ControllerSkins.RoundRect(OriginX - 12, OriginY - 40, 18.5 * Unit + 24, 7.2 * Unit + 36, 16), 2.2, fill: "#0E0F13").ToArray();
+        ControllerSkins.Neon(ControllerSkins.RoundRect(OriginX - 12, OriginY - 12, 18.25 * Unit + 24, 6.3 * Unit + 24, 16), 2.2, fill: "#0E0F13").ToArray();
 
     // ---- Mouse ----------------------------------------------------------------------------------------------------
     // The body is one outline. Each button is that same outline cut down to its own region, so the buttons are the mouse

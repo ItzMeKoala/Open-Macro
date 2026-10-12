@@ -7,7 +7,8 @@ namespace ReWASD.Core.Skins.Art;
 /// <summary>
 /// Draws a tenkeyless keyboard as an SVG in the same style as the controller drawings: an aluminium case, a recessed plate, and
 /// sculpted two-tone keycaps with their shadows. Every key that can be remapped is a part (<c>data-key</c>) that sinks when pressed;
-/// the rest of the keys are drawn the same way so the board looks whole, with quieter legends, and do nothing when clicked.
+/// a key this computer cannot use (and Fn, which no app ever sees) is drawn the same way with a quieter legend and does nothing when
+/// clicked.
 /// </summary>
 public static class KeyboardArt
 {
@@ -61,21 +62,21 @@ public static class KeyboardArt
         Add("Escape", "Esc", 0, fr, 1, KeyStyle.Word, true, title: "Escape");
         double[] fx = { 2, 3, 4, 5, 6.5, 7.5, 8.5, 9.5, 11, 12, 13, 14 };
         for (int i = 0; i < 12; i++) Add("F" + (i + 1), "F" + (i + 1), fx[i], fr, 1, KeyStyle.Word, true);
-        Add(null, "PrtSc", 15.25, fr, 1, KeyStyle.Word, true);
-        Add(null, "ScrLk", 16.25, fr, 1, KeyStyle.Word, true);
-        Add(null, "Pause", 17.25, fr, 1, KeyStyle.Word, true);
+        Add("PrintScreen", "PrtSc", 15.25, fr, 1, KeyStyle.Word, true, title: "Print Screen");
+        Add("ScrollLock", "ScrLk", 16.25, fr, 1, KeyStyle.Word, true, title: "Scroll Lock");
+        Add("Pause", "Pause", 17.25, fr, 1, KeyStyle.Word, true);
 
         // Number row
         const double r1 = 1.3;
-        Add(null, "`", 0, r1, 1, KeyStyle.Pair, false, "~");
+        Add("Backtick", "`", 0, r1, 1, KeyStyle.Pair, false, "~", "Backtick `");
         string shifted = "!@#$%^&*()";
         for (int i = 0; i < 10; i++)
         {
             string d = ((i + 1) % 10).ToString(CultureInfo.InvariantCulture);
             Add(d, d, 1 + i, r1, 1, KeyStyle.Pair, false, shifted[i].ToString());
         }
-        Add(null, "-", 11, r1, 1, KeyStyle.Pair, false, "_");
-        Add(null, "=", 12, r1, 1, KeyStyle.Pair, false, "+");
+        Add("Minus", "-", 11, r1, 1, KeyStyle.Pair, false, "_", "Minus -");
+        Add("Equals", "=", 12, r1, 1, KeyStyle.Pair, false, "+", "Equals =");
         Add("Back", "Backspace", 13, r1, 2, KeyStyle.Corner, true, title: "Backspace");
         Add("Insert", "Ins", 15.25, r1, 1, KeyStyle.Word, true, title: "Insert");
         Add("Home", "Home", 16.25, r1, 1, KeyStyle.Word, true);
@@ -85,41 +86,41 @@ public static class KeyboardArt
         const double r2 = 2.3;
         Add("Tab", "Tab", 0, r2, 1.5, KeyStyle.Corner, true);
         Letters(k, "QWERTYUIOP", 1.5, r2);
-        Add(null, "[", 11.5, r2, 1, KeyStyle.Pair, false, "{");
-        Add(null, "]", 12.5, r2, 1, KeyStyle.Pair, false, "}");
-        Add(null, "\\", 13.5, r2, 1.5, KeyStyle.Pair, false, "|");
+        Add("LeftBracket", "[", 11.5, r2, 1, KeyStyle.Pair, false, "{", "Left Bracket [");
+        Add("RightBracket", "]", 12.5, r2, 1, KeyStyle.Pair, false, "}", "Right Bracket ]");
+        Add("Backslash", "\\", 13.5, r2, 1.5, KeyStyle.Pair, false, "|", "Backslash \\");
         Add("Delete", "Del", 15.25, r2, 1, KeyStyle.Word, true, title: "Delete");
         Add("End", "End", 16.25, r2, 1, KeyStyle.Word, true);
         Add("PageDown", "PgDn", 17.25, r2, 1, KeyStyle.Word, true, title: "Page Down");
 
         // Home row
         const double r3 = 3.3;
-        Add(null, "Caps Lock", 0, r3, 1.75, KeyStyle.Corner, true);
+        Add("CapsLock", "Caps Lock", 0, r3, 1.75, KeyStyle.Corner, true);
         Letters(k, "ASDFGHJKL", 1.75, r3);
-        Add(null, ";", 10.75, r3, 1, KeyStyle.Pair, false, ":");
-        Add(null, "'", 11.75, r3, 1, KeyStyle.Pair, false, "\"");
+        Add("Semicolon", ";", 10.75, r3, 1, KeyStyle.Pair, false, ":", "Semicolon ;");
+        Add("Quote", "'", 11.75, r3, 1, KeyStyle.Pair, false, "\"", "Quote '");
         Add("Enter", "Enter", 12.75, r3, 2.25, KeyStyle.Corner, true);
 
         // Bottom letter row
         const double r4 = 4.3;
         Add("ShiftKey", "Shift", 0, r4, 2.25, KeyStyle.Corner, true, title: "Left Shift");
         Letters(k, "ZXCVBNM", 2.25, r4);
-        Add(null, ",", 9.25, r4, 1, KeyStyle.Pair, false, "<");
-        Add(null, ".", 10.25, r4, 1, KeyStyle.Pair, false, ">");
-        Add(null, "/", 11.25, r4, 1, KeyStyle.Pair, false, "?");
-        Add(null, "Shift", 12.25, r4, 2.75, KeyStyle.Corner, true);
+        Add("Comma", ",", 9.25, r4, 1, KeyStyle.Pair, false, "<", "Comma ,");
+        Add("Period", ".", 10.25, r4, 1, KeyStyle.Pair, false, ">", "Period .");
+        Add("Slash", "/", 11.25, r4, 1, KeyStyle.Pair, false, "?", "Slash /");
+        Add("RightShift", "Shift", 12.25, r4, 2.75, KeyStyle.Corner, true, title: "Right Shift");
         Add("Up", "Up", 16.25, r4, 1, KeyStyle.Arrow, true, title: "Up Arrow");
 
         // Space row
         const double r5 = 5.3;
         Add("ControlKey", "Ctrl", 0, r5, 1.25, KeyStyle.Corner, true, title: "Left Ctrl");
-        Add(null, "Win", 1.25, r5, 1.25, KeyStyle.Corner, true);
+        Add("Win", "Win", 1.25, r5, 1.25, KeyStyle.Corner, true, title: "Windows key (Command on a Mac)");
         Add("Alt", "Alt", 2.5, r5, 1.25, KeyStyle.Corner, true, title: "Left Alt");
         Add("Space", "", 3.75, r5, 6.25, KeyStyle.Word, false, title: "Space");
-        Add(null, "Alt", 10, r5, 1.25, KeyStyle.Corner, true);
-        Add(null, "Fn", 11.25, r5, 1.25, KeyStyle.Corner, true);
-        Add(null, "Menu", 12.5, r5, 1.25, KeyStyle.Corner, true);
-        Add(null, "Ctrl", 13.75, r5, 1.25, KeyStyle.Corner, true);
+        Add("RightAlt", "Alt", 10, r5, 1.25, KeyStyle.Corner, true, title: "Right Alt");
+        Add(null, "Fn", 11.25, r5, 1.25, KeyStyle.Corner, true);      // handled inside the keyboard: no app ever sees it
+        Add("Apps", "Menu", 12.5, r5, 1.25, KeyStyle.Corner, true, title: "Menu key");
+        Add("RightCtrl", "Ctrl", 13.75, r5, 1.25, KeyStyle.Corner, true, title: "Right Ctrl");
         Add("Left", "Left", 15.25, r5, 1, KeyStyle.Arrow, true, title: "Left Arrow");
         Add("Down", "Down", 16.25, r5, 1, KeyStyle.Arrow, true, title: "Down Arrow");
         Add("Right", "Right", 17.25, r5, 1, KeyStyle.Arrow, true, title: "Right Arrow");
@@ -140,8 +141,14 @@ public static class KeyboardArt
     public static ArtRect CapOf(KeyDef key) =>
         new(KeysX + key.X * Unit + Gap / 2, KeysY + key.Y * Unit + Gap / 2, key.Width * Unit - Gap, Unit - Gap);
 
-    /// <summary>The drawing, as SVG.</summary>
-    public static string Svg()
+    /// <summary>The drawing, as SVG, with every named key live.</summary>
+    public static string Svg() => Svg(_ => true);
+
+    /// <summary>
+    /// The drawing, as SVG. Only the keys <paramref name="canRemap"/> accepts are live parts; the rest (a key this computer cannot
+    /// read or press, such as Caps Lock on a Mac) are drawn the same way with quieter legends.
+    /// </summary>
+    public static string Svg(Func<string, bool> canRemap)
     {
         double keysW = 18.25 * Unit, keysH = 6.3 * Unit;
         double caseX = KeysX - CasePad, caseY = KeysY - CasePad, caseW = keysW + 2 * CasePad, caseH = keysH + 2 * CasePad + 4;
@@ -184,22 +191,22 @@ public static class KeyboardArt
         }
         sb.Append("</g>\n");
 
-        foreach (var key in Keys) AppendKey(sb, key);
+        foreach (var key in Keys) AppendKey(sb, key, key.Name != null && canRemap(key.Name));
 
         sb.Append("</svg>\n");
         return sb.ToString();
     }
 
-    private static void AppendKey(StringBuilder sb, KeyDef key)
+    private static void AppendKey(StringBuilder sb, KeyDef key, bool live)
     {
         var c = CapOf(key);
         string tone = key.Modifier ? "m" : "a";
-        string legend = key.Name == null ? QuietColor : LegendColor;
-        string sub = key.Name == null ? QuietColor : SubLegendColor;
+        string legend = live ? LegendColor : QuietColor;
+        string sub = live ? SubLegendColor : QuietColor;
 
-        if (key.Name != null)
+        if (live)
         {
-            string id = "key-" + key.Name.ToLowerInvariant();
+            string id = "key-" + key.Name!.ToLowerInvariant();
             string title = Esc(key.Title ?? key.Legend);
             sb.Append(CultureInfo.InvariantCulture,
                 $"<g id=\"{id}\" data-key=\"{Esc(key.Name)}\" data-name=\"{title}\" data-anim=\"press\" data-origin=\"{N(c.CenterX)} {N(c.Bottom)}\" data-press-scale=\"0.985\" data-press-dy=\"3\">\n");
@@ -216,7 +223,7 @@ public static class KeyboardArt
         sb.Append(CultureInfo.InvariantCulture, $"<rect x=\"{N(tx)}\" y=\"{N(ty)}\" width=\"{N(tw)}\" height=\"{N(th)}\" rx=\"5.5\" fill=\"url(#g-dish)\" stroke=\"#FFFFFF\" stroke-opacity=\"0.07\" stroke-width=\"1\"/>\n");
 
         // Lit while held
-        if (key.Name != null)
+        if (live)
             sb.Append(CultureInfo.InvariantCulture, $"<rect x=\"{N(tx)}\" y=\"{N(ty)}\" width=\"{N(tw)}\" height=\"{N(th)}\" rx=\"5.5\" fill=\"#E9C46A\" data-fx=\"glow\" data-max=\"0.34\" opacity=\"0\"/>\n");
 
         double cx = tx + tw / 2, cy = ty + th / 2;
@@ -241,7 +248,7 @@ public static class KeyboardArt
         }
 
         // What a click lands on
-        if (key.Name != null)
+        if (live)
             sb.Append(CultureInfo.InvariantCulture, $"<rect x=\"{N(c.X)}\" y=\"{N(c.Y)}\" width=\"{N(c.Width)}\" height=\"{N(c.Height)}\" rx=\"7\" fill=\"transparent\" class=\"hit\"/>\n");
 
         sb.Append("</g>\n");

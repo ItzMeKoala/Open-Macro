@@ -48,6 +48,7 @@ internal static class MacNative
     // Device-dependent modifier bits (IOKit NX_DEVICE*KEYMASK): which side of the keyboard a modifier is held on
     public const ulong DeviceLShift = 0x2, DeviceRShift = 0x4, DeviceLControl = 0x1, DeviceRControl = 0x2000;
     public const ulong DeviceLAlt = 0x20, DeviceRAlt = 0x40;
+    public const ulong DeviceLCommand = 0x8, DeviceRCommand = 0x10;
 
     public const uint HidEventTap = 0;
     public const uint SessionEventTap = 1;

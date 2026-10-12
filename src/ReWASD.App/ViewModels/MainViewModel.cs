@@ -1969,7 +1969,24 @@ public partial class MainViewModel : ObservableObject
     public bool ShowSkinArt => SkinArt != null && SelectedInputTab == InputTab.Gamepad;
 
     /// <summary>The detailed keyboard drawing (null if it could not be built: the keyboard tab then shows plain key boxes).</summary>
-    public ArtScene? KeyboardArt { get; } = ArtLibrary.TryGetKeyboard();
+    public ArtScene? KeyboardArt => _keyboardArtBuilt ? _keyboardArt : BuildKeyboardArt();
+
+    private ArtScene? _keyboardArt;
+    private bool _keyboardArtBuilt;
+
+    private ArtScene? BuildKeyboardArt()
+    {
+        _keyboardArt = ArtLibrary.TryGetKeyboard(CanUseKey);
+        _keyboardArtBuilt = true;
+        return _keyboardArt;
+    }
+
+    /// <summary>
+    /// Whether this computer can read and press a key: every named key on Windows; on a Mac the keys macOS has (Command is the
+    /// Windows key; Caps Lock, Menu, Print Screen, Scroll Lock and Pause are not available there).
+    /// </summary>
+    public bool CanUseKey(string name) =>
+        Engine.Input.KeyMap.TryGetVirtualKey(name, out ushort vk) && (!IsMacOS || Engine.Platform.MacOS.MacKeyCodes.TryGetMacKeyCode(vk, out _));
 
     /// <summary>True when the detailed keyboard replaces the key boxes: the keyboard tab is open and the drawing was built.</summary>
     public bool ShowKeyboardArt => KeyboardArt != null && SelectedInputTab == InputTab.Keyboard;
@@ -2110,7 +2127,7 @@ public partial class MainViewModel : ObservableObject
         {
             Kind = kind,
             SourceName = s.Name,
-            FriendlyName = s.Name,
+            FriendlyName = s.Title ?? s.Name,
             DisplayName = s.Legend,
             CornerRadius = s.Radius,
             LegendFontSize = s.FontSize,
@@ -2142,7 +2159,7 @@ public partial class MainViewModel : ObservableObject
 
     private void InitializeSourcePickers()
     {
-        foreach (var key in InputLayouts.Keyboard) KeyboardSources.Add(MakeSource(SourceKind.Key, key));
+        foreach (var key in InputLayouts.Keyboard.Where(k => CanUseKey(k.Name))) KeyboardSources.Add(MakeSource(SourceKind.Key, key));
         foreach (var button in InputLayouts.Mouse) MouseSources.Add(MakeSource(SourceKind.Mouse, button));
         UpdateAllButtonDisplays();
     }
@@ -2240,9 +2257,9 @@ public partial class MainViewModel : ObservableObject
             RemapOptions.Add(new RemapOption(RemapKind.Pad, padGroup, FriendlyPadName(b)) { Pad = b });
         }
 
-        foreach (var key in InputLayouts.Keyboard)
+        foreach (var key in InputLayouts.Keyboard.Where(k => CanUseKey(k.Name)))
         {
-            RemapOptions.Add(new RemapOption(RemapKind.Key, "Keyboard", key.Name) { Name = key.Name, Legend = key.Legend, Shape = IconShape.KeyCap });
+            RemapOptions.Add(new RemapOption(RemapKind.Key, "Keyboard", key.Title ?? key.Name) { Name = key.Name, Legend = key.Legend, Shape = IconShape.KeyCap });
         }
 
         foreach (var name in new[] { "Left Click", "Right Click", "Middle Click", "Mouse Button 4", "Mouse Button 5" })

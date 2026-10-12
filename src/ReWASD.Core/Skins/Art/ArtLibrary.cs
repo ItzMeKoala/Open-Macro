@@ -25,6 +25,22 @@ public static class ArtLibrary
         }
     }
 
+    /// <summary>
+    /// The keyboard drawing with only the keys <paramref name="canRemap"/> accepts live (for a computer that cannot use them all),
+    /// or null if it cannot be built.
+    /// </summary>
+    public static ArtScene? TryGetKeyboard(Func<string, bool> canRemap)
+    {
+        try
+        {
+            return SvgArtParser.Parse(KeyboardArt.Svg(canRemap));
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
     /// <summary>The PlayStation 5 DualSense controller, front view.</summary>
     public static ArtScene DualSense => DualSenseScene.Value;
 

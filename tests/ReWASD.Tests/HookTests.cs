@@ -14,9 +14,29 @@ public class HookTests
     [InlineData(0x70, "F1")]
     [InlineData(0x87, "F24")]
     [InlineData(0xA0, "ShiftKey")]
-    [InlineData(0xA1, "ShiftKey")]   // right shift shares the name
+    [InlineData(0x10, "ShiftKey")]     // the generic Shift is the left one
+    [InlineData(0xA1, "RightShift")]   // the right-hand modifiers have names of their own
     [InlineData(0x11, "ControlKey")]
-    [InlineData(0xA5, "Alt")]
+    [InlineData(0xA3, "RightCtrl")]
+    [InlineData(0xA5, "RightAlt")]
+    [InlineData(0x5B, "Win")]
+    [InlineData(0x5C, "Win")]          // both Windows keys
+    [InlineData(0x14, "CapsLock")]
+    [InlineData(0x5D, "Apps")]
+    [InlineData(0x2C, "PrintScreen")]
+    [InlineData(0x91, "ScrollLock")]
+    [InlineData(0x13, "Pause")]
+    [InlineData(0xBA, "Semicolon")]
+    [InlineData(0xDE, "Quote")]
+    [InlineData(0xBC, "Comma")]
+    [InlineData(0xBE, "Period")]
+    [InlineData(0xBF, "Slash")]
+    [InlineData(0xC0, "Backtick")]
+    [InlineData(0xBD, "Minus")]
+    [InlineData(0xBB, "Equals")]
+    [InlineData(0xDB, "LeftBracket")]
+    [InlineData(0xDD, "RightBracket")]
+    [InlineData(0xDC, "Backslash")]
     [InlineData(0x26, "Up")]
     public void CapturedKeys_MapToProfileNames(int vk, string expected)
     {
@@ -41,6 +61,30 @@ public class HookTests
             Assert.True(KeyMap.TryGetKeyName(vk, out var back));
             Assert.Equal("F" + f, back);
         }
+    }
+
+    [Theory]
+    [InlineData("OemSemicolon", 0xBA)]
+    [InlineData("Oem7", 0xDE)]
+    [InlineData("RShiftKey", 0xA1)]
+    [InlineData("LWin", 0x5B)]
+    [InlineData("Capital", 0x14)]
+    [InlineData("Snapshot", 0x2C)]
+    public void WindowsKeyNames_AreUnderstoodToo(string name, int vk)
+    {
+        Assert.True(KeyMap.TryGetVirtualKey(name, out var actual));
+        Assert.Equal(vk, actual);
+    }
+
+    [Fact]
+    public void PauseAndPrintScreen_AreSentByVirtualKey_AndTheRightHandModifiersAsExtendedKeys()
+    {
+        Assert.True(KeyMap.SendsByVirtualKey(0x13));
+        Assert.True(KeyMap.SendsByVirtualKey(0x2C));
+        Assert.False(KeyMap.SendsByVirtualKey(0x41));
+        foreach (ushort vk in new ushort[] { 0xA3, 0xA5, 0x5B, 0x5D }) Assert.True(KeyMap.IsExtended(vk), vk.ToString("X"));
+        Assert.False(KeyMap.IsExtended(0xA1));      // right Shift is not an extended key
+        Assert.False(KeyMap.IsExtended(0xBA));
     }
 
     [Fact]

@@ -44,7 +44,9 @@ public class MacKeyCodesTests
     [Fact]
     public void EveryKeyTheProfilesCanName_CanBeInjectedOnAMac_ExceptF21ToF24()
     {
-        var names = new List<string>(KeyMap.NamedKeys);
+        // A Mac keyboard has no Menu, Print Screen, Scroll Lock or Pause key, and Caps Lock cannot be pressed for you
+        string[] notOnAMac = { "CapsLock", "Apps", "PrintScreen", "ScrollLock", "Pause" };
+        var names = new List<string>(KeyMap.NamedKeys.Except(notOnAMac));
         names.AddRange("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".Select(c => c.ToString()));
         for (int f = 1; f <= 20; f++) names.Add("F" + f);
 
@@ -52,6 +54,12 @@ public class MacKeyCodesTests
         {
             Assert.True(KeyMap.TryGetVirtualKey(name, out var vk), name);
             Assert.True(MacKeyCodes.TryGetMacKeyCode(vk, out _), name);
+        }
+
+        foreach (var name in notOnAMac)
+        {
+            Assert.True(KeyMap.TryGetVirtualKey(name, out var vk), name);
+            Assert.False(MacKeyCodes.TryGetMacKeyCode(vk, out _), name);
         }
 
         for (int f = 21; f <= 24; f++)
@@ -69,8 +77,10 @@ public class MacKeyCodesTests
         {
             (0x0D, "W"), (0x00, "A"), (0x12, "1"), (0x31, "Space"), (0x24, "Enter"), (0x33, "Back"),
             (0x75, "Delete"), (0x35, "Escape"), (0x7B, "Left"), (0x7A, "F1"), (0x6F, "F12"),
-            (0x38, "ShiftKey"), (0x3C, "ShiftKey"), (0x3B, "ControlKey"), (0x3E, "ControlKey"),
-            (0x3A, "Alt"), (0x3D, "Alt")
+            (0x38, "ShiftKey"), (0x3C, "RightShift"), (0x3B, "ControlKey"), (0x3E, "RightCtrl"),
+            (0x3A, "Alt"), (0x3D, "RightAlt"), (0x37, "Win"), (0x36, "Win"),
+            (0x29, "Semicolon"), (0x27, "Quote"), (0x2B, "Comma"), (0x2F, "Period"), (0x2C, "Slash"),
+            (0x32, "Backtick"), (0x1B, "Minus"), (0x18, "Equals"), (0x21, "LeftBracket"), (0x1E, "RightBracket"), (0x2A, "Backslash")
         };
 
         foreach (var (code, name) in cases)
@@ -84,7 +94,8 @@ public class MacKeyCodesTests
     [Fact]
     public void KeysWithNoEquivalent_AreNotTranslated()
     {
-        Assert.False(MacKeyCodes.TryGetVirtualKey(MacKeyCodes.LeftCommand, out _));
+        Assert.True(MacKeyCodes.TryGetVirtualKey(MacKeyCodes.LeftCommand, out var command));     // Command is the Windows key
+        Assert.Equal(0x5B, command);
         Assert.False(MacKeyCodes.TryGetVirtualKey(MacKeyCodes.CapsLock, out _));
         Assert.False(MacKeyCodes.TryGetVirtualKey(MacKeyCodes.Function, out _));
         Assert.False(MacKeyCodes.TryGetMacKeyCode(0xE7, out _));

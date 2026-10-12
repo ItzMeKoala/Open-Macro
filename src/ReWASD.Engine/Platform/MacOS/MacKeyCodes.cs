@@ -44,6 +44,9 @@ public static class MacKeyCodes
             [0xA2] = LeftControl, [0xA3] = RightControl,
             [0xA4] = LeftOption, [0xA5] = RightOption,
 
+            // The Windows keys are Command
+            [0x5B] = LeftCommand, [0x5C] = RightCommand,
+
             // Punctuation (the OEM keys of a US keyboard), used when macros type text
             [0xBA] = 0x29, [0xBB] = 0x18, [0xBC] = 0x2B, [0xBD] = 0x1B, [0xBE] = 0x2F, [0xBF] = 0x2C,
             [0xC0] = 0x32, [0xDB] = 0x21, [0xDC] = 0x2A, [0xDD] = 0x1E, [0xDE] = 0x27,
@@ -66,7 +69,7 @@ public static class MacKeyCodes
         return ToMac.TryGetValue(virtualKey, out macKeyCode);
     }
 
-    /// <summary>The Windows virtual key for a mac key code. Command, Caps Lock, Fn and keys with no equivalent return false.</summary>
+    /// <summary>The Windows virtual key for a mac key code (Command is the Windows key). Caps Lock, Fn and keys with no equivalent return false.</summary>
     public static bool TryGetVirtualKey(ushort macKeyCode, out ushort virtualKey) =>
         FromMac.TryGetValue(macKeyCode, out virtualKey);
 

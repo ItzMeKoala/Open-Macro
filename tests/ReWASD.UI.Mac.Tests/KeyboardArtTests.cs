@@ -34,6 +34,40 @@ public class KeyboardArtTests
     }
 
     [Fact]
+    public void OnWindows_EveryKeyButFn_CanBeRemapped()
+    {
+        var vm = new MainViewModel(Fakes.Platform(PlatformServices.WindowsInfo), new Fakes.Ui(), Fakes.TempProfiles());
+        Assert.Equal(86, vm.KeyboardSources.Count);
+        foreach (var name in new[] { "Semicolon", "Quote", "Comma", "Period", "Slash", "CapsLock", "RightShift", "Win", "Apps", "Pause" })
+        {
+            Assert.Contains(vm.KeyboardSources, k => k.SourceName == name);
+            Assert.NotNull(vm.KeyboardArt!.PartForKey(name));
+        }
+        Assert.Contains(vm.RemapOptions, o => o.Kind == RemapKind.Key && o.Name == "Semicolon" && o.Label == "Semicolon ;");
+        vm.Shutdown();
+    }
+
+    [Fact]
+    public void OnAMac_TheKeysMacOSDoesNotHave_AreDrawnButNotLive()
+    {
+        var vm = New();
+        foreach (var name in new[] { "CapsLock", "Apps", "PrintScreen", "ScrollLock", "Pause" })
+        {
+            Assert.DoesNotContain(vm.KeyboardSources, k => k.SourceName == name);
+            Assert.Null(vm.KeyboardArt!.PartForKey(name));
+            Assert.DoesNotContain(vm.RemapOptions, o => o.Kind == RemapKind.Key && o.Name == name);
+        }
+        foreach (var name in new[] { "Semicolon", "Quote", "Slash", "RightShift", "RightAlt", "RightCtrl", "Win" })
+        {
+            Assert.Contains(vm.KeyboardSources, k => k.SourceName == name);
+            Assert.NotNull(vm.KeyboardArt!.PartForKey(name));
+        }
+        Assert.Equal(vm.KeyboardSources.Count, vm.KeyboardArt!.Parts.Count);
+        Assert.Equal("Windows key (Command on a Mac)", vm.KeyboardSources.First(k => k.SourceName == "Win").FriendlyName);
+        vm.Shutdown();
+    }
+
+    [Fact]
     public void TheBoard_IsAFullTenkeyless_WithNoKeysOverlapping()
     {
         var keys = KeyboardArt.Keys;
@@ -204,21 +238,30 @@ public class WindowKeyTests
     [InlineData("Next", "PageDown")]
     [InlineData("Space", "Space")]
     [InlineData("Left", "Left")]
+    [InlineData("RightShift", "RightShift")]
+    [InlineData("RightAlt", "RightAlt")]
+    [InlineData("LWin", "Win")]
+    [InlineData("OemComma", "Comma")]
+    [InlineData("OemSemicolon", "Semicolon")]
+    [InlineData("Oem1", "Semicolon")]
+    [InlineData("OemQuotes", "Quote")]
+    [InlineData("OemQuestion", "Slash")]
+    [InlineData("OemPlus", "Equals")]
+    [InlineData("CapsLock", "CapsLock")]
+    [InlineData("Scroll", "ScrollLock")]
     public void ToolkitKeys_BecomeTheDrawingsKeys(string uiKey, string name) => Assert.Equal(name, WindowKeys.ToSourceName(uiKey));
 
     [Theory]
-    [InlineData("RightShift")]
     [InlineData("F13")]
-    [InlineData("OemComma")]
-    [InlineData("LWin")]
     [InlineData("NumPad5")]
+    [InlineData("NumLock")]
+    [InlineData("Multiply")]
     public void KeysTheDrawingDoesNotHave_AreIgnored(string uiKey) => Assert.Null(WindowKeys.ToSourceName(uiKey));
 
     [Fact]
     public void EveryKeyTheWindowCanReport_IsOnTheDrawing()
     {
-        var vm = New();
-        var names = vm.KeyboardSources.Select(k => k.SourceName).ToHashSet();
+        var names = InputLayouts.Keyboard.Select(k => k.Name).ToHashSet();
         foreach (var uiKey in Enum.GetNames<Avalonia.Input.Key>())
         {
             string? name = WindowKeys.ToSourceName(uiKey);
