@@ -188,7 +188,7 @@
             </Border>
 
             <!-- Inspector -->
-            <Border Grid.Column="1" Width="340">
+            <Border Grid.Column="1" Width="360">
                 <views:MappingPanel />
             </Border>
 
@@ -638,11 +638,11 @@
                     <TextBlock Text="{Binding ConnectedDevices[0]}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </StackPanel>
 
+                <!-- Only things that need attention show here -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding DriverStatusText}" Classes="status" Classes.ok="{Binding IsDriverAvailable}" IsVisible="{Binding !IsMacOS}" />
-                    <TextBlock Text="{Binding HidHideStatusText}" Classes="status" Classes.ok="{Binding IsHidHideAvailable}" IsVisible="{Binding !IsMacOS}" />
-                    <TextBlock Text="{Binding PermissionStatusText}" Classes="status" Classes.ok="{Binding !HasPermissionIssue}" IsVisible="{Binding IsMacOS}" />
-                    <TextBlock Text="{Binding BuildText}" Foreground="{StaticResource BrushTextMuted}" FontSize="11" Margin="4,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock Text="Needs permission to control the keyboard and mouse" Foreground="{StaticResource BrushOrange}" FontSize="12" VerticalAlignment="Center" IsVisible="{Binding HasPermissionIssue}" />
+                    <TextBlock Text="Virtual controller driver (ViGEmBus) is not installed" Foreground="{StaticResource BrushOrange}" FontSize="12" VerticalAlignment="Center"
+                               IsVisible="{Binding ShowDriverWarning}" />
                 </StackPanel>
             </Grid>
         </Border>

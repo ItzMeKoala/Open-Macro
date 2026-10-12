@@ -13,6 +13,13 @@
         <conv:MappingModeLabelConverter x:Key="ModeLabel" />
         <conv:MacroRepeatLabelConverter x:Key="RepeatLabel" />
 
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,18,0,8" />
+        </Style>
+
         <Style x:Key="SectionLabel" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource BrushTextMuted}" />
             <Setter Property="FontSize" Value="11" />
@@ -58,192 +65,221 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <Border Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1,0,0,0" Padding="16,14">
-        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel>
+    <Border Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1,0,0,0">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-                <!-- Which input is being edited -->
-                <TextBlock Text="{Binding SelectedButton.FriendlyName, FallbackValue='Nothing selected'}"
-                           Foreground="{StaticResource BrushCyan}" FontSize="20" FontWeight="Bold" />
-                <TextBlock Text="{Binding SelectedButton.TargetText, StringFormat='Currently: {0}'}"
-                           Foreground="{StaticResource BrushTextSecondary}" FontSize="12" Margin="0,2,0,0" />
+            <!-- Which input is being edited, and what it does now -->
+            <StackPanel Grid.Row="0" Margin="20,18,20,12">
+                <DockPanel>
+                    <Border DockPanel.Dock="Right" CornerRadius="10" Padding="9,2" VerticalAlignment="Center" Background="#2A2412"
+                            Visibility="{Binding SelectedIsRemapped, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="Remapped" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource BrushCyan}" />
+                    </Border>
+                    <TextBlock Text="{Binding SelectedButton.FriendlyName, FallbackValue='Pick an input'}" Foreground="{StaticResource BrushTextPrimary}"
+                               FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                </DockPanel>
+                <TextBlock Text="{Binding SelectedSummary}" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" Margin="0,3,0,0" TextWrapping="Wrap" />
+            </StackPanel>
 
-                <!-- When it fires -->
-                <TextBlock Text="WHEN" Style="{StaticResource SectionLabel}" />
-                <UniformGrid Columns="3">
-                    <RadioButton Content="Single" Style="{StaticResource ShiftTabButtonStyle}" ToolTip="One press"
-                                 IsChecked="{Binding SelectedActivator, Converter={StaticResource EnumToBool}, ConverterParameter=Single}" />
-                    <RadioButton Content="Long" Style="{StaticResource ShiftTabButtonStyle}" ToolTip="Held past the long-press time"
-                                 IsChecked="{Binding SelectedActivator, Converter={StaticResource EnumToBool}, ConverterParameter=Long}" />
-                    <RadioButton Content="Double" Style="{StaticResource ShiftTabButtonStyle}" ToolTip="Two quick presses"
-                                 IsChecked="{Binding SelectedActivator, Converter={StaticResource EnumToBool}, ConverterParameter=Double}" />
-                    <RadioButton Content="Triple" Style="{StaticResource ShiftTabButtonStyle}" ToolTip="Three quick presses"
-                                 IsChecked="{Binding SelectedActivator, Converter={StaticResource EnumToBool}, ConverterParameter=Triple}" />
-                    <RadioButton Content="Start" Style="{StaticResource ShiftTabButtonStyle}" ToolTip="The moment it goes down"
-                                 IsChecked="{Binding SelectedActivator, Converter={StaticResource EnumToBool}, ConverterParameter=Start}" />
-                    <RadioButton Content="Release" Style="{StaticResource ShiftTabButtonStyle}" ToolTip="When it is let go"
-                                 IsChecked="{Binding SelectedActivator, Converter={StaticResource EnumToBool}, ConverterParameter=Release}" />
-                </UniformGrid>
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="20,0,20,20">
 
-                <!-- What it does: remap to something, or run a macro -->
-                <TextBlock Text="DO" Style="{StaticResource SectionLabel}" />
-                <UniformGrid Columns="3">
-                    <RadioButton Content="Remap" Style="{StaticResource ShiftTabButtonStyle}"
-                                 IsChecked="{Binding TargetMode, Converter={StaticResource EnumToBool}, ConverterParameter=Remap}" />
-                    <RadioButton Content="Macro" Style="{StaticResource ShiftTabButtonStyle}"
-                                 IsChecked="{Binding TargetMode, Converter={StaticResource EnumToBool}, ConverterParameter=Macro}" />
-                    <RadioButton Content="Script" Style="{StaticResource ShiftTabButtonStyle}" ToolTip="Write a small JavaScript program for this input"
-                                 IsChecked="{Binding TargetMode, Converter={StaticResource EnumToBool}, ConverterParameter=Script}" />
-                </UniformGrid>
-
-                <!-- Remap: one dropdown with every choice -->
-                <StackPanel Margin="0,12,0,0" Visibility="{Binding IsRemapMode, Converter={StaticResource BoolToVisibility}}">
-                    <TextBlock Text="Remap to" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" Margin="0,0,0,6" />
-                    <ComboBox ItemsSource="{Binding RemapOptionsView}" SelectedItem="{Binding SelectedRemapOption}"
-                              ItemTemplate="{StaticResource RemapOptionTemplate}" MaxDropDownHeight="380" Padding="8,5"
-                              TextSearch.TextPath="Label" IsTextSearchEnabled="True"
-                              ScrollViewer.CanContentScroll="False"
-                              ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                        <ComboBox.GroupStyle>
-                            <GroupStyle>
-                                <GroupStyle.HeaderTemplate>
-                                    <DataTemplate>
-                                        <Border Background="#1C212B" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,1"
-                                                Padding="10,5" Margin="0,6,0,2">
-                                            <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextSecondary}" FontSize="11" FontWeight="Bold" />
-                                        </Border>
-                                    </DataTemplate>
-                                </GroupStyle.HeaderTemplate>
-                            </GroupStyle>
-                        </ComboBox.GroupStyle>
-                    </ComboBox>
-                </StackPanel>
-
-                <!-- Script: a small JavaScript program -->
-                <StackPanel Margin="0,12,0,0" Visibility="{Binding IsScriptMode, Converter={StaticResource BoolToVisibility}}">
-                    <TextBox Text="{Binding ScriptCode, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap" MinHeight="150" MaxHeight="260"
-                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-                             Background="{StaticResource BrushBgCard}" Foreground="{StaticResource BrushTextPrimary}"
-                             BorderBrush="{StaticResource BrushBorder}" Padding="8,6" FontFamily="Consolas" FontSize="12"
-                             ToolTip="press('A'); hold('W'); click(); type('hi'); delay(100); shell('...'); openURL('...'); webhook('POST', url, body); obs('StartRecord'); notify('...'); app.name; state.x" />
-                    <TextBlock Text="{Binding ScriptError}" Foreground="#FF6B6B" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0" />
-                    <TextBlock Text="Examples" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" Margin="0,8,0,4" />
-                    <ItemsControl ItemsSource="{Binding ScriptExamples}">
+                    <!-- When it fires: a dot marks the triggers that already do something -->
+                    <TextBlock Text="Trigger" Style="{StaticResource FieldLabel}" Margin="0,4,0,8" />
+                    <ItemsControl ItemsSource="{Binding ActivatorChoices}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <WrapPanel />
+                                <UniformGrid Columns="3" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Button Content="{Binding Label}" Style="{StaticResource SecondaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,6,6"
-                                        Command="{Binding DataContext.UseScriptExampleCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                                <Button Style="{StaticResource SegButtonStyle}" ToolTip="{Binding Help}" Tag="{Binding IsSelected}"
+                                        Command="{Binding DataContext.ChooseActivatorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding Label}" />
+                                        <Ellipse Width="5" Height="5" Fill="{StaticResource BrushCyan}" Margin="6,0,0,0" VerticalAlignment="Center"
+                                                 Visibility="{Binding HasMapping, Converter={StaticResource BoolToVisibility}}" />
+                                    </StackPanel>
+                                </Button>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <TextBlock Text="Functions: press, hold, release, click, mouseDown, mouseUp, scroll, moveMouse, type, delay, shell, openURL, openApp, webhook, obs, padPress, padHold, padRelease, notify. Objects: app (name, id, is), state (kept between runs)." Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" />
-                    <TextBlock Text="Repeat" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" Margin="0,10,0,6" />
-                    <ComboBox ItemsSource="{Binding AvailableMacroRepeatModes}" SelectedItem="{Binding SelectedMacroRepeat}" Padding="8,5">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Converter={StaticResource RepeatLabel}}" Foreground="{StaticResource BrushTextPrimary}" />
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                </StackPanel>
 
-                <!-- Macro: record or type a sequence -->
-                <StackPanel Margin="0,12,0,0" Visibility="{Binding IsMacroMode, Converter={StaticResource BoolToVisibility}}">
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <Button Content="● Record" Command="{Binding StartMacroRecordingCommand}" Style="{StaticResource SecondaryButtonStyle}"
-                                Padding="14,6" Margin="0,0,8,0" ToolTip="Record keys, mouse clicks and controller buttons with their timing" />
-                        <Button Content="■ Stop" Command="{Binding StopMacroRecordingCommand}" Style="{StaticResource SecondaryButtonStyle}"
-                                Padding="14,6" ToolTip="Finish recording" />
-                    </StackPanel>
-                    <TextBlock Text="{Binding RecordingHint}" Foreground="{StaticResource BrushOrange}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8" />
+                    <!-- What it does -->
+                    <TextBlock Text="Action" Style="{StaticResource FieldLabel}" />
+                    <UniformGrid Columns="3">
+                        <RadioButton Content="Remap" Style="{StaticResource SegRadioStyle}" GroupName="ActionMode" ToolTip="Send another button, key or mouse action"
+                                     IsChecked="{Binding TargetMode, Converter={StaticResource EnumToBool}, ConverterParameter=Remap}" />
+                        <RadioButton Content="Macro" Style="{StaticResource SegRadioStyle}" GroupName="ActionMode" ToolTip="Run a sequence of steps"
+                                     IsChecked="{Binding TargetMode, Converter={StaticResource EnumToBool}, ConverterParameter=Macro}" />
+                        <RadioButton Content="Script" Style="{StaticResource SegRadioStyle}" GroupName="ActionMode" ToolTip="Write a small JavaScript program for this input"
+                                     IsChecked="{Binding TargetMode, Converter={StaticResource EnumToBool}, ConverterParameter=Script}" />
+                    </UniformGrid>
 
-                    <TextBox Text="{Binding MacroScript, UpdateSourceTrigger=PropertyChanged}"
-                             AcceptsReturn="False" TextWrapping="Wrap" MinHeight="64"
-                             Background="{StaticResource BrushBgCard}" Foreground="{StaticResource BrushTextPrimary}"
-                             BorderBrush="{StaticResource BrushBorder}" Padding="8,6" FontFamily="Consolas" FontSize="12"
-                             ToolTip="One step per item, separated by semicolons, e.g. KeyDown:W; Delay:50; KeyUp:W" />
-                    <TextBlock Text="{Binding MacroError}" Foreground="#FF6B6B" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0" />
-                    <ItemsControl ItemsSource="{Binding MacroStepTemplates}" Margin="0,8,0,0">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Button Content="{Binding Label}" Style="{StaticResource SecondaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,6,6"
-                                        Command="{Binding DataContext.AddMacroStepCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <TextBlock Text="{Binding MacroHelpText}" Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" Margin="0,2,0,0" />
+            <!-- Remap: one dropdown with every choice -->
+            <StackPanel Visibility="{Binding IsRemapMode, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="Send" Style="{StaticResource FieldLabel}" />
+                
+                <ComboBox ItemsSource="{Binding RemapOptionsView}" SelectedItem="{Binding SelectedRemapOption}"
+                          ItemTemplate="{StaticResource RemapOptionTemplate}" MaxDropDownHeight="380" Padding="8,5"
+                          TextSearch.TextPath="Label" IsTextSearchEnabled="True"
+                          ScrollViewer.CanContentScroll="False"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ComboBox.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.HeaderTemplate>
+                                <DataTemplate>
+                                    <Border Background="#1C212B" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,1"
+                                            Padding="10,5" Margin="0,6,0,2">
+                                        <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextSecondary}" FontSize="11" FontWeight="Bold" />
+                                    </Border>
+                                </DataTemplate>
+                            </GroupStyle.HeaderTemplate>
+                        </GroupStyle>
+                    </ComboBox.GroupStyle>
+                </ComboBox>
+            </StackPanel>
 
-                    <TextBlock Text="Repeat" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" Margin="0,10,0,6" />
-                    <ComboBox ItemsSource="{Binding AvailableMacroRepeatModes}" SelectedItem="{Binding SelectedMacroRepeat}" Padding="8,5"
-                              ToolTip="Hold until released keeps everything the macro pressed held while you hold the button, which is how one button can press several others">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Converter={StaticResource RepeatLabel}}" Foreground="{StaticResource BrushTextPrimary}" />
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                </StackPanel>
-
-                <!-- How it behaves once it fires -->
-                <TextBlock Text="BEHAVIOUR" Style="{StaticResource SectionLabel}" />
-                <ComboBox ItemsSource="{Binding AvailableModes}" SelectedItem="{Binding SelectedMode}" Padding="8,5">
+            <!-- Script: a small JavaScript program -->
+            <StackPanel Margin="0,10,0,0" Visibility="{Binding IsScriptMode, Converter={StaticResource BoolToVisibility}}">
+                <TextBox Text="{Binding ScriptCode, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap" MinHeight="150" MaxHeight="260"
+                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                         Background="{StaticResource BrushBgCard}" Foreground="{StaticResource BrushTextPrimary}"
+                         BorderBrush="{StaticResource BrushBorder}" Padding="8,6" FontFamily="Consolas" FontSize="12"
+                         ToolTip="press('A'); hold('W'); click(); type('hi'); delay(100); shell('...'); openURL('...'); webhook('POST', url, body); obs('StartRecord'); notify('...'); app.name; state.x" />
+                <TextBlock Text="{Binding ScriptError}" Foreground="#FF6B6B" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0" />
+                <TextBlock Text="Examples" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" Margin="0,8,0,4" />
+                <ItemsControl ItemsSource="{Binding ScriptExamples}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Content="{Binding Label}" Style="{StaticResource SecondaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,6,6"
+                                    Command="{Binding DataContext.UseScriptExampleCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="Functions: press, hold, release, click, mouseDown, mouseUp, scroll, moveMouse, type, delay, shell, openURL, openApp, webhook, obs, padPress, padHold, padRelease, notify. Objects: app (name, id, is), state (kept between runs)." Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" />
+                <TextBlock Text="Repeat" Style="{StaticResource FieldLabel}" />
+                <ComboBox ItemsSource="{Binding AvailableMacroRepeatModes}" SelectedItem="{Binding SelectedMacroRepeat}" Padding="8,5">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding Converter={StaticResource ModeLabel}}" Foreground="{StaticResource BrushTextPrimary}" />
+                            <TextBlock Text="{Binding Converter={StaticResource RepeatLabel}}" Foreground="{StaticResource BrushTextPrimary}" />
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>
-
-                <StackPanel Margin="0,10,0,0" Visibility="{Binding IsTurboMode, Converter={StaticResource BoolToVisibility}}">
-                    <DockPanel>
-                        <TextBlock Text="Repeat every" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" />
-                        <TextBlock Text="{Binding TurboRateMs, StringFormat='{}{0} ms'}" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Right" FontSize="12" />
-                    </DockPanel>
-                    <Slider Minimum="20" Maximum="200" SmallChange="5" LargeChange="20" Value="{Binding TurboRateMs}" Margin="0,6,0,0" />
-                </StackPanel>
-
-                <!-- Actions -->
-                <Button Content="{Binding SaveButtonText}" Command="{Binding SaveCurrentMappingCommand}" IsEnabled="{Binding IsInspectorDirty}"
-                        Background="{StaticResource BrushCyan}" Foreground="#101318"
-                        FontWeight="Bold" FontSize="13"
-                        HorizontalAlignment="Stretch" Height="38" Margin="0,20,0,8" Cursor="Hand">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="6">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="border" Property="Background" Value="{StaticResource BrushCyanHover}" />
-                                </Trigger>
-                                <Trigger Property="IsPressed" Value="True">
-                                    <Setter TargetName="border" Property="Background" Value="{StaticResource BrushCyanDark}" />
-                                </Trigger>
-                                <Trigger Property="IsEnabled" Value="False">
-                                    <Setter TargetName="border" Property="Background" Value="#26262A" />
-                                    <Setter Property="Foreground" Value="#6B7587" />
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
-                <TextBlock Text="Changes are also saved when you click another button." Foreground="{StaticResource BrushTextMuted}" FontSize="11" HorizontalAlignment="Center" Margin="0,0,0,10"
-                           Visibility="{Binding IsInspectorDirty, Converter={StaticResource BoolToVisibility}}" />
-
-                <Button Content="Reset to default" Command="{Binding ResetCurrentMappingCommand}"
-                        Style="{StaticResource SecondaryButtonStyle}"
-                        HorizontalAlignment="Stretch" Height="38" />
             </StackPanel>
-        </ScrollViewer>
+
+            <!-- Macro: record or type a sequence -->
+            <StackPanel Margin="0,10,0,0" Visibility="{Binding IsMacroMode, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <Button Content="● Record" Command="{Binding StartMacroRecordingCommand}" Style="{StaticResource SecondaryButtonStyle}"
+                            Padding="14,6" Margin="0,0,8,0" ToolTip="Record keys, mouse clicks and controller buttons with their timing" />
+                    <Button Content="■ Stop" Command="{Binding StopMacroRecordingCommand}" Style="{StaticResource SecondaryButtonStyle}"
+                            Padding="14,6" ToolTip="Finish recording" />
+                </StackPanel>
+                <TextBlock Text="{Binding RecordingHint}" Foreground="{StaticResource BrushOrange}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8" />
+
+                <TextBox Text="{Binding MacroScript, UpdateSourceTrigger=PropertyChanged}"
+                         AcceptsReturn="False" TextWrapping="Wrap" MinHeight="64"
+                         Background="{StaticResource BrushBgCard}" Foreground="{StaticResource BrushTextPrimary}"
+                         BorderBrush="{StaticResource BrushBorder}" Padding="8,6" FontFamily="Consolas" FontSize="12"
+                         ToolTip="One step per item, separated by semicolons, e.g. KeyDown:W; Delay:50; KeyUp:W" />
+                <TextBlock Text="{Binding MacroError}" Foreground="#FF6B6B" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0" />
+                <ItemsControl ItemsSource="{Binding MacroStepTemplates}" Margin="0,8,0,0">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Content="{Binding Label}" Style="{StaticResource SecondaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,6,6"
+                                    Command="{Binding DataContext.AddMacroStepCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{Binding MacroHelpText}" Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" Margin="0,2,0,0" />
+
+                <TextBlock Text="Repeat" Style="{StaticResource FieldLabel}" />
+                <ComboBox ItemsSource="{Binding AvailableMacroRepeatModes}" SelectedItem="{Binding SelectedMacroRepeat}" Padding="8,5"
+                          ToolTip="Hold until released keeps everything the macro pressed held while you hold the button, which is how one button can press several others">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Converter={StaticResource RepeatLabel}}" Foreground="{StaticResource BrushTextPrimary}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+
+
+                    <!-- How it acts once it fires -->
+                    <TextBlock Text="Behaviour" Style="{StaticResource FieldLabel}" />
+                    <ComboBox ItemsSource="{Binding AvailableModes}" SelectedItem="{Binding SelectedMode}" Padding="10,7">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={StaticResource ModeLabel}}" Foreground="{StaticResource BrushTextPrimary}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock Text="{Binding ModeDescription}" Foreground="{StaticResource BrushTextMuted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,6,0,0" />
+
+                    <StackPanel Margin="0,12,0,0" Visibility="{Binding IsTurboMode, Converter={StaticResource BoolToVisibility}}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding TurboRateMs, StringFormat='{}{0} ms'}" Foreground="{StaticResource BrushCyan}" FontSize="12" />
+                            <TextBlock Text="Repeat every" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" />
+                        </DockPanel>
+                        <Slider Minimum="20" Maximum="200" SmallChange="5" LargeChange="20" Value="{Binding TurboRateMs}" Margin="0,6,0,0" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Always in view: save, and start over -->
+            <Border Grid.Row="2" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0" Padding="20,14">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button Content="{Binding SaveButtonText}" Command="{Binding SaveCurrentMappingCommand}" IsEnabled="{Binding IsInspectorDirty}"
+                                Background="{StaticResource BrushCyan}" Foreground="#101318" FontWeight="Bold" FontSize="13" Height="38" Cursor="Hand">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="8">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="border" Property="Background" Value="{StaticResource BrushCyanHover}" />
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="border" Property="Background" Value="{StaticResource BrushCyanDark}" />
+                                        </Trigger>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter TargetName="border" Property="Background" Value="#26262A" />
+                                            <Setter Property="Foreground" Value="#6B7587" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Button Grid.Column="1" Content="Reset" Command="{Binding ResetCurrentMappingCommand}" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0"
+                                ToolTip="Put this button back to doing its own job" />
+                    </Grid>
+                    <TextBlock Text="Changes are also saved when you click another button." Foreground="{StaticResource BrushTextMuted}" FontSize="11"
+                               HorizontalAlignment="Center" Margin="0,8,0,0" Visibility="{Binding IsInspectorDirty, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+            </Border>
+        </Grid>
     </Border>
 </UserControl>

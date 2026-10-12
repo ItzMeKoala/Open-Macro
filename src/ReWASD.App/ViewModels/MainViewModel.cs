@@ -26,6 +26,27 @@ public enum AppPage
     Preferences
 }
 
+/// <summary>One of the six ways a button can trigger something, as the inspector shows it.</summary>
+public sealed partial class ActivatorChoice : ObservableObject
+{
+    public ActivatorType Type { get; }
+    public string Label { get; }
+    public string Help { get; }
+
+    public ActivatorChoice(ActivatorType type)
+    {
+        Type = type;
+        Label = Labels.Trigger(type);
+        Help = Labels.TriggerHelp(type);
+    }
+
+    /// <summary>This is the trigger being edited.</summary>
+    [ObservableProperty] private bool _isSelected;
+
+    /// <summary>Something is set for this trigger on the selected input (the small dot).</summary>
+    [ObservableProperty] private bool _hasMapping;
+}
+
 /// <summary>The pages of the settings screen.</summary>
 public enum SettingsSection
 {
@@ -187,6 +208,9 @@ public partial class MainViewModel : ObservableObject
     }
 
     public IReadOnlyList<int> SlotNumbers { get; } = new[] { 1, 2, 3, 4 };
+
+    /// <summary>Windows: the driver that makes the virtual controller is missing.</summary>
+    public bool ShowDriverWarning => !Platform.NeedsInputPermissions && SupportsVirtualController && !IsDriverAvailable;
 
     /// <summary>What the big button at the bottom does right now.</summary>
     public string ApplyButtonText => IsRemappingActive ? "Stop remapping" : "Start remapping";
@@ -2317,6 +2341,7 @@ public partial class MainViewModel : ObservableObject
             _loadingEditor--;
         }
         IsInspectorDirty = false;
+        RefreshActivatorMarks();
     }
 
     private void LoadEditorFor(ButtonViewModel button)
@@ -2364,6 +2389,42 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    // ---- The inspector's triggers and plain descriptions --------------------------------------------------------------------
+
+    public IReadOnlyList<ActivatorChoice> ActivatorChoices { get; } =
+        Enum.GetValues<ActivatorType>().Select(t => new ActivatorChoice(t)).ToList();
+
+    [RelayCommand]
+    private void ChooseActivator(ActivatorChoice? choice)
+    {
+        if (choice != null) SelectedActivator = choice.Type;
+    }
+
+    /// <summary>A sentence about the chosen behaviour.</summary>
+    public string ModeDescription => Labels.ModeHelp(SelectedMode);
+
+    /// <summary>The input has a mapping other than doing its own thing.</summary>
+    public bool SelectedIsRemapped => SelectedButton?.IsRemapped ?? false;
+
+    /// <summary>One line under the input's name: what it does now.</summary>
+    public string SelectedSummary => SelectedButton == null
+        ? "Click a button on the picture to change what it does."
+        : SelectedIsRemapped ? SelectedButton.TargetText : "Not remapped: it does its normal job.";
+
+    private void RefreshActivatorMarks()
+    {
+        var mapping = SelectedButton == null ? null : FindMapping(CurrentLayer, SelectedButton, inherit: true);
+        foreach (var c in ActivatorChoices)
+        {
+            c.IsSelected = c.Type == SelectedActivator;
+            c.HasMapping = c.Type == ActivatorType.Single
+                ? mapping?.GetBinding(ActivatorType.Single) is { Target.Type: not TargetType.None }
+                : mapping?.GetBinding(c.Type) != null;
+        }
+        OnPropertyChanged(nameof(SelectedIsRemapped));
+        OnPropertyChanged(nameof(SelectedSummary));
+    }
+
     // ---- Editing without losing work ---------------------------------------------------------------------------------
 
     private int _loadingEditor;
@@ -2372,6 +2433,8 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SaveButtonText))]
     private bool _isInspectorDirty;
+
+    partial void OnSelectedModeChanged(MappingMode value) => OnPropertyChanged(nameof(ModeDescription));
 
     public string SaveButtonText => IsInspectorDirty ? "Save change" : "Saved";
 
@@ -2415,6 +2478,7 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnSelectedActivatorChanged(ActivatorType value)
     {
+        foreach (var c in ActivatorChoices) c.IsSelected = c.Type == value;
         if (SelectedButton != null) SelectButton(SelectedButton);
     }
 
@@ -2436,6 +2500,8 @@ public partial class MainViewModel : ObservableObject
             string extra = mapping.Activators.Count > 0 ? $" +{mapping.Activators.Count}" : "";
             src.TargetText = mapping.Target.DisplayText + extra;
         }
+        OnPropertyChanged(nameof(SelectedIsRemapped));
+        OnPropertyChanged(nameof(SelectedSummary));
     }
 
     [RelayCommand]
@@ -2510,6 +2576,7 @@ public partial class MainViewModel : ObservableObject
             ? $"Cleared {SelectedActivator} on {source.FriendlyName}"
             : $"Mapped {source.FriendlyName} ({SelectedActivator}) -> {target.DisplayText}";
         IsInspectorDirty = false;
+        RefreshActivatorMarks();
         return true;
     }
 

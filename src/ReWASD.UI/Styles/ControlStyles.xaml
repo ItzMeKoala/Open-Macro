@@ -112,6 +112,85 @@
         </Setter>
     </Style>
 
+    <!-- Segmented choices: the selected one is outlined in gold. The trigger chips use the button's Tag as "selected". -->
+    <Style x:Key="SegButtonStyle" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="6,8" />
+        <Setter Property="Margin" Value="0,0,6,6" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" Background="#232328" BorderBrush="#34343A" BorderThickness="1" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="#2C2C33" />
+                        </Trigger>
+                        <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="True">
+                            <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource BrushCyan}" />
+                            <Setter TargetName="bd" Property="Background" Value="#2A2412" />
+                            <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SegRadioStyle" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="6,8" />
+        <Setter Property="Margin" Value="0,0,6,6" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="bd" Background="#232328" BorderBrush="#34343A" BorderThickness="1" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="#2C2C33" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource BrushCyan}" />
+                            <Setter TargetName="bd" Property="Background" Value="#2A2412" />
+                            <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Quiet text button (Reset) -->
+    <Style x:Key="GhostButtonStyle" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="12,10" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" Background="Transparent" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="#18FFFFFF" />
+                            <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- A list of sections down the side of a page -->
     <Style x:Key="NavButtonStyle" TargetType="RadioButton">
         <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />

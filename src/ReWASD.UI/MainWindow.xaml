@@ -261,7 +261,7 @@
             </Border>
 
             <!-- Inspector -->
-            <Border Grid.Column="1" Width="340">
+            <Border Grid.Column="1" Width="360">
                 <views:MappingPanel />
             </Border>
 
@@ -704,31 +704,10 @@
                     <TextBlock Text="{Binding ConnectedDevices[0]}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </StackPanel>
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding DriverStatusText}">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock" BasedOn="{StaticResource StatusIndicator}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsDriverAvailable}" Value="True">
-                                        <Setter Property="Foreground" Value="{StaticResource BrushGreen}" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                    <TextBlock Text="{Binding HidHideStatusText}">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock" BasedOn="{StaticResource StatusIndicator}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsHidHideAvailable}" Value="True">
-                                        <Setter Property="Foreground" Value="{StaticResource BrushGreen}" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                    <TextBlock Text="{Binding BuildText}" Foreground="{StaticResource BrushTextMuted}" FontSize="11" Margin="4,0,0,0" VerticalAlignment="Center" />
-                </StackPanel>
+                <!-- Only things that need attention show here -->
+                <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{StaticResource BrushOrange}" FontSize="12"
+                           Text="Virtual controller driver (ViGEmBus) is not installed"
+                           Visibility="{Binding ShowDriverWarning, Converter={StaticResource BoolToVisibility}}" />
             </Grid>
         </Border>
 
