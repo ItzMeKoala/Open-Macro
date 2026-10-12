@@ -51,6 +51,12 @@ public sealed class ArtView : Decorator
         Cursor = Cursor.Default;
     }
 
+    /// <summary>
+    /// Whether the part being edited glows and remapped inputs carry a dot. On in the editor, off in the overlay, which only
+    /// shows what the controller is doing.
+    /// </summary>
+    public bool ShowEditing { get; set; } = true;
+
     public ArtScene? Scene { get => GetValue(SceneProperty); set => SetValue(SceneProperty, value); }
     public IEnumerable<ButtonViewModel>? Sources { get => GetValue(SourcesProperty); set => SetValue(SourcesProperty, value); }
 
@@ -229,8 +235,8 @@ public sealed class ArtView : Decorator
         v.Animator.SetAnalog(s.AnalogValue);
         // The view model reports the stick as a pixel offset (up to 12); the drawing wants -1..1
         v.Animator.SetStick(s.StickOffsetX / StickReach, s.StickOffsetY / StickReach);
-        v.Animator.SetSelected(s.IsSelected);
-        v.Marker.IsVisible = s.IsRemapped;
+        v.Animator.SetSelected(ShowEditing && s.IsSelected);
+        v.Marker.IsVisible = ShowEditing && s.IsRemapped;
     }
 
     private const double StickReach = 12.0;

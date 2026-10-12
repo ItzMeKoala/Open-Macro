@@ -405,6 +405,14 @@
                             </StackPanel>
                         </Border>
 
+                        <TextBlock Text="OVERLAY (for streams)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
+                        <Border Classes="card">
+                            <StackPanel>
+                                <ToggleButton Content="Show the controller overlay" IsChecked="{Binding ShowOverlay}" HorizontalAlignment="Left" Padding="12,5" />
+                                <TextBlock Text="A small window that stays on top and shows your controller moving. Drag it where you want it and resize it from its corner; capture it with a window capture in OBS. Turn it off here." Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0" />
+                            </StackPanel>
+                        </Border>
+
                         <TextBlock Text="ACTIVATOR TIMING (this config)" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
                         <Border Classes="card">
                             <StackPanel>

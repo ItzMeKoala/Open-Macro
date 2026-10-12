@@ -519,6 +519,26 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    // ---- Input overlay (a small always-on-top window that shows the controller, for streaming or just looking) -----------
+
+    /// <summary>The overlay window is open. The front end opens and closes the window when this changes.</summary>
+    [ObservableProperty]
+    private bool _showOverlay;
+
+    /// <summary>The overlay can draw the controller picture; otherwise it lists the pressed buttons as text.</summary>
+    public bool OverlayHasArt => SkinArt != null;
+
+    /// <summary>The buttons held right now, for the overlay's text form. Empty when nothing is held.</summary>
+    [ObservableProperty]
+    private string _pressedText = string.Empty;
+
+    private void UpdatePressedText(PhysicalState? phys)
+    {
+        if (!ShowOverlay) return;
+        string text = phys == null ? string.Empty : string.Join("  ", ControllerButtons.Where(b => phys.Buttons.Contains(b.Button)).Select(b => ComboMapping.Names.Friendly(b.Button)));
+        if (text != PressedText) PressedText = text;
+    }
+
     // ---- Presets -------------------------------------------------------------------------------------------------------
 
     public IReadOnlyList<ProfilePresets.Preset> Presets { get; } = ProfilePresets.All;
@@ -1300,6 +1320,7 @@ public partial class MainViewModel : ObservableObject
     /// <summary>The detailed animated drawing of the chosen controller, if it has one (front ends that cannot show it use the outline).</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowSkinArt))]
+    [NotifyPropertyChangedFor(nameof(OverlayHasArt))]
     private ArtScene? _skinArt;
 
     /// <summary>True when the detailed drawing replaces the outline: the controller tab is open and the skin has one.</summary>
@@ -2102,6 +2123,9 @@ public partial class MainViewModel : ObservableObject
 
     // ---- Live input display and macro recording -------------------------------------------------------------------
 
+    /// <summary>Runs one pass of the live display, as the timer would.</summary>
+    internal void LiveTickForTests() => OnLiveTick();
+
     private void OnLiveTick()
     {
         // While remapping runs the pipeline owns the pad reader; otherwise read it here so the display still works
@@ -2121,6 +2145,7 @@ public partial class MainViewModel : ObservableObject
         if (IsRecording && phys != null) _recorder.OnPad(phys.Buttons);
         FeedComboCapture(phys);
         CountUsage(phys);
+        UpdatePressedText(phys);
 
         foreach (var vm in ControllerButtons)
         {

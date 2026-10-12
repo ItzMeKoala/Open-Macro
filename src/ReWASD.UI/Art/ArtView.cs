@@ -56,6 +56,12 @@ public sealed class ArtView : Decorator
         Unloaded += (_, _) => StopFrames();
     }
 
+    /// <summary>
+    /// Whether the part being edited glows and remapped inputs carry a dot. On in the editor, off in the overlay, which only
+    /// shows what the controller is doing.
+    /// </summary>
+    public bool ShowEditing { get; set; } = true;
+
     public ArtScene? Scene { get => (ArtScene?)GetValue(SceneProperty); set => SetValue(SceneProperty, value); }
     public IEnumerable<ButtonViewModel>? Sources { get => (IEnumerable<ButtonViewModel>?)GetValue(SourcesProperty); set => SetValue(SourcesProperty, value); }
 
@@ -260,7 +266,7 @@ public sealed class ArtView : Decorator
         if (v.Source != null && v.Handler != null) v.Source.PropertyChanged -= v.Handler;
     }
 
-    private static void Pull(PartVisual v)
+    private void Pull(PartVisual v)
     {
         var s = v.Source;
         if (s == null) return;
@@ -268,8 +274,8 @@ public sealed class ArtView : Decorator
         v.Animator.SetPressed(s.IsPressed);
         v.Animator.SetAnalog(s.AnalogValue);
         v.Animator.SetStick(s.StickOffsetX / StickReach, s.StickOffsetY / StickReach);
-        v.Animator.SetSelected(s.IsSelected);
-        v.Marker.Visibility = s.IsRemapped ? Visibility.Visible : Visibility.Collapsed;
+        v.Animator.SetSelected(ShowEditing && s.IsSelected);
+        v.Marker.Visibility = ShowEditing && s.IsRemapped ? Visibility.Visible : Visibility.Collapsed;
     }
 
     // ---- animation --------------------------------------------------------------------------------------------------
