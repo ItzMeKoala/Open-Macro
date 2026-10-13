@@ -195,6 +195,9 @@ public class TesterViewModelTests
         Assert.Equal(0, vm.Tester.Model.Snapshot().Buttons.First(b => b.Button == ControllerButton.A).Presses);
     }
 
+    private static MainViewModel RumbleVm(FakeRumble rumble) =>
+        new(Fakes.Platform(PlatformServices.WindowsInfo, rumble: rumble), new Fakes.Ui(), Fakes.TempProfiles());
+
     [Fact]
     public void Vibration_IsOnlyOfferedWhereItWorks_AndTheMotorButtonsShakeBriefly()
     {
@@ -205,7 +208,7 @@ public class TesterViewModelTests
         Assert.True(new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo), new Fakes.Ui(), Fakes.TempProfiles()).CanVibrate);
 
         var rumble = new FakeRumble();
-        var vm = new MainViewModel(Fakes.Platform(PlatformServices.WindowsInfo, rumble: rumble), new Fakes.Ui(), Fakes.TempProfiles());
+        var vm = RumbleVm(rumble);
         Assert.True(vm.CanVibrate);
 
         vm.VibrateLeftCommand.Execute(null);
@@ -218,63 +221,62 @@ public class TesterViewModelTests
     }
 
     [Fact]
-    public void TheBothMotorsSwitch_StartsAtOnce_AndStopsWhenSwitchedOff()
+    public void TheBothMotorsSwitch_ShakesBothAtOnce_ForTheSameTimeAsOneMotor_AndFlipsBackByItself()
     {
         var rumble = new FakeRumble();
-        var vm = new MainViewModel(Fakes.Platform(PlatformServices.WindowsInfo, rumble: rumble), new Fakes.Ui(), Fakes.TempProfiles());
+        var vm = RumbleVm(rumble);
 
         vm.VibrateBoth = true;                                       // no other button needed
         Assert.Equal((1.0, 1.0), rumble.Snapshot()[0]);
-        Thread.Sleep(1200);                                          // well past the usual short shake
-        Assert.Single(rumble.Snapshot());                            // nothing stopped it
 
-        vm.VibrateBoth = false;
-        Assert.Equal((0.0, 0.0), rumble.Snapshot()[^1]);
+        Assert.True(WaitFor(() => rumble.Snapshot().Count >= 2, 3000));
+        Assert.Equal((0.0, 0.0), rumble.Snapshot()[1]);              // stopped by itself, like the single motors
+        Assert.True(WaitFor(() => !vm.VibrateBoth, 1000));           // and the switch is ready to be used again
         Assert.Equal(2, rumble.Snapshot().Count);
     }
 
     [Fact]
-    public void TheInfiniteSwitch_StartsAtOnce_UsesTheMotorLastPicked_AndStopsWhenSwitchedOff()
+    public void TheInfiniteSwitch_OnlyChangesHowLongTheOtherButtonsShake()
     {
         var rumble = new FakeRumble();
-        var vm = new MainViewModel(Fakes.Platform(PlatformServices.WindowsInfo, rumble: rumble), new Fakes.Ui(), Fakes.TempProfiles());
+        var vm = RumbleVm(rumble);
 
-        vm.VibrateContinuously = true;                               // nothing picked yet: both motors
-        Assert.Equal((1.0, 1.0), rumble.Snapshot()[0]);
+        vm.VibrateContinuously = true;
+        Assert.Empty(rumble.Snapshot());                             // on its own it shakes nothing
+
+        vm.VibrateLeftCommand.Execute(null);
+        Assert.Equal((1.0, 0.0), rumble.Snapshot()[0]);
+        Thread.Sleep(1200);                                          // well past the usual short shake
+        Assert.Single(rumble.Snapshot());                            // nothing stopped it
+
+        vm.VibrateBoth = true;                                       // both motors take over, and keep going too
+        Assert.Equal((1.0, 1.0), rumble.Snapshot()[^1]);
         Thread.Sleep(1200);
-        Assert.Single(rumble.Snapshot());
+        Assert.Equal((1.0, 1.0), rumble.Snapshot()[^1]);
+        Assert.True(vm.VibrateBoth);
 
-        vm.VibrateRightCommand.Execute(null);                        // picking a motor while it is on keeps going on that one
-        Assert.Equal((0.0, 1.0), rumble.Snapshot()[^1]);
-        Thread.Sleep(1200);
-        Assert.Equal((0.0, 1.0), rumble.Snapshot()[^1]);
-
-        vm.VibrateContinuously = false;
+        vm.VibrateContinuously = false;                              // switching it off ends the shaking, and flips both motors off too
         Assert.Equal((0.0, 0.0), rumble.Snapshot()[^1]);
-
-        vm.VibrateContinuously = true;                               // and it remembers the right motor
-        Assert.Equal((0.0, 1.0), rumble.Snapshot()[^1]);
-        vm.VibrateContinuously = false;
+        Assert.False(vm.VibrateBoth);
     }
 
     [Fact]
     public void ABigMotorButton_TakesOverFromTheBothMotorsSwitch_AndLeavingTheTesterSwitchesEverythingOff()
     {
         var rumble = new FakeRumble();
-        var vm = new MainViewModel(Fakes.Platform(PlatformServices.WindowsInfo, rumble: rumble), new Fakes.Ui(), Fakes.TempProfiles());
+        var vm = RumbleVm(rumble);
 
+        vm.VibrateContinuously = true;
         vm.VibrateBoth = true;
         vm.VibrateLeftCommand.Execute(null);
 
         Assert.False(vm.VibrateBoth);                                // one motor now, not both
+        Assert.True(vm.VibrateContinuously);                         // the infinite switch is left as it was
         Assert.Equal((1.0, 0.0), rumble.Snapshot()[^1]);
 
-        vm.VibrateBoth = true;
-        vm.VibrateContinuously = true;
         vm.IsTesterMode = true;
         vm.IsTesterMode = false;
 
-        Assert.False(vm.VibrateBoth);
         Assert.False(vm.VibrateContinuously);
         Assert.Equal((0.0, 0.0), rumble.Snapshot()[^1]);
         vm.Shutdown();

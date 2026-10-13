@@ -118,8 +118,8 @@ The whole tester fits on one screen, with nothing to scroll:
 - **Last 6 seconds and timing**, in the middle at the bottom: a graph of all axes beside how many times a second the pad reports
   something new, the usual gap and jitter (read by a fast thread so the figures are real) and a chart of the gaps between reports.
 - **Vibration test** where the system can shake the pad (Windows, and macOS for Xbox, DualSense and DualShock 4 pads): two big buttons
-  shake the left or the right motor for under a second. Two switches under them act the moment they are flipped: **Both motors** shakes
-  both until you switch it off, and **Infinite vibration** keeps shaking (the motor you picked last, or both) until you switch it off.
+  shake the left or the right motor for under a second. **Both motors** is a switch that shakes both at once for the same time and then
+  flips back off, and **Infinite vibration** is a switch that makes the buttons keep shaking until you switch it off.
 - **Reaction test:** click inside the box to start, then press any button when it turns green; it keeps best and average.
 - **Reset** per stick or for everything, and **Copy report** / **Save report** for a text report of the numbers. Nothing is read faster
   than normal unless the tester or the live readings are on screen.

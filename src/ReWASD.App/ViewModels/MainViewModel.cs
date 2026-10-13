@@ -796,19 +796,32 @@ public partial class MainViewModel : ObservableObject
     /// <summary>The platform can shake the controller (Windows XInput); elsewhere the vibration buttons are hidden.</summary>
     public bool CanVibrate => Platform.SupportsRumble;
 
-    /// <summary>"Both motors" is on: both motors shake, from the moment it is switched on until it is switched off.</summary>
+    /// <summary>
+    /// "Both motors": shakes both motors at once for as long as a left or right test lasts. The switch flips back off by itself when the
+    /// shake ends, so it can be used again (with infinite vibration on, it stays on until it is switched off).
+    /// </summary>
     [ObservableProperty]
     private bool _vibrateBoth;
 
-    /// <summary>"Infinite vibration" is on: the shaking goes on until it is switched off. It uses the motor last picked, or both if none was.</summary>
+    /// <summary>"Infinite vibration": the motor buttons and "both motors" keep shaking until this is switched off, instead of for under a second.</summary>
     [ObservableProperty]
     private bool _vibrateContinuously;
 
-    private double _pickedLeft = 1, _pickedRight = 1;
     private bool _switchesChangedByCode;
 
-    partial void OnVibrateBothChanged(bool value) { if (!_switchesChangedByCode) ApplyVibrationSwitches(); }
-    partial void OnVibrateContinuouslyChanged(bool value) { if (!_switchesChangedByCode) ApplyVibrationSwitches(); }
+    partial void OnVibrateBothChanged(bool value)
+    {
+        if (_switchesChangedByCode) return;
+        if (value) Vibrate(1.0, 1.0);
+        else StopVibration();
+    }
+
+    partial void OnVibrateContinuouslyChanged(bool value)
+    {
+        if (value || _switchesChangedByCode) return;
+        SwitchVibrationOff(both: true, continuous: false);
+        StopVibration();                                // switching infinite off ends a shake that was going on
+    }
 
     /// <summary>Flips the switches back off without acting on it: the caller deals with the shaking itself.</summary>
     private void SwitchVibrationOff(bool both, bool continuous)
@@ -817,14 +830,6 @@ public partial class MainViewModel : ObservableObject
         if (both) VibrateBoth = false;
         if (continuous) VibrateContinuously = false;
         _switchesChangedByCode = false;
-    }
-
-    /// <summary>The switches act the moment they change: start shaking when one is on, stop when both are off.</summary>
-    private void ApplyVibrationSwitches()
-    {
-        if (VibrateBoth) Vibrate(1.0, 1.0);
-        else if (VibrateContinuously) Vibrate(_pickedLeft, _pickedRight);
-        else StopVibration();
     }
 
     private int _vibrationToken;
@@ -836,23 +841,23 @@ public partial class MainViewModel : ObservableObject
         try { _platform.Rumble.Rumble(left, right); }
         catch (Exception) { return; }
 
-        // A test shake lasts a moment, never until somebody remembers to stop it (unless a switch asked for it to keep going)
-        if (VibrateBoth || VibrateContinuously) return;
+        // A test shake lasts a moment, never until somebody remembers to stop it (unless infinite vibration is on)
+        if (VibrateContinuously) return;
         _ = Task.Delay(700).ContinueWith(_ =>
         {
-            if (token == Volatile.Read(ref _vibrationToken)) StopVibration();
+            if (token != Volatile.Read(ref _vibrationToken)) return;
+            StopVibration();
+            if (VibrateBoth) _ui.Post(() => SwitchVibrationOff(both: true, continuous: false));
         });
     }
 
     [RelayCommand] private void VibrateLeft() => VibrateOneMotor(1.0, 0);
     [RelayCommand] private void VibrateRight() => VibrateOneMotor(0, 1.0);
 
-    /// <summary>A single motor: remembered for the infinite switch, and it takes over from "both motors" if that was on.</summary>
+    /// <summary>A single motor; it takes over from "both motors" if that was shaking.</summary>
     private void VibrateOneMotor(double left, double right)
     {
-        _pickedLeft = left;
-        _pickedRight = right;
-        SwitchVibrationOff(both: true, continuous: false);        // the shake below replaces the one that was running
+        SwitchVibrationOff(both: true, continuous: false);
         Vibrate(left, right);
     }
 
