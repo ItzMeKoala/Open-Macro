@@ -196,11 +196,12 @@ public class TesterViewModelTests
     }
 
     [Fact]
-    public void Vibration_IsOnlyOfferedWhereItWorks_ShakesBriefly_AndStops()
+    public void Vibration_IsOnlyOfferedWhereItWorks_AndTheMotorButtonsShakeBriefly()
     {
         var mute = new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo with { SupportsRumble = false }), new Fakes.Ui(), Fakes.TempProfiles());
         Assert.False(mute.CanVibrate);
-        mute.VibrateBothCommand.Execute(null);                       // does nothing, harmlessly
+        mute.VibrateLeftCommand.Execute(null);                       // does nothing, harmlessly
+        mute.VibrateBoth = true;
         Assert.True(new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo), new Fakes.Ui(), Fakes.TempProfiles()).CanVibrate);
 
         var rumble = new FakeRumble();
@@ -212,31 +213,71 @@ public class TesterViewModelTests
         Assert.True(WaitFor(() => rumble.Snapshot().Count >= 2, 3000));
         Assert.Equal((0.0, 0.0), rumble.Snapshot()[1]);              // it stopped by itself
 
-        vm.VibrateBothCommand.Execute(null);
-        vm.StopVibrationCommand.Execute(null);
-        Assert.Equal((0.0, 0.0), rumble.Snapshot()[^1]);
+        vm.VibrateRightCommand.Execute(null);
+        Assert.Equal((0.0, 1.0), rumble.Snapshot()[2]);
     }
 
     [Fact]
-    public void Vibration_CanKeepGoingUntilStopped()
+    public void TheBothMotorsSwitch_StartsAtOnce_AndStopsWhenSwitchedOff()
     {
         var rumble = new FakeRumble();
         var vm = new MainViewModel(Fakes.Platform(PlatformServices.WindowsInfo, rumble: rumble), new Fakes.Ui(), Fakes.TempProfiles());
 
-        vm.VibrateContinuously = true;
-        vm.VibrateBothCommand.Execute(null);
+        vm.VibrateBoth = true;                                       // no other button needed
         Assert.Equal((1.0, 1.0), rumble.Snapshot()[0]);
         Thread.Sleep(1200);                                          // well past the usual short shake
         Assert.Single(rumble.Snapshot());                            // nothing stopped it
 
-        vm.VibrateRightCommand.Execute(null);                        // another motor takes over without stopping first
+        vm.VibrateBoth = false;
+        Assert.Equal((0.0, 0.0), rumble.Snapshot()[^1]);
+        Assert.Equal(2, rumble.Snapshot().Count);
+    }
+
+    [Fact]
+    public void TheInfiniteSwitch_StartsAtOnce_UsesTheMotorLastPicked_AndStopsWhenSwitchedOff()
+    {
+        var rumble = new FakeRumble();
+        var vm = new MainViewModel(Fakes.Platform(PlatformServices.WindowsInfo, rumble: rumble), new Fakes.Ui(), Fakes.TempProfiles());
+
+        vm.VibrateContinuously = true;                               // nothing picked yet: both motors
+        Assert.Equal((1.0, 1.0), rumble.Snapshot()[0]);
+        Thread.Sleep(1200);
+        Assert.Single(rumble.Snapshot());
+
+        vm.VibrateRightCommand.Execute(null);                        // picking a motor while it is on keeps going on that one
+        Assert.Equal((0.0, 1.0), rumble.Snapshot()[^1]);
+        Thread.Sleep(1200);
         Assert.Equal((0.0, 1.0), rumble.Snapshot()[^1]);
 
-        vm.VibrateContinuously = false;                              // switching it off stops the shaking
+        vm.VibrateContinuously = false;
         Assert.Equal((0.0, 0.0), rumble.Snapshot()[^1]);
 
-        vm.VibrateLeftCommand.Execute(null);                         // and a normal test is brief again
-        Assert.True(WaitFor(() => rumble.Snapshot()[^1] == (0.0, 0.0) && rumble.Snapshot().Count >= 5, 3000));
+        vm.VibrateContinuously = true;                               // and it remembers the right motor
+        Assert.Equal((0.0, 1.0), rumble.Snapshot()[^1]);
+        vm.VibrateContinuously = false;
+    }
+
+    [Fact]
+    public void ABigMotorButton_TakesOverFromTheBothMotorsSwitch_AndLeavingTheTesterSwitchesEverythingOff()
+    {
+        var rumble = new FakeRumble();
+        var vm = new MainViewModel(Fakes.Platform(PlatformServices.WindowsInfo, rumble: rumble), new Fakes.Ui(), Fakes.TempProfiles());
+
+        vm.VibrateBoth = true;
+        vm.VibrateLeftCommand.Execute(null);
+
+        Assert.False(vm.VibrateBoth);                                // one motor now, not both
+        Assert.Equal((1.0, 0.0), rumble.Snapshot()[^1]);
+
+        vm.VibrateBoth = true;
+        vm.VibrateContinuously = true;
+        vm.IsTesterMode = true;
+        vm.IsTesterMode = false;
+
+        Assert.False(vm.VibrateBoth);
+        Assert.False(vm.VibrateContinuously);
+        Assert.Equal((0.0, 0.0), rumble.Snapshot()[^1]);
+        vm.Shutdown();
     }
 
     [Fact]

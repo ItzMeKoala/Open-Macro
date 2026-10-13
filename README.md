@@ -145,7 +145,7 @@ enough height, a graph of the last six seconds. **F11** opens the full-screen te
 - **Triggers:** pressure and, under it, a **travel** chart that shows where along the pull the trigger reported and where it skipped.
 - **Last 6 seconds and timing:** a graph of every axis, reports per second, the usual gap and jitter, measured by a fast dedicated
   thread.
-- **Vibration test** (with a *vibrate until stopped* option) and a **reaction test** you start by clicking the box. Copy or save the
+- **Vibration test** (big left and right motor buttons, plus *both motors* and *infinite vibration* switches that start at once) and a **reaction test** you start by clicking the box. Copy or save the
   numbers as a report.
 
 The controller is only sampled fast while the tester or live readings are on screen.

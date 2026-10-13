@@ -283,7 +283,7 @@
 
         <Grid Grid.Row="1" Margin="16">
             <Grid.RowDefinitions>
-                <RowDefinition Height="*" /><RowDefinition Height="Auto" />
+                <RowDefinition Height="1.25*" MinHeight="500" /><RowDefinition Height="*" MinHeight="200" />
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" /><ColumnDefinition Width="1.5*" /><ColumnDefinition Width="*" />
@@ -363,20 +363,27 @@
                 </Grid>
             </Border>
 
-            <!-- VIBRATION -->
+            <!-- VIBRATION: two big motor buttons, and two switches that start shaking the moment they are flipped -->
             <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource Tile}" Margin="0,0,12,0" Visibility="{Binding CanVibrate, Converter={StaticResource BoolToVisibility}}">
-                <StackPanel>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10"><Border Style="{StaticResource Bar}" /><TextBlock Text="VIBRATION TEST" Style="{StaticResource H}" /></StackPanel>
-                    <WrapPanel>
-                        <Button Content="Left motor" Command="{Binding VibrateLeftCommand}" Style="{StaticResource Chip}" Padding="14,7" Margin="0,0,8,8" />
-                        <Button Content="Right motor" Command="{Binding VibrateRightCommand}" Style="{StaticResource Chip}" Padding="14,7" Margin="0,0,8,8" />
-                        <Button Content="Both" Command="{Binding VibrateBothCommand}" Style="{StaticResource Chip}" Padding="14,7" Margin="0,0,8,8" />
-                        <Button Content="Stop" Command="{Binding StopVibrationCommand}" Style="{StaticResource Chip}" Padding="14,7" Margin="0,0,0,8" />
-                    </WrapPanel>
-                    <ToggleButton Content="Vibrate until stopped" IsChecked="{Binding VibrateContinuously, Mode=TwoWay}" Style="{StaticResource ChipToggle}" Padding="14,7" HorizontalAlignment="Left" Margin="0,2,0,10"
-                                  ToolTip="Keep the motors running until you press Stop or switch this off, instead of for under a second." />
-                    <TextBlock Text="Otherwise each test shakes for under a second. The left motor is the heavy, low rumble; the right one is the light, fine buzz." Style="{StaticResource Soft}" FontSize="11" />
-                </StackPanel>
+                    <UniformGrid Grid.Row="1" Columns="2">
+                        <Button Content="Left motor" Command="{Binding VibrateLeftCommand}" Style="{StaticResource Chip}" FontSize="17" FontWeight="SemiBold" Margin="0,0,6,0"
+                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ToolTip="Shake the left motor: the heavy, low rumble" />
+                        <Button Content="Right motor" Command="{Binding VibrateRightCommand}" Style="{StaticResource Chip}" FontSize="17" FontWeight="SemiBold" Margin="6,0,0,0"
+                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ToolTip="Shake the right motor: the light, fine buzz" />
+                    </UniformGrid>
+                    <UniformGrid Grid.Row="2" Columns="2" Margin="0,12,0,0">
+                        <ToggleButton Content="Both motors" IsChecked="{Binding VibrateBoth, Mode=TwoWay}" Style="{StaticResource ChipToggle}" FontSize="13" Padding="10,10" Margin="0,0,6,0"
+                                      HorizontalAlignment="Stretch" ToolTip="Shake both motors until you switch this off." />
+                        <ToggleButton Content="Infinite vibration" IsChecked="{Binding VibrateContinuously, Mode=TwoWay}" Style="{StaticResource ChipToggle}" FontSize="13" Padding="10,10" Margin="6,0,0,0"
+                                      HorizontalAlignment="Stretch" ToolTip="Keep shaking until you switch this off: the motor you picked last, or both if you have not picked one." />
+                    </UniformGrid>
+                    <TextBlock Grid.Row="3" Text="Left and right shake one motor for under a second. The switches start at once and keep going until you switch them off." Style="{StaticResource Soft}" FontSize="11" Margin="0,10,0,0" />
+                </Grid>
             </Border>
 
             <!-- GRAPH and TIMING -->
@@ -385,21 +392,27 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1.7*" /><ColumnDefinition Width="22" /><ColumnDefinition Width="*" MinWidth="200" />
                     </Grid.ColumnDefinitions>
-                    <StackPanel>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="3*" /><RowDefinition Height="2*" />
+                        </Grid.RowDefinitions>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6"><Border Style="{StaticResource Bar}" /><TextBlock Text="LAST 6 SECONDS" Style="{StaticResource H}" /></StackPanel>
-                        <WrapPanel Margin="0,0,0,6"><StackPanel Orientation="Horizontal" Margin="0,0,12,2"><Ellipse Width="9" Height="9" Fill="#E9C46A" Margin="0,0,5,0" /><TextBlock Text="Left X" Style="{StaticResource Soft}" FontSize="11" /></StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,12,2"><Ellipse Width="9" Height="9" Fill="#F4A261" Margin="0,0,5,0" /><TextBlock Text="Left Y" Style="{StaticResource Soft}" FontSize="11" /></StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,12,2"><Ellipse Width="9" Height="9" Fill="#5BC0EB" Margin="0,0,5,0" /><TextBlock Text="Right X" Style="{StaticResource Soft}" FontSize="11" /></StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,12,2"><Ellipse Width="9" Height="9" Fill="#9B8CFF" Margin="0,0,5,0" /><TextBlock Text="Right Y" Style="{StaticResource Soft}" FontSize="11" /></StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,12,2"><Ellipse Width="9" Height="9" Fill="#00E676" Margin="0,0,5,0" /><TextBlock Text="Left trigger" Style="{StaticResource Soft}" FontSize="11" /></StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,12,2"><Ellipse Width="9" Height="9" Fill="#FF6B6B" Margin="0,0,5,0" /><TextBlock Text="Right trigger" Style="{StaticResource Soft}" FontSize="11" /></StackPanel></WrapPanel>
-                        <tc:ScopeGraph Height="104" Series="{Binding Tester.Scope}" Channels="0,1,2,3" Minimum="-1" Maximum="1" ToolTip="Sticks, from −1 to +1" />
-                        <tc:ScopeGraph Height="56" Margin="0,6,0,0" Series="{Binding Tester.Scope}" Channels="4,5" Minimum="0" Maximum="1" ToolTip="Triggers, from 0 to 1" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="2">
+                        <WrapPanel Grid.Row="1" Margin="0,0,0,6"><StackPanel Orientation="Horizontal" Margin="0,0,12,2"><Ellipse Width="9" Height="9" Fill="#E9C46A" Margin="0,0,5,0" /><TextBlock Text="Left X" Style="{StaticResource Soft}" FontSize="11" /></StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,12,2"><Ellipse Width="9" Height="9" Fill="#F4A261" Margin="0,0,5,0" /><TextBlock Text="Left Y" Style="{StaticResource Soft}" FontSize="11" /></StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,12,2"><Ellipse Width="9" Height="9" Fill="#5BC0EB" Margin="0,0,5,0" /><TextBlock Text="Right X" Style="{StaticResource Soft}" FontSize="11" /></StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,12,2"><Ellipse Width="9" Height="9" Fill="#9B8CFF" Margin="0,0,5,0" /><TextBlock Text="Right Y" Style="{StaticResource Soft}" FontSize="11" /></StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,12,2"><Ellipse Width="9" Height="9" Fill="#00E676" Margin="0,0,5,0" /><TextBlock Text="Left trigger" Style="{StaticResource Soft}" FontSize="11" /></StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,12,2"><Ellipse Width="9" Height="9" Fill="#FF6B6B" Margin="0,0,5,0" /><TextBlock Text="Right trigger" Style="{StaticResource Soft}" FontSize="11" /></StackPanel></WrapPanel>
+                        <tc:ScopeGraph Grid.Row="2" MinHeight="60" Series="{Binding Tester.Scope}" Channels="0,1,2,3" Minimum="-1" Maximum="1" ToolTip="Sticks, from −1 to +1" />
+                        <tc:ScopeGraph Grid.Row="3" MinHeight="40" Margin="0,6,0,0" Series="{Binding Tester.Scope}" Channels="4,5" Minimum="0" Maximum="1" ToolTip="Triggers, from 0 to 1" />
+                    </Grid>
+                    <Grid Grid.Column="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6"><Border Style="{StaticResource Bar}" /><TextBlock Text="TIMING" Style="{StaticResource H}" /></StackPanel>
-                        <TextBlock Text="CHANGES PER SECOND" Style="{StaticResource Col}" />
-                        <TextBlock Text="{Binding Tester.RateNumberText}" Style="{StaticResource Big}" FontSize="26" Foreground="{StaticResource BrushCyan}" />
-                        <TextBlock Text="{Binding Tester.JitterText}" Style="{StaticResource Mono}" FontSize="11" Margin="0,2,0,0" />
-                        <TextBlock Text="{Binding Tester.IntervalText}" Style="{StaticResource Mono}" FontSize="11" />
-                        <tc:Histogram Height="62" Margin="0,8,0,0" Values="{Binding Tester.Histogram}" StartLabel="0 ms" EndLabel="40+ ms" BarColor="#E9C46A"
+                        <TextBlock Grid.Row="1" Text="CHANGES PER SECOND" Style="{StaticResource Col}" />
+                        <TextBlock Grid.Row="2" Text="{Binding Tester.RateNumberText}" Style="{StaticResource Big}" FontSize="26" Foreground="{StaticResource BrushCyan}" />
+                        <TextBlock Grid.Row="3" Text="{Binding Tester.JitterText}" Style="{StaticResource Mono}" FontSize="11" Margin="0,2,0,0" />
+                        <TextBlock Grid.Row="4" Text="{Binding Tester.IntervalText}" Style="{StaticResource Mono}" FontSize="11" />
+                        <tc:Histogram Grid.Row="5" MinHeight="50" Margin="0,8,0,0" Values="{Binding Tester.Histogram}" StartLabel="0 ms" EndLabel="40+ ms" BarColor="#E9C46A"
                                       ToolTip="Gaps between reports. Move a stick steadily: a tall, narrow spike means an even report rate; a spread or a bar far to the right means lag or dropped reports (Bluetooth is usually 60 – 250 a second, wired up to 1000)." />
-                    </StackPanel>
+                    </Grid>
                 </Grid>
             </Border>
 
