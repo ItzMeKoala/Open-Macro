@@ -84,6 +84,14 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        // The window is made for 1280 x 800; on a smaller screen it takes what fits instead of running off the edge
+        var area = SystemParameters.WorkArea;
+        Width = Math.Min(Width, area.Width);
+        Height = Math.Min(Height, area.Height);
+        MinWidth = Math.Min(MinWidth, area.Width);
+        MinHeight = Math.Min(MinHeight, area.Height);
+
         DataContextChanged += (_, _) => Watch(DataContext as ViewModels.MainViewModel);
         Watch(DataContext as ViewModels.MainViewModel);   // the XAML may already have created it
 

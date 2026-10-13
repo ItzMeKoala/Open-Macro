@@ -73,30 +73,30 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="56" />   <!-- global bar -->
+            <RowDefinition Height="48" />   <!-- top bar -->
             <RowDefinition Height="*" />    <!-- rail and workspace -->
         </Grid.RowDefinitions>
 
-        <!-- GLOBAL BAR: the name on the left; what needs attention and the two other pages on the right -->
-        <Border Grid.Row="0" Background="{StaticResource BrushBgNav}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,0,1" Padding="16,0">
+        <!-- TOP BAR: the name on the left; what needs attention and the two other pages on the right -->
+        <Border Grid.Row="0" Background="{StaticResource BrushBgDeep}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,0,1" Padding="24,0,12,0">
             <Grid>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
-                    <Image Source="pack://application:,,,/Assets/ReWASD.ico" Width="26" Height="26" RenderOptions.BitmapScalingMode="HighQuality" />
-                    <TextBlock Text="Open-Macro" Foreground="{StaticResource BrushTextPrimary}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0" />
-                </StackPanel>
-
+                <TextBlock Text="Open-Macro" Foreground="{StaticResource BrushTextPrimary}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Left" />
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <!-- A newer build is ready: one click downloads it and restarts into it -->
-                    <Button Content="Update available" Command="{Binding InstallUpdateCommand}" Style="{StaticResource SecondaryButtonStyle}" Height="36" Padding="14,0" Margin="0,0,8,0"
-                            Visibility="{Binding ShowUpdateButton, Converter={StaticResource BoolToVisibility}}" ToolTip="{Binding UpdateStatusText}" />
+                    <Button Content="Update available" Command="{Binding InstallUpdateCommand}" Style="{StaticResource BarButtonStyle}"
+                            Visibility="{Binding ShowUpdateButton, Converter={StaticResource BoolToVisibility}}" ToolTip="{Binding UpdateStatusText}"  Margin="0,0,4,0" />
                     <ProgressBar Minimum="0" Maximum="1" Value="{Binding UpdateProgress, Mode=OneWay}" Width="120" Height="8" VerticalAlignment="Center"
-                                 Visibility="{Binding IsUpdating, Converter={StaticResource BoolToVisibility}}" />
-                    <Button x:Name="TesterButton" Style="{StaticResource BarButtonStyle}" Content="Tester" VerticalAlignment="Center" Command="{Binding OpenTesterCommand}"
-                            ToolTip="Test your controller full screen (F11)" AutomationProperties.Name="Controller tester" />
-                    <Button Style="{StaticResource BarButtonStyle}" Margin="6,0,0,0" VerticalAlignment="Center" ToolTip="Settings" AutomationProperties.Name="Settings"
+                                 Visibility="{Binding IsUpdating, Converter={StaticResource BoolToVisibility}}"  Margin="0,0,4,0" />
+                    <Button x:Name="TesterButton" Style="{StaticResource BarButtonStyle}" VerticalAlignment="Center" Command="{Binding OpenTesterCommand}"
+                            ToolTip="Test your controller full screen (F11)" AutomationProperties.Name="Controller tester">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource IconTester}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Width="16" Height="16" Stretch="Uniform" Margin="0,0,8,0" VerticalAlignment="Center" />
+                            <TextBlock Text="Tester" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource BarButtonStyle}" Margin="4,0,0,0" VerticalAlignment="Center" ToolTip="Settings" AutomationProperties.Name="Settings"
                             Command="{Binding ToggleSettingsCommand}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE713;" FontFamily="{StaticResource IconFont}" FontSize="14" Margin="0,0,7,0" VerticalAlignment="Center" />
+                            <TextBlock Text="&#xE713;" FontFamily="{StaticResource IconFont}" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center" />
                             <TextBlock Text="Settings" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
@@ -107,56 +107,25 @@
         <!-- BODY: the rail on the left, the workspace beside it -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="232" />
+                <ColumnDefinition Width="208" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- RAIL: the controller in use, what to remap, and the configs -->
-            <Border Grid.Column="0" Background="{StaticResource BrushBgNav}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,1,0">
-                <Grid Margin="12,16,12,16">
+            <!-- RAIL: what to remap, and the configs -->
+            <Border Grid.Column="0" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,1,0">
+                <Grid Margin="12">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="0" Background="{StaticResource BrushBgInset}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="14" Padding="10">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <Border Width="36" Height="36" CornerRadius="10" Background="{StaticResource BrushBgControl}" VerticalAlignment="Center">
-                                <TextBlock Text="&#xE7FC;" FontFamily="{StaticResource IconFont}" FontSize="17" Foreground="{StaticResource BrushTextSecondary}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
-                            <StackPanel Grid.Column="1" Margin="10,0,6,0" VerticalAlignment="Center">
-                                <TextBlock Text="CONTROLLER" Foreground="{StaticResource BrushTextMuted}" FontSize="10" FontWeight="SemiBold" />
-                                <TextBlock x:Name="DeviceText" Text="{Binding DeviceName}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12.5" FontWeight="Medium"
-                                           TextWrapping="Wrap" MaxHeight="34" ToolTip="{Binding DeviceName}" />
-                            </StackPanel>
-                            <Ellipse Grid.Column="2" Width="8" Height="8" VerticalAlignment="Center">
-                                <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
-                                        <Setter Property="Fill" Value="{StaticResource BrushTextMuted}" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsControllerConnected}" Value="True">
-                                                <Setter Property="Fill" Value="#2EF2A0" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Ellipse.Style>
-                            </Ellipse>
-                        </Grid>
-                    </Border>
-
-                    <StackPanel Grid.Row="1" Margin="0,18,0,0">
+                    <StackPanel Grid.Row="0">
                         <RadioButton Style="{StaticResource RailRadioStyle}" GroupName="InputTab" Margin="0,0,0,2" AutomationProperties.Name="Gamepad"
                                      IsChecked="{Binding SelectedInputTab, Converter={StaticResource EnumToBool}, ConverterParameter=Gamepad}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE7FC;" FontFamily="{StaticResource IconFont}" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center" />
+                                <TextBlock Text="&#xE7FC;" FontFamily="{StaticResource IconFont}" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Center" />
                                 <TextBlock Text="Gamepad" VerticalAlignment="Center" />
                             </StackPanel>
                         </RadioButton>
@@ -164,7 +133,7 @@
                                      ToolTip="Remap keyboard keys (the original key is swallowed while remapping is on)"
                                      IsChecked="{Binding SelectedInputTab, Converter={StaticResource EnumToBool}, ConverterParameter=Keyboard}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE765;" FontFamily="{StaticResource IconFont}" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center" />
+                                <TextBlock Text="&#xE765;" FontFamily="{StaticResource IconFont}" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Center" />
                                 <TextBlock Text="Keyboard" VerticalAlignment="Center" />
                             </StackPanel>
                         </RadioButton>
@@ -172,22 +141,19 @@
                                      ToolTip="Remap mouse buttons and the wheel (the original is swallowed while remapping is on)"
                                      IsChecked="{Binding SelectedInputTab, Converter={StaticResource EnumToBool}, ConverterParameter=Mouse}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE962;" FontFamily="{StaticResource IconFont}" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center" />
+                                <TextBlock Text="&#xE962;" FontFamily="{StaticResource IconFont}" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Center" />
                                 <TextBlock Text="Mouse" VerticalAlignment="Center" />
                             </StackPanel>
                         </RadioButton>
                     </StackPanel>
 
-                    <DockPanel Grid.Row="2" Margin="4,22,0,8" LastChildFill="False">
-                        <TextBlock DockPanel.Dock="Left" Text="CONFIGS" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <Border DockPanel.Dock="Left" Margin="8,0,0,0" CornerRadius="8" Padding="6,1" Background="{StaticResource BrushBgControl}" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding Profiles.Count}" Foreground="{StaticResource BrushTextSecondary}" FontSize="11" />
-                        </Border>
-                        <ToggleButton DockPanel.Dock="Right" x:Name="ConfigToggle" Style="{StaticResource IconToggle}" Content="&#xE712;" Width="28" Height="28" FontSize="14"
+                    <DockPanel Grid.Row="1" Height="36" Margin="12,24,0,0" LastChildFill="False">
+                        <TextBlock DockPanel.Dock="Left" Text="Configs" Foreground="{StaticResource BrushTextMuted}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <ToggleButton DockPanel.Dock="Right" x:Name="ConfigToggle" Style="{StaticResource CircleToggleStyle}" Content="&#xE712;"
                                       ToolTip="Config options: use only in one app, presets, import, export, delete" AutomationProperties.Name="Config options"
                                       IsChecked="{Binding IsConfigMenuOpen, Mode=TwoWay}"
                                       IsHitTestVisible="{Binding IsOpen, ElementName=ConfigPopup, Converter={StaticResource InverseBool}}" />
-                        <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xE710;" Width="28" Height="28" FontSize="14" ToolTip="New empty config"
+                        <Button DockPanel.Dock="Right" Style="{StaticResource CircleButtonStyle}" Content="&#xE710;" ToolTip="New empty config"
                                 AutomationProperties.Name="New empty config" Command="{Binding NewProfileCommand}" />
                     <Popup x:Name="ConfigPopup" IsOpen="{Binding IsConfigMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=ConfigToggle}"
                            Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
@@ -230,62 +196,47 @@
                     </Popup>
                     </DockPanel>
 
-                    <ListBox Grid.Row="3" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}" AutomationProperties.Name="Configs"
+                    <ListBox Grid.Row="2" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}" AutomationProperties.Name="Configs"
                              ItemContainerStyle="{StaticResource RailListItemStyle}" Background="Transparent" BorderThickness="0" Padding="0"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Grid Margin="0,6">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Border Width="30" Height="30" CornerRadius="9" Background="{StaticResource BrushBgControl}" VerticalAlignment="Center">
-                                        <TextBlock Text="&#xE81E;" FontFamily="{StaticResource IconFont}" FontSize="14" Foreground="{StaticResource BrushTextSecondary}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    </Border>
-                                    <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Text="{Binding ProcessExecutable, TargetNullValue='All applications'}" Foreground="{StaticResource BrushTextMuted}" FontSize="11" TextTrimming="CharacterEllipsis" />
-                                    </StackPanel>
-                                </Grid>
+                                <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
 
-                    <StackPanel Grid.Row="4" Margin="0,12,0,0">
+                    <StackPanel Grid.Row="3">
                         <!-- What games see (Windows): the virtual controller and hiding the real one -->
-                        <Border Background="{StaticResource BrushBgInset}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="14" Padding="10,8"
-                                Visibility="{Binding SupportsVirtualController, Converter={StaticResource BoolToVisibility}}">
-                            <StackPanel>
-                                <TextBlock Text="OUTPUT" Foreground="{StaticResource BrushTextMuted}" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,4" />
-                                <ToggleButton x:Name="OutputToggle" Style="{StaticResource RowToggleStyle}" ToolTip="Virtual controller: what games will see" AutomationProperties.Name="Virtual controller"
-                                              IsChecked="{Binding IsOutputMenuOpen, Mode=TwoWay}"
-                                              IsHitTestVisible="{Binding IsOpen, ElementName=OutputPopup, Converter={StaticResource InverseBool}}">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <Grid Width="20" Height="20" VerticalAlignment="Center">
-                                            <Path Data="{StaticResource IconXboxLogo}" Fill="{StaticResource BrushTextPrimary}" Stretch="Uniform">
-                                                <Path.Style>
-                                                    <Style TargetType="Path">
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsPlayStationOutput}" Value="True">
-                                                                <Setter Property="Visibility" Value="Collapsed" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Path.Style>
-                                            </Path>
-                                            <Path Data="{StaticResource IconPlayStationLogo}" Fill="{StaticResource BrushTextPrimary}" Stretch="Uniform"
-                                                  Visibility="{Binding IsPlayStationOutput, Converter={StaticResource BoolToVisibility}}" />
-                                        </Grid>
-                                        <TextBlock Grid.Column="1" Text="Virtual controller" Margin="10,0,0,0" FontSize="13" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="2" Text="&#xE70D;" FontFamily="{StaticResource IconFont}" FontSize="11" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" />
+                        <StackPanel Visibility="{Binding SupportsVirtualController, Converter={StaticResource BoolToVisibility}}">
+                            <ToggleButton x:Name="OutputToggle" Style="{StaticResource RowToggleStyle}" ToolTip="Virtual controller: what games will see" AutomationProperties.Name="Virtual controller"
+                                          IsChecked="{Binding IsOutputMenuOpen, Mode=TwoWay}"
+                                          IsHitTestVisible="{Binding IsOpen, ElementName=OutputPopup, Converter={StaticResource InverseBool}}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid Width="16" Height="16" VerticalAlignment="Center" Margin="8,0,0,0">
+                                        <Path Data="{StaticResource IconXboxLogo}" Fill="{StaticResource BrushTextPrimary}" Stretch="Uniform">
+                                            <Path.Style>
+                                                <Style TargetType="Path">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsPlayStationOutput}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Path.Style>
+                                        </Path>
+                                        <Path Data="{StaticResource IconPlayStationLogo}" Fill="{StaticResource BrushTextPrimary}" Stretch="Uniform"
+                                              Visibility="{Binding IsPlayStationOutput, Converter={StaticResource BoolToVisibility}}" />
                                     </Grid>
-                                </ToggleButton>
+                                    <TextBlock Grid.Column="1" Text="Virtual controller" Margin="12,0,0,0" FontSize="13" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="2" Text="&#xE70D;" FontFamily="{StaticResource IconFont}" FontSize="12" Foreground="{StaticResource BrushTextSecondary}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                </Grid>
+                            </ToggleButton>
                     <Popup x:Name="OutputPopup" IsOpen="{Binding IsOutputMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=OutputToggle}"
                            Placement="Top" HorizontalOffset="-10" VerticalOffset="-6" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
                         <Border Width="260" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorderLight}" BorderThickness="1" CornerRadius="8" Padding="10">
@@ -318,7 +269,7 @@
                     <!-- Hide the original controller from games (HidHide) -->
                     <ToggleButton Style="{StaticResource ToggleSwitchStyle}"
                                   IsChecked="{Binding HideInputDevice, Mode=TwoWay}" IsEnabled="{Binding IsHidHideAvailable}"
-                                  Margin="0" VerticalAlignment="Center">
+                                  Margin="8,0,0,0" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="&#xE7B3;" FontFamily="{StaticResource IconFont}" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center" />
                             <TextBlock Text="Hide Physical Device" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
@@ -331,81 +282,116 @@
                         </ToggleButton.ToolTip>
                     </ToggleButton>
                     <TextBlock Text="Virtual controller driver (ViGEmBus) is not installed" Foreground="{StaticResource BrushOrange}" FontSize="11" VerticalAlignment="Center"
-                               Margin="4,2,4,0" TextWrapping="Wrap" Visibility="{Binding ShowDriverWarning, Converter={StaticResource BoolToVisibility}}" />
-                            </StackPanel>
-                        </Border>
-                        <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource BrushTextMuted}" FontSize="12" TextWrapping="Wrap" MaxHeight="64" TextTrimming="CharacterEllipsis" Margin="4,10,4,0" />
+                               Margin="12,0" TextWrapping="Wrap" Visibility="{Binding ShowDriverWarning, Converter={StaticResource BoolToVisibility}}" />
+                        </StackPanel>
+
+                        <Grid MinHeight="36" Margin="12,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Ellipse Width="8" Height="8" VerticalAlignment="Center">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="{StaticResource BrushTextMuted}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsControllerConnected}" Value="True">
+                                                <Setter Property="Fill" Value="#2EF2A0" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <TextBlock Grid.Column="1" x:Name="DeviceText" Text="{Binding DeviceName}" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" Margin="12,0,0,0"
+                                       VerticalAlignment="Center" TextWrapping="Wrap" MaxHeight="34" ToolTip="{Binding DeviceName}" />
+                        </Grid>
+                        <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource BrushTextMuted}" FontSize="12" TextWrapping="Wrap" MaxHeight="48" TextTrimming="CharacterEllipsis" Margin="12,0,0,12" />
                     </StackPanel>
                 </Grid>
             </Border>
 
             <!-- WORKSPACE -->
-            <Grid Grid.Column="1" Background="{StaticResource BrushBgDeep}">
+            <Grid Grid.Column="1">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="72" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <Border Grid.RowSpan="3" Height="220" VerticalAlignment="Top" IsHitTestVisible="False">
-                    <Border.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                            <GradientStop Offset="0" Color="#FF1A1D22" />
-                            <GradientStop Offset="1" Color="#000D0F12" />
-                        </LinearGradientBrush>
-                    </Border.Background>
-                </Border>
 
                 <!-- Getting started: three plain steps, shown until dismissed or remapping has been started once -->
-                <Border Grid.Row="0" Background="#1A1812" BorderBrush="#3A3220" BorderThickness="1" CornerRadius="14" Padding="16,10" Margin="24,16,24,0"
+                <Border Grid.Row="0" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="16,0" Height="48" Margin="24,16,24,0"
                         Visibility="{Binding ShowGettingStarted, Converter={StaticResource BoolToVisibility}}">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock VerticalAlignment="Center" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" TextWrapping="Wrap"
-                                   Text="New here?  1. Click a button on the controller.   2. Choose what it should do on the right, then press Save.   3. Press Start remapping." />
-                        <Button Grid.Column="1" Content="Got it" Command="{Binding DismissGettingStartedCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="12,5" Margin="16,0,0,0" />
+                        <TextBlock VerticalAlignment="Center" Foreground="{StaticResource BrushTextSecondary}" FontSize="13" TextTrimming="CharacterEllipsis"
+                                   Text="New here?  1. Click a button on the controller.   2. Choose what it should do on the right, then press Save.   3. Press Start." />
+                        <Button Grid.Column="1" Content="Got it" Command="{Binding DismissGettingStartedCommand}" Style="{StaticResource BarButtonStyle}" VerticalAlignment="Center" />
                     </Grid>
                 </Border>
 
                 <!-- Header: which config, and the one action -->
-                <Grid Grid.Row="1" Margin="24,22,24,18">
+                <Grid Grid.Row="1" Margin="24,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Width="48" Height="48" CornerRadius="14" Background="{StaticResource BrushBgControl}" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE81E;" FontFamily="{StaticResource IconFont}" FontSize="20" Foreground="{StaticResource BrushTextSecondary}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <StackPanel VerticalAlignment="Center" Margin="14,0,0,0">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding SelectedProfile.Name}" Foreground="{StaticResource BrushTextPrimary}" FontSize="24" FontWeight="SemiBold"
-                                           MaxWidth="360" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                                <Button Style="{StaticResource IconButton}" Content="&#xE74E;" Width="30" Height="30" FontSize="15" Margin="6,0,0,0" ToolTip="Save this config now"
-                                        AutomationProperties.Name="Save this config now" Command="{Binding SaveProfileCommand}" />
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding SelectedProfile.ProcessExecutable, TargetNullValue='All applications'}" Foreground="{StaticResource BrushTextMuted}" FontSize="12" />
-                                <TextBlock Text="·" Foreground="{StaticResource BrushTextMuted}" FontSize="12" Margin="8,0" />
-                                <TextBlock Text="{Binding SaveStateText}" Foreground="{StaticResource BrushTextMuted}" FontSize="12"
-                                           ToolTip="Configs save themselves a moment after you change them" />
-                            </StackPanel>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding SelectedProfile.Name}" Foreground="{StaticResource BrushTextPrimary}" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                            <TextBlock Text="{Binding SelectedProfile.ProcessExecutable, TargetNullValue='All applications'}" Foreground="{StaticResource BrushTextMuted}" FontSize="12" />
+                            <TextBlock Text="·" Foreground="{StaticResource BrushTextMuted}" FontSize="12" Margin="8,0" />
+                            <TextBlock Text="{Binding SaveStateText}" Foreground="{StaticResource BrushTextMuted}" FontSize="12"
+                                       ToolTip="Configs save themselves a moment after you change them" />
                         </StackPanel>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="Layer" Foreground="{StaticResource BrushTextMuted}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+                        <TextBlock Text="Layer" Foreground="{StaticResource BrushTextMuted}" FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0" />
                         <ComboBox ItemsSource="{Binding LayerNames}" SelectedIndex="{Binding ActiveShiftLayer, Mode=TwoWay}"
-                                  Width="140" Height="36" FontSize="13" VerticalAlignment="Center" ToolTip="Layers: other sets of mappings, switched to with a button"
-                                  AutomationProperties.Name="Layer" />
+                                  Width="144" ToolTip="Layers: other sets of mappings, switched to with a button" AutomationProperties.Name="Layer" />
                         <!-- How this layer is reached: which buttons, and hold vs toggle -->
-                        <ToggleButton x:Name="LayerToggle" Style="{StaticResource CircleToggleStyle}" Content="&#xE713;" Width="36" Height="36" Margin="10,0,0,0"
+                        <ToggleButton x:Name="LayerToggle" Style="{StaticResource CircleToggleStyle}" Content="&#xE713;" Margin="8,0,0,0"
                                       ToolTip="Layer activation (buttons and hold/toggle)" AutomationProperties.Name="Layer activation"
                                       IsEnabled="{Binding IsLayerEditable}"
                                       IsChecked="{Binding IsLayerMenuOpen, Mode=TwoWay}"
                                       IsHitTestVisible="{Binding IsOpen, ElementName=LayerPopup, Converter={StaticResource InverseBool}}" />
+                        <Button Style="{StaticResource CircleButtonStyle}" Content="&#xE74E;" Margin="8,0,0,0" ToolTip="Save this config now"
+                                AutomationProperties.Name="Save this config now" Command="{Binding SaveProfileCommand}" />
+
+                        <!-- Start / stop remapping: the one white action; beside it the slot picker (Windows) -->
+                        <Grid Height="36" Margin="16,0,0,0" VerticalAlignment="Center">
+                            <ToggleButton x:Name="SlotToggle" Style="{StaticResource ApplySlotToggleStyle}" Width="68" HorizontalAlignment="Left" Margin="68,0,0,0"
+                                          Visibility="{Binding SupportsVirtualController, Converter={StaticResource BoolToVisibility}}"
+                                          ToolTip="Which controller slot (1 to 4) the virtual controller takes" AutomationProperties.Name="Controller slot"
+                                          IsChecked="{Binding IsSlotMenuOpen, Mode=TwoWay}"
+                                          IsHitTestVisible="{Binding IsOpen, ElementName=SlotPopup, Converter={StaticResource InverseBool}}">
+                                <TextBlock Text="&#xE70D;" FontFamily="{StaticResource IconFont}" FontSize="12" Foreground="{StaticResource BrushTextPrimary}" Margin="30,0,0,0" VerticalAlignment="Center" />
+                            </ToggleButton>
+                            <Button Command="{Binding ToggleApplyCommand}" Style="{StaticResource ApplySplitButtonStyle}" Width="104" HorizontalAlignment="Left"
+                                    ToolTip="{Binding ApplyButtonText}" AutomationProperties.Name="Start or stop remapping">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <Grid Width="14" Height="14" Margin="0,0,8,0" VerticalAlignment="Center">
+                                        <Path Data="{StaticResource IconPlay}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Stretch="Uniform">
+                                            <Path.Style>
+                                                <Style TargetType="Path">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsRemappingActive}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Path.Style>
+                                        </Path>
+                                        <Path Data="{StaticResource IconStop}" Fill="#2EF2A0" Stretch="Uniform" Margin="1"
+                                              Visibility="{Binding IsRemappingActive, Converter={StaticResource BoolToVisibility}}" />
+                                    </Grid>
+                                    <TextBlock Text="{Binding ApplyLabel}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"
+                                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                </StackPanel>
+                            </Button>
                     <Popup x:Name="LayerPopup" IsOpen="{Binding IsLayerMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=LayerToggle}"
                            Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
                         <Border Width="300" Margin="0,4,0,0" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorderLight}" BorderThickness="1" CornerRadius="8" Padding="12">
@@ -435,39 +421,6 @@
                             </StackPanel>
                         </Border>
                     </Popup>
-
-                        <!-- Start / stop remapping: a white pill, and beside it the slot picker (Windows) as a sibling button -->
-                        <Grid Width="166" Height="44" Margin="16,0,0,0" VerticalAlignment="Center">
-                            <ToggleButton x:Name="SlotToggle" Style="{StaticResource ApplySlotToggleStyle}" Width="84" HorizontalAlignment="Right"
-                                          Visibility="{Binding SupportsVirtualController, Converter={StaticResource BoolToVisibility}}"
-                                          ToolTip="Which controller slot (1 to 4) the virtual controller takes" AutomationProperties.Name="Controller slot"
-                                          IsChecked="{Binding IsSlotMenuOpen, Mode=TwoWay}"
-                                          IsHitTestVisible="{Binding IsOpen, ElementName=SlotPopup, Converter={StaticResource InverseBool}}">
-                                <TextBlock Text="&#xE70D;" FontFamily="{StaticResource IconFont}" FontSize="12" Foreground="{StaticResource BrushTextPrimary}" Margin="38,0,0,0" VerticalAlignment="Center" />
-                            </ToggleButton>
-                            <Button Command="{Binding ToggleApplyCommand}" Style="{StaticResource ApplySplitButtonStyle}" Width="124" HorizontalAlignment="Left"
-                                    ToolTip="{Binding ApplyButtonText}" AutomationProperties.Name="Start or stop remapping">
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                    <Grid Width="16" Height="16" Margin="0,0,9,0" VerticalAlignment="Center">
-                                        <Path Data="{StaticResource IconPlay}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Stretch="Uniform">
-                                            <Path.Style>
-                                                <Style TargetType="Path">
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsRemappingActive}" Value="True">
-                                                            <Setter Property="Visibility" Value="Collapsed" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Path.Style>
-                                        </Path>
-                                        <Path Data="{StaticResource IconStop}" Fill="#2EF2A0" Stretch="Uniform" Margin="1"
-                                              Visibility="{Binding IsRemappingActive, Converter={StaticResource BoolToVisibility}}" />
-                                    </Grid>
-                                    <TextBlock Text="{Binding ApplyLabel}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"
-                                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-                                </StackPanel>
-                            </Button>
-                        </Grid>
                     <Popup x:Name="SlotPopup" IsOpen="{Binding IsSlotMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=SlotToggle}"
                            Placement="Bottom" HorizontalOffset="0" VerticalOffset="6" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
                         <Border Width="120" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorderLight}" BorderThickness="1" CornerRadius="8" Padding="10">
@@ -485,70 +438,34 @@
                             </StackPanel>
                         </Border>
                     </Popup>
+                        </Grid>
                     </StackPanel>
                 </Grid>
 
-                <!-- Content: the drawing, and the inspector beside it -->
+                <!-- Content: the drawing, and the editor beside it, in a fixed 5 : 3 split -->
                 <Grid Grid.Row="2" Margin="24,0,24,24">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" MinWidth="420" />
-                        <ColumnDefinition Width="340" />
+                        <ColumnDefinition Width="5*" MinWidth="420" />
+                        <ColumnDefinition Width="3*" />
                     </Grid.ColumnDefinitions>
 
                     <Border Grid.Column="0" Style="{StaticResource PanelBorder}">
                         <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-                            <Border Style="{StaticResource PanelHead}">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{StaticResource BrushTextSecondary}" VerticalAlignment="Center" Margin="0,0,9,0">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Text" Value="&#xE7FC;" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding SelectedInputTab}" Value="Keyboard"><Setter Property="Text" Value="&#xE765;" /></DataTrigger>
-                                                        <DataTrigger Binding="{Binding SelectedInputTab}" Value="Mouse"><Setter Property="Text" Value="&#xE962;" /></DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                        <TextBlock Foreground="{StaticResource BrushTextPrimary}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Text" Value="Gamepad" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding SelectedInputTab}" Value="Keyboard"><Setter Property="Text" Value="Keyboard" /></DataTrigger>
-                                                        <DataTrigger Binding="{Binding SelectedInputTab}" Value="Mouse"><Setter Property="Text" Value="Mouse" /></DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </StackPanel>
-                                    <!-- Which controller picture to draw (gamepad only) -->
-                                    <ComboBox Grid.Column="1" ItemsSource="{Binding SkinOptions}" SelectedValuePath="Kind" SelectedValue="{Binding SelectedSkin, Mode=TwoWay}"
-                                              Width="170" Height="32" FontSize="13" VerticalAlignment="Center" ToolTip="Controller picture" AutomationProperties.Name="Controller picture"
-                                              Visibility="{Binding IsGamepadTab, Converter={StaticResource BoolToVisibility}}">
-                                        <ComboBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}" />
-                                            </DataTemplate>
-                                        </ComboBox.ItemTemplate>
-                                    </ComboBox>
-                                </Grid>
-                            </Border>
-
                             <!-- The controller, keyboard or mouse drawing; under the controller, live readings once the window has room for them -->
-                            <views:StagePanel Grid.Row="1" x:Name="Stage" DeckWanted="{Binding IsGamepadTab}">
+                            <views:StagePanel x:Name="Stage" DeckWanted="{Binding IsGamepadTab}">
                                 <views:InputSurface />
                                 <views:LiveDeck Visibility="Collapsed" />
                             </views:StagePanel>
+                            <!-- Which controller picture to draw (gamepad only) -->
+                            <ComboBox ItemsSource="{Binding SkinOptions}" SelectedValuePath="Kind" SelectedValue="{Binding SelectedSkin, Mode=TwoWay}"
+                                      Width="160" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="12" ToolTip="Controller picture" AutomationProperties.Name="Controller picture"
+                                      Visibility="{Binding IsGamepadTab, Converter={StaticResource BoolToVisibility}}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
                         </Grid>
                     </Border>
 
@@ -562,7 +479,7 @@
             <!-- Settings page: its own list of sections on the left; covers the layer bar, the tabs and the editor -->
             <Grid Grid.ColumnSpan="2" Background="{StaticResource BrushBgDeep}" Visibility="{Binding IsPreferencesPage, Converter={StaticResource BoolToVisibility}}">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="224" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <Border Grid.Column="0" Background="{StaticResource BrushBgNav}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,1,0" Padding="12,20">
+                <Border Grid.Column="0" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,1,0" Padding="12,20">
                     <StackPanel>
                         <TextBlock Text="Settings" Foreground="{StaticResource BrushTextPrimary}" FontSize="18" FontWeight="Bold" Margin="10,0,0,14" />
                         <RadioButton Style="{StaticResource NavButtonStyle}" Content="Sticks" GroupName="SettingsNav" IsChecked="{Binding SettingsSection, Converter={StaticResource EnumToBool}, ConverterParameter=Sticks}" />

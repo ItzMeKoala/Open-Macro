@@ -74,24 +74,24 @@
             </Grid.RowDefinitions>
 
             <!-- Which input is being edited, and what it does now -->
-            <StackPanel Grid.Row="0" Margin="20,18,20,12">
+            <StackPanel Grid.Row="0" Margin="16,16,16,8">
                 <DockPanel>
-                    <Border DockPanel.Dock="Right" CornerRadius="10" Padding="9,2" VerticalAlignment="Center" Background="#2A2412"
+                    <Border DockPanel.Dock="Right" CornerRadius="8" Padding="8,2" VerticalAlignment="Center" Background="#2A2412"
                             Visibility="{Binding SelectedIsRemapped, Converter={StaticResource BoolToVisibility}}">
                         <TextBlock Text="Remapped" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource BrushCyan}" />
                     </Border>
                     <TextBlock Text="{Binding SelectedButton.FriendlyName, FallbackValue='Pick an input'}" Foreground="{StaticResource BrushTextPrimary}"
-                               FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                               FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                 </DockPanel>
                 <TextBlock Text="{Binding SelectedSummary}" Foreground="{StaticResource BrushTextSecondary}" FontSize="12" Margin="0,3,0,0" TextWrapping="Wrap" />
             </StackPanel>
 
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Margin="20,0,20,20">
+                <StackPanel Margin="16,0,16,16">
 
                     <!-- When it fires: a dot marks the triggers that already do something -->
                     <TextBlock Text="Trigger" Style="{StaticResource FieldLabel}" Margin="0,4,0,8" />
-                    <ItemsControl ItemsSource="{Binding ActivatorChoices}">
+                    <ItemsControl ItemsSource="{Binding ActivatorChoices}" Margin="0,0,-8,-8">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <UniformGrid Columns="3" />
@@ -113,7 +113,7 @@
 
                     <!-- What it does -->
                     <TextBlock Text="Action" Style="{StaticResource FieldLabel}" />
-                    <UniformGrid Columns="3">
+                    <UniformGrid Columns="3" Margin="0,0,-8,-8">
                         <RadioButton Content="Remap" Style="{StaticResource SegRadioStyle}" GroupName="ActionMode" ToolTip="Send another button, key or mouse action"
                                      IsChecked="{Binding TargetMode, Converter={StaticResource EnumToBool}, ConverterParameter=Remap}" />
                         <RadioButton Content="Macro" Style="{StaticResource SegRadioStyle}" GroupName="ActionMode" ToolTip="Run a sequence of steps"
@@ -127,7 +127,7 @@
                         <TextBlock Text="Send" Style="{StaticResource FieldLabel}" />
                 
                 <ComboBox ItemsSource="{Binding RemapOptionsView}" SelectedItem="{Binding SelectedRemapOption}"
-                          ItemTemplate="{StaticResource RemapOptionTemplate}" MaxDropDownHeight="380" Padding="8,5"
+                          ItemTemplate="{StaticResource RemapOptionTemplate}" MaxDropDownHeight="380"
                           TextSearch.TextPath="Label" IsTextSearchEnabled="True"
                           ScrollViewer.CanContentScroll="False"
                           ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -170,7 +170,7 @@
                 </ItemsControl>
                 <TextBlock Text="Functions: press, hold, release, click, mouseDown, mouseUp, scroll, moveMouse, type, delay, shell, openURL, openApp, webhook, obs, padPress, padHold, padRelease, notify. Objects: app (name, id, is), state (kept between runs)." Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" />
                 <TextBlock Text="Repeat" Style="{StaticResource FieldLabel}" />
-                <ComboBox ItemsSource="{Binding AvailableMacroRepeatModes}" SelectedItem="{Binding SelectedMacroRepeat}" Padding="8,5">
+                <ComboBox ItemsSource="{Binding AvailableMacroRepeatModes}" SelectedItem="{Binding SelectedMacroRepeat}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding Converter={StaticResource RepeatLabel}}" Foreground="{StaticResource BrushTextPrimary}" />
@@ -211,7 +211,7 @@
                 <TextBlock Text="{Binding MacroHelpText}" Foreground="{StaticResource BrushTextMuted}" FontSize="10" TextWrapping="Wrap" Margin="0,2,0,0" />
 
                 <TextBlock Text="Repeat" Style="{StaticResource FieldLabel}" />
-                <ComboBox ItemsSource="{Binding AvailableMacroRepeatModes}" SelectedItem="{Binding SelectedMacroRepeat}" Padding="8,5"
+                <ComboBox ItemsSource="{Binding AvailableMacroRepeatModes}" SelectedItem="{Binding SelectedMacroRepeat}"
                           ToolTip="Hold until released keeps everything the macro pressed held while you hold the button, which is how one button can press several others">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
@@ -224,7 +224,7 @@
 
                     <!-- How it acts once it fires -->
                     <TextBlock Text="Behaviour" Style="{StaticResource FieldLabel}" />
-                    <ComboBox ItemsSource="{Binding AvailableModes}" SelectedItem="{Binding SelectedMode}" Padding="10,7">
+                    <ComboBox ItemsSource="{Binding AvailableModes}" SelectedItem="{Binding SelectedMode}">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding Converter={StaticResource ModeLabel}}" Foreground="{StaticResource BrushTextPrimary}" />
@@ -244,7 +244,7 @@
             </ScrollViewer>
 
             <!-- Always in view: save, and start over -->
-            <Border Grid.Row="2" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0" Padding="20,14">
+            <Border Grid.Row="2" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0" Padding="16">
                 <StackPanel>
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -252,7 +252,7 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <Button Content="{Binding SaveButtonText}" Command="{Binding SaveCurrentMappingCommand}" IsEnabled="{Binding IsInspectorDirty}"
-                                Background="{StaticResource BrushCyan}" Foreground="#101318" FontWeight="Bold" FontSize="13" Height="38" Cursor="Hand">
+                                Background="{StaticResource BrushCyan}" Foreground="#101318" FontWeight="Bold" FontSize="13" Height="36" Cursor="Hand">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="8">

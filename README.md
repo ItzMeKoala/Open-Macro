@@ -62,7 +62,7 @@ rebuild instead.
 
 ## Quick start
 
-1. Open the app and plug in or pair a controller. The card at the top of the left rail names the controller in use.
+1. Open the app and plug in or pair a controller. The foot of the left rail names the controller in use.
 2. Pick **Gamepad**, **Keyboard** or **Mouse** in the left rail, then click a part of the drawing. It gets a gold outline.
 3. In the editor on the right choose **when** it fires (Press, Hold, Double, Triple, On down, On release), **what** it does (Remap,
    Macro or Script) and **how** it behaves (hold while pressed, repeat, toggle, one pulse).
