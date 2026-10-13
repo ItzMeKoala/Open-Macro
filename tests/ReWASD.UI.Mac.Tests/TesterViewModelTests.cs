@@ -34,7 +34,7 @@ public class TesterViewModelTests
     [Fact]
     public void TheTexts_ShowTheNumbersPlainly()
     {
-        var model = new TesterModel(() => new DateTime(2026, 1, 1, 9, 30, 15, 250));
+        var model = new TesterModel();
         var vm = new TesterViewModel(model);
         model.Feed(Pad(), 0);
         model.Feed(Pad(lx: 0.5, ly: -0.25, lt: 0.5, down: ControllerButton.A), 3_725_000);
@@ -58,7 +58,6 @@ public class TesterViewModelTests
         Assert.True(a.IsDown);
         Assert.Equal("1", a.PressesText);
         Assert.Equal("A", a.Name);
-        Assert.Contains(vm.Log, l => l.EndsWith("A pressed"));
     }
 
     [Fact]
@@ -76,6 +75,23 @@ public class TesterViewModelTests
         Assert.Equal("not pressed", vm.RightTrigger.HeldText);
         Assert.Equal(TesterModel.ListedButtons.Length, vm.Buttons.Count);
         Assert.All(vm.Buttons, b => Assert.False(b.IsDown));
+    }
+
+    [Fact]
+    public void TheButtons_AreSplitBetweenTheLeftAndRightHalvesOfThePad()
+    {
+        var vm = new TesterViewModel();
+
+        var left = vm.LeftButtons.Select(b => b.Button).ToList();
+        var right = vm.RightButtons.Select(b => b.Button).ToList();
+
+        Assert.Equal(new[] { ControllerButton.LeftBumper, ControllerButton.DpadUp, ControllerButton.DpadDown, ControllerButton.DpadLeft, ControllerButton.DpadRight,
+            ControllerButton.LeftStickClick, ControllerButton.View, ControllerButton.Guide }.OrderBy(b => b), left.OrderBy(b => b));
+        Assert.Equal(new[] { ControllerButton.A, ControllerButton.B, ControllerButton.X, ControllerButton.Y, ControllerButton.RightBumper,
+            ControllerButton.RightStickClick, ControllerButton.Menu }.OrderBy(b => b), right.OrderBy(b => b));
+        Assert.Equal(TesterModel.ListedButtons.Length, left.Count + right.Count);        // every button is on exactly one side
+        Assert.Empty(left.Intersect(right));
+        Assert.All(vm.LeftButtons, r => Assert.Same(r, vm.Buttons.Single(b => b.Button == r.Button)));    // the very same rows, so they update
     }
 
     [Fact]
@@ -200,33 +216,52 @@ public class TesterViewModelTests
         vm.StopVibrationCommand.Execute(null);
         Assert.Equal((0.0, 0.0), rumble.Snapshot()[^1]);
     }
+
+    [Fact]
+    public void Vibration_CanKeepGoingUntilStopped()
+    {
+        var rumble = new FakeRumble();
+        var vm = new MainViewModel(Fakes.Platform(PlatformServices.WindowsInfo, rumble: rumble), new Fakes.Ui(), Fakes.TempProfiles());
+
+        vm.VibrateContinuously = true;
+        vm.VibrateBothCommand.Execute(null);
+        Assert.Equal((1.0, 1.0), rumble.Snapshot()[0]);
+        Thread.Sleep(1200);                                          // well past the usual short shake
+        Assert.Single(rumble.Snapshot());                            // nothing stopped it
+
+        vm.VibrateRightCommand.Execute(null);                        // another motor takes over without stopping first
+        Assert.Equal((0.0, 1.0), rumble.Snapshot()[^1]);
+
+        vm.VibrateContinuously = false;                              // switching it off stops the shaking
+        Assert.Equal((0.0, 0.0), rumble.Snapshot()[^1]);
+
+        vm.VibrateLeftCommand.Execute(null);                         // and a normal test is brief again
+        Assert.True(WaitFor(() => rumble.Snapshot()[^1] == (0.0, 0.0) && rumble.Snapshot().Count >= 5, 3000));
+    }
+
+    [Fact]
+    public void TheReactionBox_StartsARound_ButAClickDuringARoundDoesNothing()
+    {
+        var vm = new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo), new Fakes.Ui(), Fakes.TempProfiles());
+        Assert.Equal("Click here to start", vm.Tester.ReactionText);
+
+        vm.StartReactionTestCommand.Execute(null);
+        vm.Tester.Refresh(vm.Tester.Model.Snapshot(), "x", null, null);
+        Assert.True(vm.Tester.ReactionWait);
+        Assert.Equal("Wait for it…", vm.Tester.ReactionText);
+
+        vm.Tester.Model.CancelReaction();                            // pretend it is still waiting, then click again
+        vm.Tester.Model.StartReaction(0, new Random(1));
+        vm.Tester.Refresh(vm.Tester.Model.Snapshot(), "x", null, null);
+        vm.StartReactionTestCommand.Execute(null);
+        Assert.True(vm.Tester.ReactionWait);                         // still the same round: the click was ignored
+    }
 }
 
 public class TesterExtrasTests
 {
     private static PhysicalState Pad(double lx = 0, double ly = 0, double rx = 0, double ry = 0, double lt = 0, double rt = 0, params ControllerButton[] down) =>
         new(new HashSet<ControllerButton>(down), lx, ly, rx, ry, lt, rt);
-
-    [Fact]
-    public void TheHealthRows_FollowTheReport()
-    {
-        var model = new TesterModel();
-        var vm = new TesterViewModel(model);
-        Assert.Equal(7, vm.Health.Count);
-        Assert.All(vm.Health, r => Assert.True(r.IsUnknown));
-
-        for (int i = 0; i < 200; i++) model.Feed(Pad(lx: 0.002), i * 5);
-        vm.Refresh(model.Snapshot(), "x", null, null);
-
-        var drift = vm.Health.First(r => r.Name == "Left stick drift");
-        Assert.True(drift.IsGood);
-        Assert.Equal("GOOD", drift.GradeText);
-        Assert.Contains("off centre", drift.Detail);
-        Assert.True(vm.HasHealthScore);
-        Assert.Equal("100", vm.HealthScoreText);
-        Assert.Equal("2 of 7 checks done", vm.HealthChecksText);
-        Assert.Equal("In great shape", vm.HealthVerdict);
-    }
 
     [Fact]
     public void StepsAndTravel_ReachTheTexts()
@@ -281,7 +316,8 @@ public class TesterExtrasTests
         await vm.CopyTesterReportCommand.ExecuteAsync(null);
 
         Assert.StartsWith("Open-Macro controller test report", ui.Clipboard);
-        Assert.Contains("Left stick drift", ui.Clipboard);
+        Assert.Contains("Sticks", ui.Clipboard);
+        Assert.DoesNotContain("Health", ui.Clipboard);
         Assert.Equal("Report copied to the clipboard", vm.Tester.Notice);
     }
 

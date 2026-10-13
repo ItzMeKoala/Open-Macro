@@ -6,7 +6,7 @@ namespace ReWASD.UI.Mac.Tests;
 
 public class TesterModelTests
 {
-    private readonly TesterModel _m = new(() => new DateTime(2026, 1, 1, 12, 0, 0, 0));
+    private readonly TesterModel _m = new();
 
     private static PhysicalState Pad(double lx = 0, double ly = 0, double rx = 0, double ry = 0, double lt = 0, double rt = 0, params ControllerButton[] down) =>
         new(new HashSet<ControllerButton>(down), lx, ly, rx, ry, lt, rt);
@@ -66,7 +66,6 @@ public class TesterModelTests
         var x = snap.Buttons.First(b => b.Button == ControllerButton.X);
         Assert.Equal(3, x.Presses);
         Assert.Equal(1, x.Bounces);
-        Assert.Contains(snap.Log, l => l.Contains("bounce") && l.Contains("8 ms"));
     }
 
     [Fact]
@@ -84,11 +83,10 @@ public class TesterModelTests
     // ---- connection -------------------------------------------------------------------------------------------------
 
     [Fact]
-    public void Connecting_AndDisconnecting_AreLogged_AndLetGoOfEverythingHeld()
+    public void Disconnecting_LetsGoOfEverythingHeld()
     {
         _m.Feed(null, 0);
         Assert.False(_m.Snapshot().Connected);
-        Assert.Empty(_m.Snapshot().Log);
 
         _m.Feed(Pad(down: ControllerButton.A), 100);
         Assert.True(_m.Snapshot().Connected);
@@ -99,8 +97,6 @@ public class TesterModelTests
         Assert.False(snap.Connected);
         Assert.False(snap.Buttons.First(b => b.Button == ControllerButton.A).IsDown);
         Assert.Equal(500, snap.Buttons.First(b => b.Button == ControllerButton.A).LastHoldMs);
-        Assert.Contains(snap.Log, l => l.EndsWith("Controller disconnected"));
-        Assert.Contains(snap.Log, l => l.EndsWith("Controller connected"));
         Assert.Equal(0, snap.ElapsedMs);
     }
 
@@ -239,7 +235,6 @@ public class TesterModelTests
 
         _m.Feed(Pad(lt: 0), 500);
         Assert.Equal(0, _m.Snapshot().LeftTrigger.HeldMs);
-        Assert.Contains(_m.Snapshot().Log, l => l.Contains("Left trigger released after 400 ms"));
         Assert.Equal(0, _m.Snapshot().RightTrigger.Peak);
     }
 
@@ -295,23 +290,6 @@ public class TesterModelTests
     }
 
     [Fact]
-    public void TheLog_IsNewestFirst_Capped_AndStamped()
-    {
-        _m.Feed(Pad(), 0);
-        for (int i = 0; i < 150; i++)
-        {
-            _m.Feed(Pad(down: ControllerButton.A), i * 10 + 1);
-            _m.Feed(Pad(), i * 10 + 5);
-        }
-
-        var snap = _m.Snapshot();
-        Assert.Equal(TesterModel.MaxLog, snap.Log.Count);
-        Assert.StartsWith("12:00:00.000  ", snap.Log[0]);
-        Assert.Contains("A released", snap.Log[0]);
-        Assert.Contains("A pressed", snap.Log[1]);
-    }
-
-    [Fact]
     public void Reset_ClearsTheCounts_ButKeepsTheConnection()
     {
         _m.Feed(Pad(down: ControllerButton.A, lx: 1, lt: 0.9), 0);
@@ -324,7 +302,6 @@ public class TesterModelTests
         Assert.Equal(0, snap.Buttons.First(b => b.Button == ControllerButton.A).Presses);
         Assert.Equal(0, snap.Left.PeakMagnitude);
         Assert.Equal(0, snap.LeftTrigger.Peak);
-        Assert.Empty(snap.Log);
         Assert.Equal(0, snap.Rate.TotalChanges);
         Assert.Empty(snap.Scope[0]);
     }
@@ -385,7 +362,6 @@ public class TesterModelTests
         Assert.Equal(242, r.LastMs);
         Assert.Equal(242, r.BestMs);
         Assert.Equal(1, r.Attempts);
-        Assert.Contains(_m.Snapshot().Log, l => l.EndsWith("Reaction test: 242 ms"));
     }
 
     [Fact]

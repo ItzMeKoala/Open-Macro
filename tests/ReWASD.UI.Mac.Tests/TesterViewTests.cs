@@ -98,7 +98,7 @@ public class TesterViewTests
         Assert.Single(tester.GetVisualDescendants().OfType<ArtView>());
         Assert.Equal(2, tester.GetVisualDescendants().OfType<ProgressBar>().Count());
         var texts = tester.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text).ToList();
-        foreach (var heading in new[] { "CONTROLLER TESTER", "CIRCULARITY TEST", "RIGHT STICK", "LEFT STICK", "EVENT LOG  ·  NEWEST FIRST" })
+        foreach (var heading in new[] { "CONTROLLER TESTER", "RIGHT STICK", "LEFT STICK", "LAST 6 SECONDS", "TIMING", "REACTION TEST", "VIBRATION TEST" })
             Assert.Contains(heading, texts);
         Assert.Contains(texts, t => t == "Left bumper");                         // every button has a row
         Assert.Contains(texts, t => t != null && t.StartsWith("TRIGGERS"));
@@ -177,15 +177,6 @@ public class TesterViewTests
 public class TesterControlTests
 {
     [Fact]
-    public void TheGaugeColour_FollowsTheScore()
-    {
-        Assert.Equal(Avalonia.Media.Color.Parse("#2EF2A0"), RingGauge.ColorFor(92, true));
-        Assert.Equal(Avalonia.Media.Color.Parse("#FFC24B"), RingGauge.ColorFor(60, true));
-        Assert.Equal(Avalonia.Media.Color.Parse("#FF6B6B"), RingGauge.ColorFor(30, true));
-        Assert.Equal(Avalonia.Media.Color.Parse("#566173"), RingGauge.ColorFor(99, false));
-    }
-
-    [Fact]
     public void TheHistogram_ReadsAnyNumbers_AndFindsTheSkippedBins()
     {
         Assert.Equal(new double[] { 1, 2, 3 }, Histogram.ToArray(new[] { 1, 2, 3 }));
@@ -207,8 +198,7 @@ public class TesterControlTests
         vm.OpenTesterCommand.Execute(null);
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
-        Assert.Single(window.Tester!.GetVisualDescendants().OfType<RingGauge>());
-        Assert.Equal(3, window.Tester.GetVisualDescendants().OfType<Histogram>().Count());        // the gaps and one per trigger
+        Assert.Equal(3, window.Tester!.GetVisualDescendants().OfType<Histogram>().Count());        // the gaps and one per trigger
         vm.Shutdown();
     }
 }

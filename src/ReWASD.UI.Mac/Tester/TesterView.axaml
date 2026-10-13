@@ -20,7 +20,7 @@
         <Style Selector="Border.rule">
             <Setter Property="Height" Value="1" />
             <Setter Property="Background" Value="#262B36" />
-            <Setter Property="Margin" Value="0,14" />
+            <Setter Property="Margin" Value="0,10" />
         </Style>
         <Style Selector="TextBlock.big">
             <Setter Property="Foreground" Value="#FFFFFF" />
@@ -54,7 +54,7 @@
             <Setter Property="BorderBrush" Value="#262B35" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="12" />
-            <Setter Property="Padding" Value="18" />
+            <Setter Property="Padding" Value="14" />
             <Setter Property="Background" Value="#171A21" />
         </Style>
         <Style Selector="Button.chip">
@@ -94,33 +94,82 @@
             <Setter Property="Padding" Value="10,3" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
-        <Style Selector="Border.grade">
-            <Setter Property="CornerRadius" Value="9" />
-            <Setter Property="Padding" Value="8,2" />
-            <Setter Property="Background" Value="#262B36" />
-            <Setter Property="MinWidth" Value="52" />
-        </Style>
-        <Style Selector="Border.grade.good"><Setter Property="Background" Value="#17402E" /></Style>
-        <Style Selector="Border.grade.fair"><Setter Property="Background" Value="#4A3A18" /></Style>
-        <Style Selector="Border.grade.poor"><Setter Property="Background" Value="#5A2326" /></Style>
-        <Style Selector="Ellipse.dot"><Setter Property="Fill" Value="#3A4150" /></Style>
-        <Style Selector="Ellipse.dot.good"><Setter Property="Fill" Value="#2EF2A0" /></Style>
-        <Style Selector="Ellipse.dot.fair"><Setter Property="Fill" Value="#FFC24B" /></Style>
-        <Style Selector="Ellipse.dot.poor"><Setter Property="Fill" Value="#FF6B6B" /></Style>
-        <Style Selector="Border.row"><Setter Property="CornerRadius" Value="8" /><Setter Property="Padding" Value="6,4" /><Setter Property="Margin" Value="0,0,0,2" /></Style>
+        <Style Selector="Border.row"><Setter Property="CornerRadius" Value="8" /><Setter Property="Padding" Value="6,3" /><Setter Property="Margin" Value="0,0,0,1" /></Style>
         <Style Selector="Border.row.down"><Setter Property="Background" Value="#1A3B2C" /></Style>
-        <Style Selector="Border.react">
+        <!-- The reaction-test box: click inside it to start; it changes colour with the state of the game -->
+        <Style Selector="Button.react">
             <Setter Property="Background" Value="#1B1F28" />
-            <Setter Property="CornerRadius" Value="14" />
-            <Setter Property="Height" Value="104" />
-            <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="#2A303C" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="MinHeight" Value="80" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
-        <Style Selector="Border.react.wait"><Setter Property="Background" Value="#4A3A18" /></Style>
-        <Style Selector="Border.react.go"><Setter Property="Background" Value="#0E7A43" /></Style>
-        <Style Selector="Border.react.bad"><Setter Property="Background" Value="#6B2323" /></Style>
-        <Style Selector="Border.react.done"><Setter Property="Background" Value="#1F3A5A" /></Style>
+        <Style Selector="Button.react:pointerover /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="#1B1F28" /><Setter Property="BorderBrush" Value="#E9C46A" /></Style>
+        <Style Selector="Button.react.wait /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="#4A3A18" /></Style>
+        <Style Selector="Button.react.wait:pointerover /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="#4A3A18" /></Style>
+        <Style Selector="Button.react.go /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="#0E7A43" /></Style>
+        <Style Selector="Button.react.go:pointerover /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="#0E7A43" /></Style>
+        <Style Selector="Button.react.bad /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="#6B2323" /></Style>
+        <Style Selector="Button.react.bad:pointerover /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="#6B2323" /></Style>
+        <Style Selector="Button.react.done /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="#1F3A5A" /></Style>
+        <Style Selector="Button.react.done:pointerover /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="#1F3A5A" /></Style>
     </UserControl.Styles>
+
+    <UserControl.Resources>
+        <!-- One trigger: how far it is pulled, and where along the pull it reported (a red mark is a stretch it skipped) -->
+        <DataTemplate x:Key="TriggerPanel">
+            <StackPanel>
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding PercentText}" Classes="big" FontSize="18" />
+                    <TextBlock Text="{Binding Title}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+                <ProgressBar Classes="pressure" Minimum="0" Maximum="1" Value="{Binding Value}" Height="12" Margin="0,6,0,8" />
+                <t:Histogram Height="56" Values="{Binding Travel}" StartLabel="0%" EndLabel="100% pull" FlagGaps="True" BarColor="#2EC4B6"
+                             ToolTip.Tip="Pull the trigger slowly all the way. Each bar counts the readings in one twentieth of the pull; a red mark is a stretch the trigger jumped over." />
+                <UniformGrid Columns="3" Margin="0,4,0,0">
+                    <TextBlock Text="{Binding PeakText}" Classes="mono" FontSize="11" />
+                    <TextBlock Text="{Binding PressesText}" Classes="mono" FontSize="11" HorizontalAlignment="Center" />
+                    <TextBlock Text="{Binding StepsText}" Classes="mono" FontSize="11" Foreground="#8E9BAE" HorizontalAlignment="Right" />
+                </UniformGrid>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- The buttons on one half of the pad: state, count and hold times -->
+        <DataTemplate x:Key="ButtonRows">
+            <StackPanel>
+                <Grid ColumnDefinitions="22,*,46,64,104" Margin="6,0,6,4">
+                    <TextBlock Grid.Column="1" Text="BUTTON" Classes="col" />
+                    <TextBlock Grid.Column="2" Text="PRESSES" Classes="col" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Column="3" Text="HOLD" Classes="col" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Column="4" Text="SHORT – LONG" Classes="col" HorizontalAlignment="Right" />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Classes="row" Classes.down="{Binding IsDown}">
+                                <Grid ColumnDefinitions="22,*,46,64,104">
+                                    <Ellipse Width="11" Height="11" Fill="Transparent" Stroke="#3A4150" StrokeThickness="1" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                                    <Ellipse Width="11" Height="11" Fill="#2EF2A0" HorizontalAlignment="Left" VerticalAlignment="Center" IsVisible="{Binding IsDown}" />
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Name}" Classes="mono" FontSize="11.5" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding BounceText}" Classes="mono" FontSize="10.5" Foreground="#FFAA00" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                   ToolTip.Tip="A bounce is a release and press less than 30 ms apart: a worn switch, not a finger." />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2" Text="{Binding PressesText}" Classes="mono" HorizontalAlignment="Right" />
+                                    <TextBlock Grid.Column="3" Text="{Binding HoldText}" Classes="mono" HorizontalAlignment="Right" />
+                                    <TextBlock Grid.Column="4" Text="{Binding RangeText}" Classes="mono" Foreground="#8E9BAE" HorizontalAlignment="Right" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
 
     <Grid RowDefinitions="Auto,*" Background="#0E1015">
 
@@ -163,260 +212,118 @@
             </Grid>
         </Border>
 
-        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-            <Grid Margin="28" RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,*,*">
+        <Grid Grid.Row="1" Margin="16" RowDefinitions="*,Auto" ColumnDefinitions="*,1.5*,*">
 
-                <Border Grid.Row="0" Grid.Column="0" Classes="tile" Margin="0,0,14,14" DataContext="{Binding Tester.Left}">
-                    <StackPanel>
-                        <DockPanel Margin="0,0,0,10">
-                            <Button DockPanel.Dock="Right" Content="Reset" Classes="chip" Command="{Binding $parent[UserControl].DataContext.ResetTesterLeftStickCommand}" />
-                            <StackPanel Orientation="Horizontal" Spacing="8"><Border Classes="bar" /><TextBlock Text="LEFT STICK" Classes="h" /></StackPanel>
-                        </DockPanel>
-                        <t:StickPlot Height="260" Snapshot="{Binding Snapshot}" DeadzoneMin="{Binding DeadzoneMin}" DeadzoneMax="{Binding DeadzoneMax}" />
-                        <TextBlock Text="{Binding PositionText}" Classes="big" HorizontalAlignment="Center" Margin="0,14,0,0" />
-                        <UniformGrid Columns="3" Margin="0,12,0,0">
-                            <StackPanel><TextBlock Text="PUSH" Classes="col" /><TextBlock Text="{Binding MagnitudeText}" Classes="val" /></StackPanel>
-                            <StackPanel><TextBlock Text="ANGLE" Classes="col" /><TextBlock Text="{Binding AngleText}" Classes="val" /></StackPanel>
-                            <StackPanel><TextBlock Text="PEAK" Classes="col" /><TextBlock Text="{Binding PeakText}" Classes="val" /></StackPanel>
-                        </UniformGrid>
-                        <Border Classes="rule" />
-                        <TextBlock Text="CIRCULARITY TEST" Classes="col" />
-                        <TextBlock Text="{Binding CircleText}" Classes="soft" Margin="0,3,0,8" />
-                        <UniformGrid Columns="2">
-                            <StackPanel><TextBlock Text="CIRCLE ERROR" ToolTip.Tip="How far the edge the stick reaches is from a perfect circle, on average. Under 10 % is healthy." Classes="col" /><TextBlock Text="{Binding RoundnessText}" Classes="val" Foreground="{StaticResource BrushCyan}" /></StackPanel>
-                            <StackPanel><TextBlock Text="COVERAGE" Classes="col" /><TextBlock Text="{Binding CoverageText}" Classes="val" /></StackPanel>
-                        </UniformGrid>
-                        <TextBlock Text="{Binding RadiusText}" Classes="mono" FontSize="11.5" Margin="0,8,0,0" />
-                        <TextBlock Text="{Binding StepsText}" Classes="mono" FontSize="11.5" Foreground="{StaticResource BrushTextSecondary}" Margin="0,2,0,0" />
-                        <TextBlock Text="{Binding RestText}" Classes="soft" Margin="0,8,0,0" />
-                    </StackPanel>
-                </Border>
-
-                <!-- THE CONTROLLER and the triggers (pressure) -->
-                <Border Grid.Row="0" Grid.Column="1" Classes="tile" Margin="0,0,14,14">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,6"><Border Classes="bar" /><TextBlock Text="LIVE" Classes="h" /></StackPanel>
-                        <Border CornerRadius="10" Padding="0,8" BorderBrush="#222733" BorderThickness="1" Background="#12151B">
-
-                            <art:ArtView Height="250" IsHitTestVisible="False" ShowEditing="False" Scene="{Binding SkinArt}" Sources="{Binding ControllerButtons}" />
-                        </Border>
-                        <TextBlock Text="{Binding PressedText}" Classes="mono" HorizontalAlignment="Center" Margin="0,8,0,0" MinHeight="16" />
-                        <Border Classes="rule" />
-                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,10"><Border Classes="bar" /><TextBlock Text="TRIGGERS  ·  PRESSURE" Classes="h" /></StackPanel>
-                        <StackPanel DataContext="{Binding Tester.LeftTrigger}" Margin="0">
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Right" Text="{Binding PercentText}" Classes="big" FontSize="20" />
-                                <TextBlock Text="{Binding Title}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            </DockPanel>
-                            <ProgressBar Classes="pressure" Minimum="0" Maximum="1" Value="{Binding Value}" Margin="0,8,0,6" />
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Right" Text="{Binding RawText}" Classes="mono" FontSize="11" />
-                                <TextBlock Text="{Binding PeakText}" Classes="mono" FontSize="11" />
-                            </DockPanel>
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Right" Text="{Binding PressesText}" Classes="soft" FontSize="11" />
-                                <TextBlock Text="{Binding StartText}" Classes="soft" FontSize="11" />
-                            </DockPanel>
-                            <TextBlock Text="{Binding HeldText}" Classes="soft" FontSize="11" Margin="0,2,0,0" />
+            <Border Grid.Row="0" Grid.Column="0" Classes="tile" Margin="0,0,12,12" DataContext="{Binding Tester.Left}">
+                <Grid RowDefinitions="Auto,*,Auto,Auto,Auto,Auto">
+                    <DockPanel Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right" Content="Reset" Classes="chip" Command="{Binding $parent[UserControl].DataContext.ResetTesterLeftStickCommand}" />
+                        <StackPanel Orientation="Horizontal" Spacing="8"><Border Classes="bar" /><TextBlock Text="LEFT STICK" Classes="h" /></StackPanel>
+                    </DockPanel>
+                    <t:StickPlot Grid.Row="1" MinHeight="110" Snapshot="{Binding Snapshot}" DeadzoneMin="{Binding DeadzoneMin}" DeadzoneMax="{Binding DeadzoneMax}" />
+                    <TextBlock Grid.Row="2" Text="{Binding PositionText}" Classes="big" FontSize="22" HorizontalAlignment="Center" Margin="0,10,0,0" />
+                    <UniformGrid Grid.Row="3" Columns="2" Margin="0,8,0,0">
+                        <StackPanel HorizontalAlignment="Center" ToolTip.Tip="How far the edge the stick reaches is from a perfect circle, on average. Under 10 % is healthy. Roll the stick slowly around its edge, all the way out, to measure it.">
+                            <TextBlock Text="CIRCLE ERROR" Classes="col" HorizontalAlignment="Center" />
+                            <TextBlock Text="{Binding RoundnessText}" Classes="val" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Center" />
                         </StackPanel>
-                        <StackPanel DataContext="{Binding Tester.RightTrigger}" Margin="0,14,0,0">
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Right" Text="{Binding PercentText}" Classes="big" FontSize="20" />
-                                <TextBlock Text="{Binding Title}" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            </DockPanel>
-                            <ProgressBar Classes="pressure" Minimum="0" Maximum="1" Value="{Binding Value}" Margin="0,8,0,6" />
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Right" Text="{Binding RawText}" Classes="mono" FontSize="11" />
-                                <TextBlock Text="{Binding PeakText}" Classes="mono" FontSize="11" />
-                            </DockPanel>
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Right" Text="{Binding PressesText}" Classes="soft" FontSize="11" />
-                                <TextBlock Text="{Binding StartText}" Classes="soft" FontSize="11" />
-                            </DockPanel>
-                            <TextBlock Text="{Binding HeldText}" Classes="soft" FontSize="11" Margin="0,2,0,0" />
+                        <StackPanel HorizontalAlignment="Center" ToolTip.Tip="How much of the circle the stick has been pushed all the way out to.">
+                            <TextBlock Text="COVERAGE" Classes="col" HorizontalAlignment="Center" />
+                            <TextBlock Text="{Binding CoverageText}" Classes="val" HorizontalAlignment="Center" />
                         </StackPanel>
-                    </StackPanel>
-                </Border>
+                    </UniformGrid>
+                    <Border Grid.Row="4" Classes="rule" />
+                    <ContentControl Grid.Row="5" ContentTemplate="{StaticResource ButtonRows}" Content="{Binding $parent[UserControl].DataContext.Tester.LeftButtons}" />
+                </Grid>
+            </Border>
 
-                <Border Grid.Row="0" Grid.Column="2" Classes="tile" Margin="0,0,0,14" DataContext="{Binding Tester.Right}">
-                    <StackPanel>
-                        <DockPanel Margin="0,0,0,10">
-                            <Button DockPanel.Dock="Right" Content="Reset" Classes="chip" Command="{Binding $parent[UserControl].DataContext.ResetTesterRightStickCommand}" />
-                            <StackPanel Orientation="Horizontal" Spacing="8"><Border Classes="bar" /><TextBlock Text="RIGHT STICK" Classes="h" /></StackPanel>
-                        </DockPanel>
-                        <t:StickPlot Height="260" Snapshot="{Binding Snapshot}" DeadzoneMin="{Binding DeadzoneMin}" DeadzoneMax="{Binding DeadzoneMax}" />
-                        <TextBlock Text="{Binding PositionText}" Classes="big" HorizontalAlignment="Center" Margin="0,14,0,0" />
-                        <UniformGrid Columns="3" Margin="0,12,0,0">
-                            <StackPanel><TextBlock Text="PUSH" Classes="col" /><TextBlock Text="{Binding MagnitudeText}" Classes="val" /></StackPanel>
-                            <StackPanel><TextBlock Text="ANGLE" Classes="col" /><TextBlock Text="{Binding AngleText}" Classes="val" /></StackPanel>
-                            <StackPanel><TextBlock Text="PEAK" Classes="col" /><TextBlock Text="{Binding PeakText}" Classes="val" /></StackPanel>
-                        </UniformGrid>
-                        <Border Classes="rule" />
-                        <TextBlock Text="CIRCULARITY TEST" Classes="col" />
-                        <TextBlock Text="{Binding CircleText}" Classes="soft" Margin="0,3,0,8" />
-                        <UniformGrid Columns="2">
-                            <StackPanel><TextBlock Text="CIRCLE ERROR" ToolTip.Tip="How far the edge the stick reaches is from a perfect circle, on average. Under 10 % is healthy." Classes="col" /><TextBlock Text="{Binding RoundnessText}" Classes="val" Foreground="{StaticResource BrushCyan}" /></StackPanel>
-                            <StackPanel><TextBlock Text="COVERAGE" Classes="col" /><TextBlock Text="{Binding CoverageText}" Classes="val" /></StackPanel>
-                        </UniformGrid>
-                        <TextBlock Text="{Binding RadiusText}" Classes="mono" FontSize="11.5" Margin="0,8,0,0" />
-                        <TextBlock Text="{Binding StepsText}" Classes="mono" FontSize="11.5" Foreground="{StaticResource BrushTextSecondary}" Margin="0,2,0,0" />
-                        <TextBlock Text="{Binding RestText}" Classes="soft" Margin="0,8,0,0" />
-                    </StackPanel>
-                </Border>
+            <!-- THE CONTROLLER, and both triggers: pressure and travel -->
+            <Border Grid.Row="0" Grid.Column="1" Classes="tile" Margin="0,0,0,12">
+                <Grid RowDefinitions="Auto,*,Auto,Auto,Auto">
+                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,6"><Border Classes="bar" /><TextBlock Text="LIVE" Classes="h" /></StackPanel>
+                    <Border Grid.Row="1" CornerRadius="10" Padding="0,8" BorderBrush="#222733" BorderThickness="1" Background="#12151B">
+                        <art:ArtView MinHeight="120" IsHitTestVisible="False" ShowEditing="False" Scene="{Binding SkinArt}" Sources="{Binding ControllerButtons}" />
+                    </Border>
+                    <TextBlock Grid.Row="2" Text="{Binding PressedText}" Classes="mono" HorizontalAlignment="Center" Margin="0,8,0,0" MinHeight="16" />
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8" Margin="0,12,0,8"><Border Classes="bar" /><TextBlock Text="TRIGGERS  ·  PRESSURE AND TRAVEL" Classes="h" /></StackPanel>
+                    <Grid Grid.Row="4" ColumnDefinitions="*,24,*">
+                        <ContentControl ContentTemplate="{StaticResource TriggerPanel}" Content="{Binding Tester.LeftTrigger}" />
+                        <ContentControl Grid.Column="2" ContentTemplate="{StaticResource TriggerPanel}" Content="{Binding Tester.RightTrigger}" />
+                    </Grid>
+                </Grid>
+            </Border>
 
-                <!-- BUTTONS: state, count, timing -->
-                <Border Grid.Row="1" Grid.Column="0" Classes="tile" Margin="0,0,14,14">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,10"><Border Classes="bar" /><TextBlock Text="BUTTONS  ·  PRESSES AND TIMING" Classes="h" /></StackPanel>
-                        <Grid ColumnDefinitions="24,*,54,76,130,72" Margin="6,0,6,6">
-                            <TextBlock Grid.Column="1" Text="BUTTON" Classes="col" />
-                            <TextBlock Grid.Column="2" Text="PRESSES" Classes="col" HorizontalAlignment="Right" />
-                            <TextBlock Grid.Column="3" Text="HOLD" Classes="col" HorizontalAlignment="Right" />
-                            <TextBlock Grid.Column="4" Text="SHORT – LONG" Classes="col" HorizontalAlignment="Right" />
-                            <TextBlock Grid.Column="5" Text="BOUNCE" Classes="col" HorizontalAlignment="Right" />
-                        </Grid>
-                        <ItemsControl ItemsSource="{Binding Tester.Buttons}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Classes="row" Classes.down="{Binding IsDown}">
-                                        <Grid ColumnDefinitions="24,*,54,76,130,72">
-                                            <Ellipse Width="12" Height="12" Fill="Transparent" Stroke="#3A4150" StrokeThickness="1" HorizontalAlignment="Left" VerticalAlignment="Center" />
-                                            <Ellipse Width="12" Height="12" Fill="#2EF2A0" HorizontalAlignment="Left" VerticalAlignment="Center" IsVisible="{Binding IsDown}" />
-                                            <TextBlock Grid.Column="1" Text="{Binding Name}" Classes="mono" FontSize="11.5" VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="2" Text="{Binding PressesText}" Classes="mono" HorizontalAlignment="Right" />
-                                            <TextBlock Grid.Column="3" Text="{Binding HoldText}" Classes="mono" HorizontalAlignment="Right" />
-                                            <TextBlock Grid.Column="4" Text="{Binding RangeText}" Classes="mono" Foreground="#8E9BAE" HorizontalAlignment="Right" />
-                                            <TextBlock Grid.Column="5" Text="{Binding BounceText}" Classes="mono" Foreground="#FFAA00" HorizontalAlignment="Right" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <TextBlock Text="A bounce is a release and press less than 30 ms apart: a worn switch, not a finger." Classes="soft" FontSize="11" Margin="6,10,0,0" />
-                    </StackPanel>
-                </Border>
+            <Border Grid.Row="0" Grid.Column="2" Classes="tile" Margin="12,0,0,12" DataContext="{Binding Tester.Right}">
+                <Grid RowDefinitions="Auto,*,Auto,Auto,Auto,Auto">
+                    <DockPanel Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right" Content="Reset" Classes="chip" Command="{Binding $parent[UserControl].DataContext.ResetTesterRightStickCommand}" />
+                        <StackPanel Orientation="Horizontal" Spacing="8"><Border Classes="bar" /><TextBlock Text="RIGHT STICK" Classes="h" /></StackPanel>
+                    </DockPanel>
+                    <t:StickPlot Grid.Row="1" MinHeight="110" Snapshot="{Binding Snapshot}" DeadzoneMin="{Binding DeadzoneMin}" DeadzoneMax="{Binding DeadzoneMax}" />
+                    <TextBlock Grid.Row="2" Text="{Binding PositionText}" Classes="big" FontSize="22" HorizontalAlignment="Center" Margin="0,10,0,0" />
+                    <UniformGrid Grid.Row="3" Columns="2" Margin="0,8,0,0">
+                        <StackPanel HorizontalAlignment="Center" ToolTip.Tip="How far the edge the stick reaches is from a perfect circle, on average. Under 10 % is healthy. Roll the stick slowly around its edge, all the way out, to measure it.">
+                            <TextBlock Text="CIRCLE ERROR" Classes="col" HorizontalAlignment="Center" />
+                            <TextBlock Text="{Binding RoundnessText}" Classes="val" Foreground="{StaticResource BrushCyan}" HorizontalAlignment="Center" />
+                        </StackPanel>
+                        <StackPanel HorizontalAlignment="Center" ToolTip.Tip="How much of the circle the stick has been pushed all the way out to.">
+                            <TextBlock Text="COVERAGE" Classes="col" HorizontalAlignment="Center" />
+                            <TextBlock Text="{Binding CoverageText}" Classes="val" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </UniformGrid>
+                    <Border Grid.Row="4" Classes="rule" />
+                    <ContentControl Grid.Row="5" ContentTemplate="{StaticResource ButtonRows}" Content="{Binding $parent[UserControl].DataContext.Tester.RightButtons}" />
+                </Grid>
+            </Border>
 
-                <!-- HEALTH -->
-                <Border Grid.Row="1" Grid.Column="1" Classes="tile" Margin="0,0,14,14">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,10"><Border Classes="bar" /><TextBlock Text="CONTROLLER HEALTH" Classes="h" /></StackPanel>
-                        <Grid ColumnDefinitions="Auto,*">
-                            <t:RingGauge Width="132" Height="132" Value="{Binding Tester.HealthScore}" HasValue="{Binding Tester.HasHealthScore}" Text="{Binding Tester.HealthScoreText}" Caption="OF 100" />
-                            <StackPanel Grid.Column="1" Margin="18,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Tester.HealthVerdict}" Foreground="#FFFFFF" FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                <TextBlock Text="{Binding Tester.HealthChecksText}" Classes="soft" Margin="0,4,0,0" />
-                            </StackPanel>
-                        </Grid>
-                        <Border Classes="rule" />
-                        <ItemsControl ItemsSource="{Binding Tester.Health}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid ColumnDefinitions="18,*,Auto" Margin="0,0,0,9">
-                                        <Ellipse Classes="dot" Classes.good="{Binding IsGood}" Classes.fair="{Binding IsFair}" Classes.poor="{Binding IsPoor}" Width="9" Height="9" VerticalAlignment="Top" Margin="0,5,0,0" />
-                                        <StackPanel Grid.Column="1">
-                                            <TextBlock Text="{Binding Name}" Foreground="#E3E8F1" FontSize="12.5" FontWeight="SemiBold" />
-                                            <TextBlock Text="{Binding Detail}" Classes="soft" FontSize="11" />
-                                        </StackPanel>
-                                        <Border Grid.Column="2" Classes="grade" Classes.good="{Binding IsGood}" Classes.fair="{Binding IsFair}" Classes.poor="{Binding IsPoor}" VerticalAlignment="Top">
-                                            <TextBlock Text="{Binding GradeText}" FontSize="9.5" FontWeight="Bold" Foreground="#E3E8F1" HorizontalAlignment="Center" />
-                                        </Border>
-                                    </Grid>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </Border>
+            <!-- VIBRATION -->
+            <Border Grid.Row="1" Grid.Column="0" Classes="tile" Margin="0,0,12,0" IsVisible="{Binding CanVibrate}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,10"><Border Classes="bar" /><TextBlock Text="VIBRATION TEST" Classes="h" /></StackPanel>
+                    <WrapPanel>
+                        <Button Content="Left motor" Command="{Binding VibrateLeftCommand}" Classes="chip" Padding="14,7" Margin="0,0,8,8" />
+                        <Button Content="Right motor" Command="{Binding VibrateRightCommand}" Classes="chip" Padding="14,7" Margin="0,0,8,8" />
+                        <Button Content="Both" Command="{Binding VibrateBothCommand}" Classes="chip" Padding="14,7" Margin="0,0,8,8" />
+                        <Button Content="Stop" Command="{Binding StopVibrationCommand}" Classes="chip" Padding="14,7" Margin="0,0,0,8" />
+                    </WrapPanel>
+                    <ToggleButton Content="Vibrate until stopped" IsChecked="{Binding VibrateContinuously, Mode=TwoWay}" Classes="chip" Padding="14,7" HorizontalAlignment="Left" Margin="0,2,0,10"
+                                  ToolTip.Tip="Keep the motors running until you press Stop or switch this off, instead of for under a second." />
+                    <TextBlock Text="Otherwise each test shakes for under a second. The left motor is the heavy, low rumble; the right one is the light, fine buzz." Classes="soft" FontSize="11" />
+                </StackPanel>
+            </Border>
 
-                <!-- TIMING -->
-                <Border Grid.Row="1" Grid.Column="2" Classes="tile" Margin="0,0,0,14">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,10"><Border Classes="bar" /><TextBlock Text="TIMING  ·  HOW OFTEN THE PAD REPORTS" Classes="h" /></StackPanel>
-                        <TextBlock Text="CHANGES PER SECOND" Classes="col" />
-                        <TextBlock Text="{Binding Tester.RateText}" Classes="big" FontSize="28" Foreground="{StaticResource BrushCyan}" />
-                        <TextBlock Text="{Binding Tester.IntervalText}" Classes="mono" Margin="0,6,0,0" FontSize="11.5" />
-                        <TextBlock Text="{Binding Tester.JitterText}" Classes="mono" Margin="0,2,0,0" FontSize="11.5" />
-                        <TextBlock Text="{Binding Tester.PeakRateText}" Classes="mono" Margin="0,2,0,12" FontSize="11.5" />
-                        <TextBlock Text="GAPS BETWEEN REPORTS" Classes="col" Margin="0,0,0,6" />
-                        <t:Histogram Height="120" Values="{Binding Tester.Histogram}" StartLabel="0 ms" EndLabel="40+ ms" BarColor="#E9C46A" />
-                        <TextBlock Text="Move a stick steadily. A tall, narrow spike means an even report rate; a spread or a bar far to the right means lag or dropped reports (Bluetooth is usually 60 – 250 a second, wired up to 1000)." Classes="soft" FontSize="11" Margin="0,10,0,0" />
-                    </StackPanel>
-                </Border>
-
-                <!-- GRAPH -->
-                <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Classes="tile" Margin="0,0,14,14">
+            <!-- GRAPH and TIMING -->
+            <Border Grid.Row="1" Grid.Column="1" Classes="tile">
+                <Grid ColumnDefinitions="1.7*,22,*">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,6"><Border Classes="bar" /><TextBlock Text="LAST 6 SECONDS" Classes="h" /></StackPanel>
-                        <WrapPanel Margin="0,0,0,10"><StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,14,4"><Ellipse Width="9" Height="9" Fill="#E9C46A" /><TextBlock Text="Left X" Classes="soft" /></StackPanel><StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,14,4"><Ellipse Width="9" Height="9" Fill="#F4A261" /><TextBlock Text="Left Y" Classes="soft" /></StackPanel><StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,14,4"><Ellipse Width="9" Height="9" Fill="#5BC0EB" /><TextBlock Text="Right X" Classes="soft" /></StackPanel><StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,14,4"><Ellipse Width="9" Height="9" Fill="#9B8CFF" /><TextBlock Text="Right Y" Classes="soft" /></StackPanel><StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,14,4"><Ellipse Width="9" Height="9" Fill="#00E676" /><TextBlock Text="Left trigger" Classes="soft" /></StackPanel><StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,14,4"><Ellipse Width="9" Height="9" Fill="#FF6B6B" /><TextBlock Text="Right trigger" Classes="soft" /></StackPanel></WrapPanel>
-                        <TextBlock Text="Sticks  (−1 to +1)" Classes="col" Margin="0,0,0,4" />
-                        <t:ScopeGraph Height="190" Series="{Binding Tester.Scope}" Channels="0,1,2,3" Minimum="-1" Maximum="1" />
-                        <TextBlock Text="Triggers  (0 to 1)" Classes="col" Margin="0,12,0,4" />
-                        <t:ScopeGraph Height="120" Series="{Binding Tester.Scope}" Channels="4,5" Minimum="0" Maximum="1" />
+                        <WrapPanel Margin="0,0,0,6"><StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,12,2"><Ellipse Width="9" Height="9" Fill="#E9C46A" /><TextBlock Text="Left X" Classes="soft" FontSize="11" /></StackPanel><StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,12,2"><Ellipse Width="9" Height="9" Fill="#F4A261" /><TextBlock Text="Left Y" Classes="soft" FontSize="11" /></StackPanel><StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,12,2"><Ellipse Width="9" Height="9" Fill="#5BC0EB" /><TextBlock Text="Right X" Classes="soft" FontSize="11" /></StackPanel><StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,12,2"><Ellipse Width="9" Height="9" Fill="#9B8CFF" /><TextBlock Text="Right Y" Classes="soft" FontSize="11" /></StackPanel><StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,12,2"><Ellipse Width="9" Height="9" Fill="#00E676" /><TextBlock Text="Left trigger" Classes="soft" FontSize="11" /></StackPanel><StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,12,2"><Ellipse Width="9" Height="9" Fill="#FF6B6B" /><TextBlock Text="Right trigger" Classes="soft" FontSize="11" /></StackPanel></WrapPanel>
+                        <t:ScopeGraph Height="104" Series="{Binding Tester.Scope}" Channels="0,1,2,3" Minimum="-1" Maximum="1" ToolTip.Tip="Sticks, from −1 to +1" />
+                        <t:ScopeGraph Height="56" Margin="0,6,0,0" Series="{Binding Tester.Scope}" Channels="4,5" Minimum="0" Maximum="1" ToolTip.Tip="Triggers, from 0 to 1" />
                     </StackPanel>
-                </Border>
-
-                <!-- REACTION and vibration -->
-                <Border Grid.Row="2" Grid.Column="2" Classes="tile" Margin="0,0,0,14">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,10"><Border Classes="bar" /><TextBlock Text="REACTION TEST" Classes="h" /></StackPanel>
-                        <Border Classes="react" Classes.wait="{Binding Tester.ReactionWait}" Classes.go="{Binding Tester.ReactionGo}" Classes.bad="{Binding Tester.ReactionBad}" Classes.done="{Binding Tester.ReactionDone}">
-                            <TextBlock Text="{Binding Tester.ReactionText}" Classes="big" FontSize="30" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <TextBlock Text="{Binding Tester.ReactionDetail}" Classes="soft" FontSize="11.5" Margin="0,8,0,8" />
-                        <Button Content="Start" Command="{Binding StartReactionTestCommand}" Classes="chip" Padding="18,7" HorizontalAlignment="Left" />
-                        <TextBlock Text="Includes up to one screen refresh (about 17 ms) before you see the signal." Classes="soft" FontSize="10" Margin="0,8,0,0" />
-
-                        <StackPanel IsVisible="{Binding CanVibrate}" Margin="0,4,0,0">
-                            <Border Classes="rule" />
-                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,10"><Border Classes="bar" /><TextBlock Text="VIBRATION TEST" Classes="h" /></StackPanel>
-                            <WrapPanel>
-                                <Button Content="Left motor" Command="{Binding VibrateLeftCommand}" Classes="chip" Margin="0,0,8,8" />
-                                <Button Content="Right motor" Command="{Binding VibrateRightCommand}" Classes="chip" Margin="0,0,8,8" />
-                                <Button Content="Both" Command="{Binding VibrateBothCommand}" Classes="chip" Margin="0,0,8,8" />
-                                <Button Content="Stop" Command="{Binding StopVibrationCommand}" Classes="chip" Margin="0,0,0,8" />
-                            </WrapPanel>
-                            <TextBlock Text="Each test shakes for under a second. The left motor is the heavy, low rumble; the right one is the light, fine buzz." Classes="soft" FontSize="11" />
-                        </StackPanel>
+                    <StackPanel Grid.Column="2" MinWidth="200">
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,6"><Border Classes="bar" /><TextBlock Text="TIMING" Classes="h" /></StackPanel>
+                        <TextBlock Text="CHANGES PER SECOND" Classes="col" />
+                        <TextBlock Text="{Binding Tester.RateNumberText}" Classes="big" FontSize="26" Foreground="{StaticResource BrushCyan}" />
+                        <TextBlock Text="{Binding Tester.JitterText}" Classes="mono" FontSize="11" Margin="0,2,0,0" />
+                        <TextBlock Text="{Binding Tester.IntervalText}" Classes="mono" FontSize="11" />
+                        <t:Histogram Height="62" Margin="0,8,0,0" Values="{Binding Tester.Histogram}" StartLabel="0 ms" EndLabel="40+ ms" BarColor="#E9C46A"
+                                     ToolTip.Tip="Gaps between reports. Move a stick steadily: a tall, narrow spike means an even report rate; a spread or a bar far to the right means lag or dropped reports (Bluetooth is usually 60 – 250 a second, wired up to 1000)." />
                     </StackPanel>
-                </Border>
+                </Grid>
+            </Border>
 
-                <!-- TRIGGER TRAVEL -->
-                <Border Grid.Row="3" Grid.Column="0" Classes="tile" Margin="0,0,14,0">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,12"><Border Classes="bar" /><TextBlock Text="TRIGGER TRAVEL" Classes="h" /></StackPanel>
-                        <StackPanel DataContext="{Binding Tester.LeftTrigger}" Margin="0,0,0,16">
-                            <DockPanel Margin="0,0,0,6">
-                                <TextBlock DockPanel.Dock="Right" Text="{Binding StepsText}" Classes="mono" FontSize="11" Foreground="{StaticResource BrushTextSecondary}" />
-                                <TextBlock Text="Left trigger" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" FontWeight="SemiBold" />
-                            </DockPanel>
-                            <t:Histogram Height="86" Values="{Binding Travel}" StartLabel="0%" EndLabel="100% pull" FlagGaps="True" BarColor="#2EC4B6" />
-                        </StackPanel>
-                        <StackPanel DataContext="{Binding Tester.RightTrigger}" Margin="0,0,0,16">
-                            <DockPanel Margin="0,0,0,6">
-                                <TextBlock DockPanel.Dock="Right" Text="{Binding StepsText}" Classes="mono" FontSize="11" Foreground="{StaticResource BrushTextSecondary}" />
-                                <TextBlock Text="Right trigger" Foreground="{StaticResource BrushTextPrimary}" FontSize="13" FontWeight="SemiBold" />
-                            </DockPanel>
-                            <t:Histogram Height="86" Values="{Binding Travel}" StartLabel="0%" EndLabel="100% pull" FlagGaps="True" BarColor="#2EC4B6" />
-                        </StackPanel>
-                        <TextBlock Text="Pull each trigger slowly all the way. Each bar counts the readings in one twentieth of the pull; a red mark is a stretch the trigger jumped over." Classes="soft" FontSize="11" />
-                    </StackPanel>
-                </Border>
-
-                <!-- LOG -->
-                <Border Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Classes="tile">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,10"><Border Classes="bar" /><TextBlock Text="EVENT LOG  ·  NEWEST FIRST" Classes="h" /></StackPanel>
-                        <ScrollViewer Height="290" VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding Tester.Log}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding}" Classes="mono" FontSize="11" Margin="0,0,0,3" Foreground="#C9D1DE" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </StackPanel>
-                </Border>
-            </Grid>
-        </ScrollViewer>
+            <!-- REACTION -->
+            <Border Grid.Row="1" Grid.Column="2" Classes="tile" Margin="12,0,0,0">
+                <Grid RowDefinitions="Auto,*,Auto">
+                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,10"><Border Classes="bar" /><TextBlock Text="REACTION TEST" Classes="h" /></StackPanel>
+                    <Button Grid.Row="1" Classes="react" Classes.wait="{Binding Tester.ReactionWait}" Classes.go="{Binding Tester.ReactionGo}" Classes.bad="{Binding Tester.ReactionBad}" Classes.done="{Binding Tester.ReactionDone}"
+                            Command="{Binding StartReactionTestCommand}" ToolTip.Tip="Includes up to one screen refresh (about 17 ms) before you see the signal.">
+                        <TextBlock Text="{Binding Tester.ReactionText}" Classes="big" FontSize="26" TextAlignment="Center" TextWrapping="Wrap" />
+                    </Button>
+                    <TextBlock Grid.Row="2" Text="{Binding Tester.ReactionDetail}" Classes="soft" FontSize="11.5" Margin="0,8,0,0" />
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>

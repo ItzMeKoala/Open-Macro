@@ -164,15 +164,6 @@ public class TesterControlTests
     });
 
     [Fact]
-    public void TheGaugeColour_FollowsTheScore() => Sta.Run(() =>
-    {
-        Assert.Equal(System.Windows.Media.Color.FromRgb(0x2E, 0xF2, 0xA0), ReWASD.UI.TesterControls.RingGauge.ColorFor(92, true));
-        Assert.Equal(System.Windows.Media.Color.FromRgb(0xFF, 0xC2, 0x4B), ReWASD.UI.TesterControls.RingGauge.ColorFor(60, true));
-        Assert.Equal(System.Windows.Media.Color.FromRgb(0xFF, 0x6B, 0x6B), ReWASD.UI.TesterControls.RingGauge.ColorFor(30, true));
-        Assert.Equal(System.Windows.Media.Color.FromRgb(0x56, 0x61, 0x73), ReWASD.UI.TesterControls.RingGauge.ColorFor(99, false));
-    });
-
-    [Fact]
     public void TheHistogram_ReadsAnyNumbers_AndFindsTheSkippedBins() => Sta.Run(() =>
     {
         Assert.Equal(new double[] { 1, 2, 3 }, ReWASD.UI.TesterControls.Histogram.ToArray(new[] { 1, 2, 3 }));
@@ -182,17 +173,16 @@ public class TesterControlTests
     });
 
     [Fact]
-    public void TheGaugeAndHistogramDraw_WithoutFailing() => Sta.Run(() =>
+    public void TheHistogramsDraw_WithoutFailing() => Sta.Run(() =>
     {
         var model = new ReWASD.UI.Tester.TesterModel();
         for (int i = 0; i < 100; i++) model.Feed(new ReWASD.Engine.Input.PhysicalState(new HashSet<ReWASD.Core.Models.ControllerButton>(), i * 0.01, 0, 0, 0, i * 0.01, 0), i * 8);
         var snap = model.Snapshot();
 
-        var gauge = new ReWASD.UI.TesterControls.RingGauge { Value = 72, HasValue = true, Text = "72", Caption = "OF 100", Width = 132, Height = 132 };
         var gaps = new ReWASD.UI.TesterControls.Histogram { Values = snap.Rate.Histogram, StartLabel = "0 ms", EndLabel = "40+ ms", Width = 300, Height = 120 };
         var travel = new ReWASD.UI.TesterControls.Histogram { Values = snap.LeftTrigger.Travel, FlagGaps = true, BarColor = "#2EC4B6", Width = 300, Height = 90 };
 
-        foreach (FrameworkElement element in new FrameworkElement[] { gauge, gaps, travel })
+        foreach (FrameworkElement element in new FrameworkElement[] { gaps, travel })
         {
             element.Measure(new Size(element.Width, element.Height));
             element.Arrange(new Rect(0, 0, element.Width, element.Height));

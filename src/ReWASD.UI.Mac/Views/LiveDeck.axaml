@@ -143,9 +143,9 @@
                 </Grid>
             </Border>
 
-            <!-- Timing and health -->
+            <!-- Timing -->
             <Border Name="TimingTile" Grid.Column="6" Classes="tile">
-                <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+                <Grid RowDefinitions="Auto,Auto,Auto,*">
                     <TextBlock Text="RESPONSE" Classes="cap" />
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6" Margin="0,8,0,0" ToolTip.Tip="How often the controller reports a change">
                         <TextBlock Text="{Binding Tester.RateNumberText}" Classes="big" FontSize="26" Foreground="{StaticResource BrushCyan}" />
@@ -156,13 +156,6 @@
                         <TextBlock Text="{Binding Tester.IntervalText}" Classes="soft" TextTrimming="CharacterEllipsis" IsVisible="{Binding Tester.HasRate}" />
                         <TextBlock Text="{Binding Tester.JitterText}" Classes="soft" TextTrimming="CharacterEllipsis" IsVisible="{Binding Tester.HasRate}" />
                     </StackPanel>
-                    <Grid Grid.Row="4" ColumnDefinitions="Auto,*" Margin="0,8,0,0">
-                        <t:RingGauge Width="46" Height="46" Value="{Binding Tester.HealthScore}" HasValue="{Binding Tester.HasHealthScore}" Text="{Binding Tester.HealthScoreText}" Caption="" />
-                        <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="HEALTH" Classes="cap" />
-                            <TextBlock Text="{Binding Tester.HealthChecksText}" Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
-                    </Grid>
                 </Grid>
             </Border>
         </Grid>

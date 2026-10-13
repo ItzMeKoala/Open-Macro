@@ -115,10 +115,15 @@ public sealed partial class TesterButtonRow : ObservableObject
     public ControllerButton Button { get; }
     public string Name { get; }
 
+    /// <summary>The button sits on the left half of the pad (D-pad, left bumper, left stick click, View, Guide); the rest are on the right.</summary>
+    public bool IsLeftSide { get; }
+
     public TesterButtonRow(ControllerButton button)
     {
         Button = button;
         Name = TesterModel.NameOf(button);
+        IsLeftSide = button is ControllerButton.DpadUp or ControllerButton.DpadDown or ControllerButton.DpadLeft or ControllerButton.DpadRight
+            or ControllerButton.LeftBumper or ControllerButton.LeftStickClick or ControllerButton.View or ControllerButton.Guide;
     }
 
     [ObservableProperty] private bool _isDown;
@@ -139,31 +144,6 @@ public sealed partial class TesterButtonRow : ObservableObject
     }
 }
 
-/// <summary>One line of the health report.</summary>
-public sealed partial class TesterHealthRow : ObservableObject
-{
-    public string Name { get; }
-    public TesterHealthRow(string name) => Name = name;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsGood), nameof(IsFair), nameof(IsPoor), nameof(IsUnknown), nameof(GradeText))]
-    private Grade _grade = Grade.Unknown;
-
-    [ObservableProperty] private string _detail = string.Empty;
-
-    public bool IsGood => Grade == Grade.Good;
-    public bool IsFair => Grade == Grade.Fair;
-    public bool IsPoor => Grade == Grade.Poor;
-    public bool IsUnknown => Grade == Grade.Unknown;
-    public string GradeText => Grade switch { Grade.Good => "GOOD", Grade.Fair => "FAIR", Grade.Poor => "POOR", _ => "TO DO" };
-
-    public void Update(HealthItem item)
-    {
-        Grade = item.Grade;
-        Detail = item.Detail;
-    }
-}
-
 /// <summary>Everything the full-screen tester shows, refreshed from <see cref="TesterModel"/> about thirty times a second.</summary>
 public sealed partial class TesterViewModel : ObservableObject
 {
@@ -174,17 +154,17 @@ public sealed partial class TesterViewModel : ObservableObject
     public TesterTriggerViewModel LeftTrigger { get; } = new("Left trigger");
     public TesterTriggerViewModel RightTrigger { get; } = new("Right trigger");
     public ObservableCollection<TesterButtonRow> Buttons { get; } = new();
-    public ObservableCollection<string> Log { get; } = new();
-    public ObservableCollection<TesterHealthRow> Health { get; } = new();
 
-    /// <summary>The latest verdict and report, so the report can be copied without working it out again.</summary>
-    public HealthReport? LastHealth { get; private set; }
+    /// <summary>The buttons on the left half of the pad (shown under the left stick) and on the right half (under the right stick); the rows are the ones in <see cref="Buttons"/>.</summary>
+    public IReadOnlyList<TesterButtonRow> LeftButtons { get; }
+    public IReadOnlyList<TesterButtonRow> RightButtons { get; }
 
     public TesterViewModel(TesterModel? model = null)
     {
         Model = model ?? new TesterModel();
         foreach (var b in TesterModel.ListedButtons) Buttons.Add(new TesterButtonRow(b));
-        foreach (var name in TesterHealth.Evaluate(Model.Snapshot()).Items.Select(i => i.Name)) Health.Add(new TesterHealthRow(name));
+        LeftButtons = Buttons.Where(b => b.IsLeftSide).ToList();
+        RightButtons = Buttons.Where(b => !b.IsLeftSide).ToList();
     }
 
     [ObservableProperty] private bool _connected;
@@ -199,13 +179,6 @@ public sealed partial class TesterViewModel : ObservableObject
     [ObservableProperty] private string _peakRateText = "—";
     [ObservableProperty] private string _totalText = "0 changes";
     [ObservableProperty] private string _jitterText = "—";
-
-    // The health report
-    [ObservableProperty] private double _healthScore;
-    [ObservableProperty] private bool _hasHealthScore;
-    [ObservableProperty] private string _healthScoreText = "—";
-    [ObservableProperty] private string _healthVerdict = "Test the controller to get a verdict";
-    [ObservableProperty] private string _healthChecksText = "0 of 7 checks done";
 
     /// <summary>How many report gaps of each length were seen (1 ms bins, 0 to 40 ms and over).</summary>
     [ObservableProperty] private long[] _histogram = new long[TesterModel.HistogramBins];
@@ -225,13 +198,11 @@ public sealed partial class TesterViewModel : ObservableObject
     public bool ReactionWait => ReactionState == ReactionState.Waiting;
     public bool ReactionBad => ReactionState == ReactionState.TooEarly;
     public bool ReactionDone => ReactionState == ReactionState.Result;
-    [ObservableProperty] private string _reactionText = "Press Start";
-    [ObservableProperty] private string _reactionDetail = "Press any button when the box turns green";
+    [ObservableProperty] private string _reactionText = "Click here to start";
+    [ObservableProperty] private string _reactionDetail = "Then press any button when the box turns green";
 
     /// <summary>The graph's six lines: left x and y, right x and y, left and right trigger.</summary>
     [ObservableProperty] private double[][] _scope = Array.Empty<double[]>();
-
-    private long _logVersion = -1;
 
     /// <summary>Copies the model's newest numbers into the texts the screen shows.</summary>
     public void Refresh(TesterSnapshot snap, string controllerName, StickSettings? leftSettings, StickSettings? rightSettings)
@@ -259,22 +230,13 @@ public sealed partial class TesterViewModel : ObservableObject
             ReactionState.Go => "NOW!",
             ReactionState.Result => $"{r.LastMs:0} ms",
             ReactionState.TooEarly => "Too early!",
-            _ => "Press Start"
+            _ => "Click here to start"
         };
         ReactionDetail = r.Attempts == 0
-            ? "Press any button when the box turns green"
+            ? "Then press any button when the box turns green"
             : $"best {r.BestMs:0} ms   average {r.AverageMs:0} ms   {r.Attempts} {(r.Attempts == 1 ? "try" : "tries")}";
 
         Histogram = snap.Rate.Histogram;
-
-        var health = TesterHealth.Evaluate(snap);
-        LastHealth = health;
-        HasHealthScore = health.Score != null;
-        HealthScore = health.Score ?? 0;
-        HealthScoreText = health.Score?.ToString(CultureInfo.InvariantCulture) ?? "—";
-        HealthVerdict = health.Verdict;
-        HealthChecksText = $"{health.Checked} of {health.Items.Count} checks done";
-        for (int i = 0; i < Health.Count && i < health.Items.Count; i++) Health[i].Update(health.Items[i]);
 
         Left.Update(snap.Left, leftSettings);
         Right.Update(snap.Right, rightSettings);
@@ -282,12 +244,5 @@ public sealed partial class TesterViewModel : ObservableObject
         RightTrigger.Update(snap.RightTrigger);
         for (int i = 0; i < Buttons.Count && i < snap.Buttons.Count; i++) Buttons[i].Update(snap.Buttons[i]);
         Scope = snap.Scope;
-
-        if (snap.LogVersion != _logVersion)
-        {
-            _logVersion = snap.LogVersion;
-            Log.Clear();
-            foreach (var line in snap.Log.Take(80)) Log.Add(line);
-        }
     }
 }

@@ -42,12 +42,11 @@ public sealed record TesterSnapshot(
     bool Connected, double ElapsedMs,
     StickSnapshot Left, StickSnapshot Right, TriggerSnapshot LeftTrigger, TriggerSnapshot RightTrigger,
     IReadOnlyList<ButtonSnapshot> Buttons, RateSnapshot Rate,
-    long LogVersion, IReadOnlyList<string> Log,
     double[][] Scope, ReactionSnapshot Reaction);
 
 /// <summary>
 /// The numbers behind the controller tester: live values, press counts and hold times, switch bounce, the shape a stick makes when
-/// rolled around its edge (the circularity test), rest drift, trigger travel, how often the pad reports, and a log. Feed it every
+/// rolled around its edge (the circularity test), rest drift, trigger travel and how often the pad reports. Feed it every
 /// reading with the time; read it back as a snapshot. Pure arithmetic, so it can be checked without a controller.
 /// </summary>
 public sealed class TesterModel
@@ -68,7 +67,6 @@ public sealed class TesterModel
     public const double SettleMove = 0.03;
     public const double BounceMs = 30;               // a release and press closer than this is switch chatter, not a person
     public const double RestLimit = 0.2;             // a stick this close to centre is "resting"
-    public const int MaxLog = 200;
     public const int TravelBins = 20;                // trigger travel, in twentieths of a pull
     public const int HistogramBins = 42;             // gaps between reports: 0 to 40 ms in 1 ms steps, then everything longer
     private const int MaxDistinct = 70000;
@@ -135,11 +133,9 @@ public sealed class TesterModel
     }
 
     private readonly object _gate = new();
-    private readonly Func<DateTime> _wallClock;
     private readonly Dictionary<ControllerButton, ButtonStat> _buttons = new();
     private readonly StickStat _left = new(), _right = new();
     private readonly TriggerStat _lt = new(), _rt = new();
-    private readonly List<string> _log = new();
     private readonly double[][] _scope = Enumerable.Range(0, 6).Select(_ => new double[ScopeSamples]).ToArray();
     private int _scopeFilled;
     private double _lastScopeAt = double.NegativeInfinity;
@@ -154,15 +150,13 @@ public sealed class TesterModel
     private long _totalChanges;
     private readonly long[] _intervalBins = new long[HistogramBins];
     private double _peakRate;
-    private long _logVersion;
 
     private ReactionState _reaction = ReactionState.Idle;
     private double _goAt, _goShownAt, _lastReaction;
     private readonly List<double> _reactions = new();
 
-    public TesterModel(Func<DateTime>? wallClock = null)
+    public TesterModel()
     {
-        _wallClock = wallClock ?? (() => DateTime.Now);
         foreach (var b in ListedButtons) _buttons[b] = new ButtonStat();
     }
 
@@ -176,8 +170,6 @@ public sealed class TesterModel
             ResetStick(_right);
             ResetTrigger(_lt);
             ResetTrigger(_rt);
-            _log.Clear();
-            _logVersion++;
             _scopeFilled = 0;
             _lastScopeAt = double.NegativeInfinity;
             _recentChanges.Clear();
@@ -230,7 +222,6 @@ public sealed class TesterModel
 
             if (state == null)
             {
-                if (_connected) Log("Controller disconnected");
                 _connected = false;
                 ReleaseEverything(nowMs);
                 _previous = null;
@@ -241,7 +232,6 @@ public sealed class TesterModel
             {
                 _connected = true;
                 _firstSeenAt = double.IsNaN(_firstSeenAt) ? nowMs : _firstSeenAt;
-                Log("Controller connected");
             }
 
             CountChange(state, nowMs);
@@ -249,8 +239,8 @@ public sealed class TesterModel
             foreach (var b in ListedButtons) UpdateButton(b, state.Buttons.Contains(b), nowMs);
             UpdateStick(_left, state.LeftStickX, state.LeftStickY, nowMs);
             UpdateStick(_right, state.RightStickX, state.RightStickY, nowMs);
-            UpdateTrigger(_lt, "Left trigger", state.LeftTrigger, nowMs);
-            UpdateTrigger(_rt, "Right trigger", state.RightTrigger, nowMs);
+            UpdateTrigger(_lt, state.LeftTrigger, nowMs);
+            UpdateTrigger(_rt, state.RightTrigger, nowMs);
             Sample(state, nowMs);
             _previous = state;
         }
@@ -315,7 +305,6 @@ public sealed class TesterModel
                 if (NewPress(s))
                 {
                     _reaction = ReactionState.TooEarly;
-                    Log("Reaction test: pressed too early");
                 }
                 else if (now >= _goAt)
                 {
@@ -330,7 +319,6 @@ public sealed class TesterModel
                     _lastReaction = now - _goShownAt;
                     _reactions.Add(_lastReaction);
                     _reaction = ReactionState.Result;
-                    Log($"Reaction test: {_lastReaction:0} ms");
                 }
                 break;
         }
@@ -346,9 +334,7 @@ public sealed class TesterModel
             s.Down = true;
             s.DownAt = now;
             s.Presses++;
-            bool bounce = now - s.ReleasedAt < BounceMs;
-            if (bounce) s.Bounces++;
-            Log($"{NameOf(button)} pressed" + (bounce ? $"  (bounce: only {now - s.ReleasedAt:0.#} ms after release)" : string.Empty));
+            if (now - s.ReleasedAt < BounceMs) s.Bounces++;
         }
         else if (!down && s.Down)
         {
@@ -357,7 +343,6 @@ public sealed class TesterModel
             s.LastHold = now - s.DownAt;
             s.Shortest = Math.Min(s.Shortest, s.LastHold);
             s.Longest = Math.Max(s.Longest, s.LastHold);
-            Log($"{NameOf(button)} released after {s.LastHold:0} ms");
         }
     }
 
@@ -430,7 +415,7 @@ public sealed class TesterModel
 
     // ---- triggers (pressure) ---------------------------------------------------------------------------------------------
 
-    private void UpdateTrigger(TriggerStat t, string name, double value, double now)
+    private void UpdateTrigger(TriggerStat t, double value, double now)
     {
         if (value != t.Value)
         {
@@ -452,7 +437,6 @@ public sealed class TesterModel
         else if (!down && t.Down)
         {
             t.Down = false;
-            Log($"{name} released after {now - t.DownAt:0} ms");
         }
         t.Held = t.Down ? now - t.DownAt : 0;
     }
@@ -478,20 +462,13 @@ public sealed class TesterModel
         _scope[5][i] = s.RightTrigger;
     }
 
-    // ---- the log and the rest ----------------------------------------------------------------------------------------------
-
-    private void Log(string text)
-    {
-        _log.Insert(0, $"{_wallClock():HH:mm:ss.fff}  {text}");
-        if (_log.Count > MaxLog) _log.RemoveAt(_log.Count - 1);
-        _logVersion++;
-    }
+    // ---- the rest ----------------------------------------------------------------------------------------------------------
 
     private void ReleaseEverything(double now)
     {
         foreach (var b in ListedButtons) UpdateButton(b, false, now);
-        UpdateTrigger(_lt, "Left trigger", 0, now);
-        UpdateTrigger(_rt, "Right trigger", 0, now);
+        UpdateTrigger(_lt, 0, now);
+        UpdateTrigger(_rt, 0, now);
         _left.X = _left.Y = _right.X = _right.Y = 0;
     }
 
@@ -529,7 +506,7 @@ public sealed class TesterModel
                 Snapshot(_left), Snapshot(_right),
                 Snapshot(_lt), Snapshot(_rt),
                 buttons, new RateSnapshot(perSecond, _peakRate, average, worst, _totalChanges, jitter, steady, (long[])_intervalBins.Clone(), median),
-                _logVersion, _log.ToList(), scope,
+                scope,
                 new ReactionSnapshot(_reaction, _lastReaction, _reactions.Count > 0 ? _reactions.Min() : 0, _reactions.Count > 0 ? _reactions.Average() : 0, _reactions.Count));
         }
     }

@@ -136,17 +136,17 @@ The pictures are not icons. They are drawn from a small SVG dialect, lit like th
 ### Live readings and the controller tester
 
 Make the window larger and the controller keeps its size while live readings appear underneath: both sticks with their circle,
-push, angle, circle error and drift, trigger pressure with the highest pull, how often the pad reports, a health score and, with
-enough height, a graph of the last six seconds. **F11** opens the full-screen tester:
+push, angle, circle error and drift, trigger pressure with the highest pull, how often the pad reports and, with
+enough height, a graph of the last six seconds. **F11** opens the full-screen tester, which fits on one screen with nothing to scroll:
 
 - **Sticks:** live position, the path just taken and your deadzone rings. Roll a stick around its edge to run the **circularity
-  test**, which reports how far the edge it reaches is, on average, from a perfect circle. **Rest drift** is measured only after the
-  stick has been still, never while it passes through the middle.
-- **Triggers:** pressure, the raw value, peak, where the trigger starts to register, hold time and pull count.
-- **Buttons:** state, press count, hold times, and **switch bounce** (a release and press under 30 ms apart).
-- **Timing:** reports per second, the usual gap, the worst gap and jitter, measured by a fast dedicated thread, plus a **reaction
-  test**.
-- **Graph, event log, vibration test and a health score** you can copy or save as a report.
+  test**, which reports how far the edge it reaches is, on average, from a perfect circle. Under each stick, the buttons on that half
+  of the pad: state, press count, hold times, and **switch bounce** (a release and press under 30 ms apart).
+- **Triggers:** pressure and, under it, a **travel** chart that shows where along the pull the trigger reported and where it skipped.
+- **Last 6 seconds and timing:** a graph of every axis, reports per second, the usual gap and jitter, measured by a fast dedicated
+  thread.
+- **Vibration test** (with a *vibrate until stopped* option) and a **reaction test** you start by clicking the box. Copy or save the
+  numbers as a report.
 
 The controller is only sampled fast while the tester or live readings are on screen.
 

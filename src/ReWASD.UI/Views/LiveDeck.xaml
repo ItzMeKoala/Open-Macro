@@ -179,7 +179,7 @@
                 </DockPanel>
             </Border>
 
-            <!-- Timing and health -->
+            <!-- Timing -->
             <Border x:Name="TimingTile" Grid.Column="6" Style="{StaticResource Tile}">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -187,7 +187,6 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TextBlock Text="RESPONSE" Style="{StaticResource Cap}" HorizontalAlignment="Left" />
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0" ToolTip="How often the controller reports a change">
@@ -201,17 +200,6 @@
                         <TextBlock Text="{Binding Tester.JitterText}" Style="{StaticResource Soft}" TextTrimming="CharacterEllipsis"
                                    Visibility="{Binding Tester.HasRate, Converter={StaticResource BoolToVisibility}}" />
                     </StackPanel>
-                    <Grid Grid.Row="4" Margin="0,8,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <tc:RingGauge Width="46" Height="46" Value="{Binding Tester.HealthScore}" HasValue="{Binding Tester.HasHealthScore}" Text="{Binding Tester.HealthScoreText}" Caption="" />
-                        <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="HEALTH" Style="{StaticResource Cap}" HorizontalAlignment="Left" />
-                            <TextBlock Text="{Binding Tester.HealthChecksText}" Foreground="{StaticResource BrushTextSecondary}" FontSize="11" TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
-                    </Grid>
                 </Grid>
             </Border>
         </Grid>

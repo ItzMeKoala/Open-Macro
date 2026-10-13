@@ -747,7 +747,7 @@ public partial class MainViewModel : ObservableObject
     private string BuildTesterReport()
     {
         var snap = Tester.Model.Snapshot();
-        return TesterReport.Build(snap, _testerControllerName, TesterHealth.Evaluate(snap), DateTime.Now);
+        return TesterReport.Build(snap, _testerControllerName, DateTime.Now);
     }
 
     [RelayCommand]
@@ -777,8 +777,13 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ResetTester() => Tester.Model.Reset();
 
+    /// <summary>Clicking the reaction box starts a round; while one is running (waiting or showing the signal) a click does nothing.</summary>
     [RelayCommand]
-    private void StartReactionTest() => Tester.Model.StartReaction(TesterSampler.NowMs());
+    private void StartReactionTest()
+    {
+        if (Tester.ReactionState is ReactionState.Waiting or ReactionState.Go) return;
+        Tester.Model.StartReaction(TesterSampler.NowMs());
+    }
 
     [RelayCommand]
     private void ResetTesterLeftStick() => Tester.Model.ResetStickMeasurements(left: true);
@@ -789,6 +794,15 @@ public partial class MainViewModel : ObservableObject
     /// <summary>The platform can shake the controller (Windows XInput); elsewhere the vibration buttons are hidden.</summary>
     public bool CanVibrate => Platform.SupportsRumble;
 
+    /// <summary>The vibration buttons keep shaking until Stop is pressed, instead of for under a second.</summary>
+    [ObservableProperty]
+    private bool _vibrateContinuously;
+
+    partial void OnVibrateContinuouslyChanged(bool value)
+    {
+        if (!value) StopVibration();
+    }
+
     private int _vibrationToken;
 
     private void Vibrate(double left, double right)
@@ -798,7 +812,8 @@ public partial class MainViewModel : ObservableObject
         try { _platform.Rumble.Rumble(left, right); }
         catch (Exception) { return; }
 
-        // A test shake lasts a moment, never until somebody remembers to stop it
+        // A test shake lasts a moment, never until somebody remembers to stop it (unless they asked for it to keep going)
+        if (VibrateContinuously) return;
         _ = Task.Delay(700).ContinueWith(_ =>
         {
             if (token == Volatile.Read(ref _vibrationToken)) StopVibration();
