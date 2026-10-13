@@ -1,6 +1,6 @@
 # Research notes
 
-ReWASD Open Source is a clean-room recreation. Its behaviour was worked out from documented evidence (how the commercial reWASD
+Open-Macro is a clean-room recreation. Its behaviour was worked out from documented evidence (how the commercial reWASD
 structures remaps, activators and macros), and everything was then written again from scratch. No code, images or other assets were
 copied.
 

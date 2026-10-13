@@ -1,4 +1,4 @@
-<h1 align="center">ReWASD Open Source</h1>
+<h1 align="center">Open-Macro</h1>
 
 <p align="center">
   A gamepad, keyboard and mouse remapper for Windows and macOS.<br>
@@ -13,10 +13,10 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/gamepad-xbox.png" alt="ReWASD on macOS: an Xbox controller drawn in detail, with the mapping editor beside it" width="900">
+  <img src="docs/images/gamepad-xbox.png" alt="Open-Macro on macOS: an Xbox controller drawn in detail, with the mapping editor beside it" width="900">
 </p>
 
-ReWASD Open Source reads your controller, keyboard and mouse, and sends something different to your computer. Press a button and
+Open-Macro reads your controller, keyboard and mouse, and sends something different to your computer. Press a button and
 get a key, hold a stick and move the cursor, tap twice and run a macro, point at a slice of a wheel and open an app. Everything
 is edited by clicking the part you want to change on a detailed drawing of the device.
 
@@ -49,6 +49,9 @@ Every change that reaches `main` is built, tested on both systems and published 
 | Windows 10 or 11, 64-bit | `ReWASD-win-x64.exe` | Double-click it. One self-contained file; nothing to install. |
 | macOS 12 or later, Apple silicon | `ReWASD-osx-arm64.zip` | Unzip, then open `ReWASD.app`. |
 | macOS 12 or later, Intel | `ReWASD-osx-x64.zip` | Unzip, then open `ReWASD.app`. |
+
+The project was renamed to Open-Macro; the file names, the app bundle, its identifier and the config folder still use the old name, `ReWASD`, so
+existing installs keep updating and keep their configs and permissions.
 
 The app is not signed with a paid developer certificate. On a Mac, right-click `ReWASD.app` and choose **Open** the first time.
 On Windows, SmartScreen may ask you to confirm: choose **More info**, then **Run anyway**.
@@ -125,7 +128,7 @@ The pictures are not icons. They are drawn from a small SVG dialect, lit like th
     <td width="50%"><img src="docs/images/mouse.png" alt="A gaming mouse with the left button selected"></td>
     <td>
       <b>Mouse.</b> A wired gaming mouse seen from above: two buttons, a ribbed wheel whose top and bottom light for a notch up or down,
-      and two thumb buttons. Buttons follow the real mouse while ReWASD is in front, and everywhere while remapping runs.
+      and two thumb buttons. Buttons follow the real mouse while Open-Macro is in front, and everywhere while remapping runs.
     </td>
   </tr>
 </table>
@@ -179,7 +182,7 @@ mapping to another pad button does nothing there. [docs/macos.md](docs/macos.md)
 [HidHide](https://github.com/nefarius/HidHide). Preferences shows whether each is ready. Controllers are read through XInput.
 
 **macOS.** The system only lets an app watch the keyboard and mouse, or press keys for you, once you allow it. Open
-**System Settings, Privacy & Security** and turn ReWASD on under both:
+**System Settings, Privacy & Security** and turn Open-Macro on under both:
 
 - **Accessibility** to press keys, move the mouse and swallow the originals of remapped keys.
 - **Input Monitoring** to see real key and mouse presses.

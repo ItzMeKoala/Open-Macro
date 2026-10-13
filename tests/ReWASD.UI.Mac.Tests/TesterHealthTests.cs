@@ -293,7 +293,7 @@ public class TesterHealthTests
 
         string text = TesterReport.Build(snap, "Xbox Wireless Controller", health, new DateTime(2026, 3, 4, 14, 5, 0));
 
-        Assert.StartsWith("ReWASD controller test report", text);
+        Assert.StartsWith("Open-Macro controller test report", text);
         Assert.Contains("Controller: Xbox Wireless Controller", text);
         Assert.Contains("Date: 2026-03-04 14:05", text);
         Assert.Contains("Health: 100/100 — In great shape (7 of 7 checks done)", text);

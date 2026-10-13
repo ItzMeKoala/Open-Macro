@@ -564,7 +564,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ShowInfo()
     {
-        StatusMessage = $"ReWASD Open Source {BuildInfo.Text} — clean-room gamepad remapper";
+        StatusMessage = $"Open-Macro {BuildInfo.Text} — gamepad, keyboard and mouse remapper";
     }
 
     [RelayCommand]
@@ -1094,7 +1094,7 @@ public partial class MainViewModel : ObservableObject
 
     // ---- Running in the background (tray / menu bar) ---------------------------------------------------------------------
 
-    /// <summary>Closing the window hides it and ReWASD keeps running from the tray or menu bar; Quit there ends it.</summary>
+    /// <summary>Closing the window hides it and Open-Macro keeps running from the tray or menu bar; Quit there ends it.</summary>
     [ObservableProperty]
     private bool _keepRunningInBackground;
 
@@ -1933,7 +1933,7 @@ public partial class MainViewModel : ObservableObject
             var progress = new Progress<double>(p => _ui.Post(() => UpdateProgress = p));
             string file = await _installer.DownloadAsync(update, progress);
 
-            UpdateStatusText = "Installing… ReWASD will restart.";
+            UpdateStatusText = "Installing… Open-Macro will restart.";
             Shutdown(); // stop remapping and give every key back before the app closes
             _installer.Install(file);
             _ui.RequestExit();

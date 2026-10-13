@@ -1,6 +1,8 @@
 # Running on macOS
 
-ReWASD runs on macOS 12 or later (Apple silicon and Intel) with its own front end, built with Avalonia, on the same
+_Open-Macro was called ReWASD Open Source until recently. The app file is still `ReWASD.app`, and the config folder and the app identifier keep the old name, so nothing you set up, permissions included, is lost._
+
+Open-Macro runs on macOS 12 or later (Apple silicon and Intel) with its own front end, built with Avalonia, on the same
 engine and the same saved configs as Windows.
 
 ## Install and run
@@ -16,14 +18,14 @@ To build it yourself instead: `./build.sh` (needs the .NET 9 SDK) puts `ReWASD.a
 replaces the app and reopens it. The app keeps one identity across updates, so macOS should not ask for the permissions below
 again (if it does, allow them once more). A copy run from source cannot replace itself: pull and rebuild instead.
 
-**Menu bar.** ReWASD puts an icon in the menu bar (show the window, start or stop remapping, lock, overlay, quit). Turn on
+**Menu bar.** Open-Macro puts an icon in the menu bar (show the window, start or stop remapping, lock, overlay, quit). Turn on
 **Keep running when the window is closed** in Preferences to make the red close button only hide the window, and **Hide the Dock icon**
 to live in the menu bar alone. Quit from the menu bar icon (or Cmd+Q) to end the app.
 
 ## Permissions
 
 macOS only lets an app watch the keyboard and mouse, or press keys for you, after you allow it. Open
-**System Settings → Privacy & Security** and turn ReWASD on under both:
+**System Settings → Privacy & Security** and turn Open-Macro on under both:
 
 - **Accessibility**: to press keys and move the mouse, and to swallow the originals of remapped keys.
 - **Input Monitoring**: to see real key and mouse presses.
@@ -41,7 +43,7 @@ the app. The `.app` build is ad-hoc signed, so rebuilding it may ask for the per
 | Saved configs (`~/Library/Application Support/ReWASD-OpenSource/profiles`) | Yes, the same JSON files as on Windows |
 | Panic key **Control + Option + Shift + F12** (hold `fn` on laptops with media keys) | Yes |
 | Virtual Xbox 360 / DualShock 4 controller | **No.** macOS only lets an app create a virtual gamepad with a driver Apple has approved (a DriverKit extension or an Apple-granted entitlement), so a mapping to another pad button does nothing |
-| Hiding the physical controller from other apps (HidHide) | **No.** The only way is to take the device exclusively, which would also cut it off from ReWASD's own reading |
+| Hiding the physical controller from other apps (HidHide) | **No.** The only way is to take the device exclusively, which would also cut it off from Open-Macro's own reading |
 | Vibration (the tester's test buttons and macro steps) | Yes, on pads macOS can shake (Xbox, DualSense, DualShock 4): through GameController haptics, a motor per handle where the pad has them. Not tried with real pads yet |
 | Everything in [features.md](features.md): stick modes, combos, scripts, command wheel, per-app profiles, overlay… | Yes |
 

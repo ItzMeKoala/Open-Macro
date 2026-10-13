@@ -280,7 +280,7 @@ public class TesterExtrasTests
 
         await vm.CopyTesterReportCommand.ExecuteAsync(null);
 
-        Assert.StartsWith("ReWASD controller test report", ui.Clipboard);
+        Assert.StartsWith("Open-Macro controller test report", ui.Clipboard);
         Assert.Contains("Left stick drift", ui.Clipboard);
         Assert.Equal("Report copied to the clipboard", vm.Tester.Notice);
     }
@@ -298,7 +298,7 @@ public class TesterExtrasTests
         ui.SavePath = path;
         await vm.SaveTesterReportCommand.ExecuteAsync(null);
 
-        Assert.StartsWith("ReWASD controller test report", File.ReadAllText(path));
+        Assert.StartsWith("Open-Macro controller test report", File.ReadAllText(path));
         Assert.Contains("saved", vm.Tester.Notice);
         File.Delete(path);
 

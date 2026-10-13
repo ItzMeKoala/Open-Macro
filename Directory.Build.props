@@ -4,6 +4,7 @@
     <!-- Lets the whole solution (including the WPF project) be built and checked on macOS and Linux; it only compiles, WPF still runs on Windows only -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <Version>0.1.0-alpha</Version>
+    <Product>Open-Macro</Product>
   </PropertyGroup>
 
   <!-- Stamps the short git commit into the version, so the app can show exactly which build is running -->

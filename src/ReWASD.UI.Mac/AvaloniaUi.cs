@@ -26,7 +26,7 @@ public sealed class AvaloniaUi : IPlatformUi
     private static Avalonia.Controls.Window? MainWindow =>
         (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
 
-    private static readonly Avalonia.Platform.Storage.FilePickerFileType JsonFiles = new("ReWASD profile") { Patterns = new[] { "*.json" } };
+    private static readonly Avalonia.Platform.Storage.FilePickerFileType JsonFiles = new("Open-Macro profile") { Patterns = new[] { "*.json" } };
 
     public async Task<string?> PickOpenFileAsync(string title)
     {

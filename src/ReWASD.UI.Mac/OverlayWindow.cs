@@ -17,7 +17,7 @@ public sealed class OverlayWindow : Window
     public OverlayWindow(MainViewModel vm)
     {
         DataContext = vm;
-        Title = "ReWASD overlay";
+        Title = "Open-Macro overlay";
         Width = 420;
         Height = 300;
         MinWidth = 160;

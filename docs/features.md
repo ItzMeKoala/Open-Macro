@@ -14,14 +14,14 @@
 - **Layout:** the top bar holds the config, Tester and Settings; one toolbar holds Gamepad / Keyboard / Mouse, the layer and the controller
   picture; the bottom bar starts remapping and names the controller in use (with a warning only when something needs attention).
 - **Keyboard tab:** a detailed tenkeyless keyboard drawn like the controllers: an aluminium case, sculpted two-tone keycaps and their
-  shadows. Keys sink and light while held (also with remapping off, while ReWASD is in front), the key being edited has a gold outline
+  shadows. Keys sink and light while held (also with remapping off, while Open-Macro is in front), the key being edited has a gold outline
   and remapped keys carry a dot. Every key can be remapped, punctuation and the right-hand Shift, Ctrl and Alt included, except Fn
   (handled inside the keyboard; no app sees it). On a Mac, Win is Command, and Caps Lock, Menu, Print Screen, Scroll Lock and Pause
   are drawn with quieter legends because macOS has no such keys or cannot press them.
 - The right-hand Shift, Ctrl and Alt are separate keys: a mapping on Shift is the left one.
 - **Mouse tab:** a wired gaming mouse seen from above, drawn the same way: a matte domed shell, two main buttons split by a seam, a
   ribbed wheel in a recessed slot (its top and bottom light for a notch up or down, the whole wheel sinks when pressed), rubber grips
-  and two thumb buttons. Buttons follow the real mouse while ReWASD is in front, and everywhere while remapping runs.
+  and two thumb buttons. Buttons follow the real mouse while Open-Macro is in front, and everywhere while remapping runs.
 - **Live readings:** make the window bigger (maximise it, or full screen on a Mac) and the controller keeps its size while live readings
   appear under it: both sticks with their circle, push, angle, roundness and drift, trigger pressure with the highest pull, how often the
   pad reports, a health score and, with enough height, a graph of the last six seconds. The controller is only measured while they are on
@@ -29,7 +29,7 @@
 
 Everything below works on Windows and macOS unless it says otherwise. It is all set up in the window (Preferences holds most of
 it) and saved with your configs. The ideas come from the feature list of
-[ControllerKeys](https://github.com/NSEvent/xbox-controller-mapper), a macOS-only app; ReWASD's versions are written from scratch for
+[ControllerKeys](https://github.com/NSEvent/xbox-controller-mapper), a macOS-only app; Open-Macro's versions are written from scratch for
 this project (ControllerKeys' source is under a non-commercial licence, so none of its code is used).
 
 ## Sticks
@@ -134,14 +134,14 @@ See the README: every push to `main` publishes a release and installed copies of
 
 ## Not included (and why)
 
-These ControllerKeys features are not in ReWASD:
+These ControllerKeys features are not in Open-Macro:
 
 - **Gyro aiming and touchpad mouse** (DualSense, DualShock 4, Steam Controller): needs raw device access that differs per system and
   controller, and could not be tried without the hardware.
 - **Steam Controller, Siri Remote, 8BitDo Zero 2 / Micro / Ultimate 2 special handling, S29 ring, DualSense LEDs, microphone and battery
   notices, Xbox Elite paddles on macOS**: hardware-specific.
 - **On-screen keyboard with swipe typing, laser pointer, cursor hints, directory navigator**.
-- **Mac-to-Mac controller relay, linked controllers** (ReWASD reads one controller at a time), **continuous trigger MIDI**,
+- **Mac-to-Mac controller relay, linked controllers** (Open-Macro reads one controller at a time), **continuous trigger MIDI**,
   **Stream Deck import**, **community profile browser**, **translations**.
-- **Realtime latency mode**: ReWASD already sends simple mappings as key-down and key-up straight away; only buttons that are part of a
+- **Realtime latency mode**: Open-Macro already sends simple mappings as key-down and key-up straight away; only buttons that are part of a
   chord wait (the chord window), which you can shorten.

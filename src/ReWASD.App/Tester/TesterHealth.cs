@@ -122,7 +122,7 @@ public static class TesterReport
     {
         var c = CultureInfo.InvariantCulture;
         var sb = new StringBuilder();
-        sb.AppendLine("ReWASD controller test report");
+        sb.AppendLine("Open-Macro controller test report");
         sb.AppendLine($"Controller: {controllerName}");
         sb.AppendLine($"Date: {when.ToString("yyyy-MM-dd HH:mm", c)}");
         var span = TimeSpan.FromMilliseconds(s.ElapsedMs);

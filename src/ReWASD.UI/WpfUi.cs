@@ -22,7 +22,7 @@ internal sealed class WpfUi : IPlatformUi
 
     public bool SetDockIconHidden(bool hidden) => false;
 
-    private const string Filter = "ReWASD profile (*.json)|*.json|All files (*.*)|*.*";
+    private const string Filter = "Open-Macro profile (*.json)|*.json|All files (*.*)|*.*";
 
     public Task<string?> PickOpenFileAsync(string title)
     {

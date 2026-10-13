@@ -44,8 +44,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleName</key><string>ReWASD</string>
-  <key>CFBundleDisplayName</key><string>ReWASD Open Source</string>
+  <key>CFBundleName</key><string>Open-Macro</string>
+  <key>CFBundleDisplayName</key><string>Open-Macro</string>
   <key>CFBundleIdentifier</key><string>org.rewasd.opensource</string>
   <key>CFBundleExecutable</key><string>ReWASD</string>
   <key>CFBundleIconFile</key><string>ReWASD</string>

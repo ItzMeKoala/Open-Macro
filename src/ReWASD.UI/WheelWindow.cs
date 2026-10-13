@@ -34,7 +34,7 @@ public sealed class WheelWindow : Window
     public WheelWindow(MainViewModel vm)
     {
         _vm = vm;
-        Title = "ReWASD command wheel";
+        Title = "Open-Macro command wheel";
         Width = Size;
         Height = Size;
         ResizeMode = ResizeMode.NoResize;

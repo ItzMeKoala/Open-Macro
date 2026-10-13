@@ -59,12 +59,12 @@ public static class PlatformServices
     public static PlatformInfo Current =>
         OperatingSystem.IsWindows() ? WindowsInfo
         : OperatingSystem.IsMacOS() ? MacOSInfo
-        : throw new PlatformNotSupportedException("ReWASD runs on Windows and macOS.");
+        : throw new PlatformNotSupportedException("Open-Macro runs on Windows and macOS.");
 
     public static PlatformBackends Create() =>
         OperatingSystem.IsWindows() ? CreateWindows()
         : OperatingSystem.IsMacOS() ? CreateMacOS()
-        : throw new PlatformNotSupportedException("ReWASD runs on Windows and macOS.");
+        : throw new PlatformNotSupportedException("Open-Macro runs on Windows and macOS.");
 
     // Kept in separate, non-inlined methods so a platform's types (the ViGEm client on Windows) are only
     // loaded when that platform is actually running.

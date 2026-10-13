@@ -1,4 +1,4 @@
-"""Draws the ReWASD app icon (a gamepad) and writes the files each platform needs.
+"""Draws the Open-Macro app icon (a gamepad) and writes the files each platform needs.
 
 Run:  python3 assets/icon/make_icon.py
 Writes: src/ReWASD.UI/Assets/ReWASD.ico, src/ReWASD.UI.Mac/Assets/ReWASD.icns (on a Mac), src/ReWASD.UI.Mac/Assets/tray.png,

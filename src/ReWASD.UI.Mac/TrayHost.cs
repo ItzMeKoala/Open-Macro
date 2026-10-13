@@ -10,7 +10,7 @@ internal static class TrayHost
 {
     public static void Attach(Application app, Window window, MainViewModel vm)
     {
-        var show = new NativeMenuItem("Show ReWASD");
+        var show = new NativeMenuItem("Show Open-Macro");
         show.Click += (_, _) => Show(window);
 
         var apply = new NativeMenuItem("Start or stop remapping");
@@ -22,7 +22,7 @@ internal static class TrayHost
         var overlay = new NativeMenuItem("Show or hide the overlay");
         overlay.Click += (_, _) => vm.ShowOverlay = !vm.ShowOverlay;
 
-        var quit = new NativeMenuItem("Quit ReWASD");
+        var quit = new NativeMenuItem("Quit Open-Macro");
         quit.Click += (_, _) => vm.RequestQuit();
 
         var menu = new NativeMenu();
@@ -30,7 +30,7 @@ internal static class TrayHost
             menu.Items.Add(item);
 
         using var stream = AssetLoader.Open(new Uri("avares://ReWASD/Assets/tray.png"));
-        var icon = new TrayIcon { Icon = new WindowIcon(stream), ToolTipText = "ReWASD", Menu = menu };
+        var icon = new TrayIcon { Icon = new WindowIcon(stream), ToolTipText = "Open-Macro", Menu = menu };
         icon.Clicked += (_, _) => Show(window);
         TrayIcon.SetIcons(app, new TrayIcons { icon });
     }

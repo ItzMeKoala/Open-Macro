@@ -1,4 +1,4 @@
-# ReWASD Open Source Project Guidelines
+# Open-Macro Project Guidelines
 
 ## Project Purpose
 This project focuses on analyzing, reverse-engineering, and cleanly reimplementing gamepad remapping, virtual device emulation, and macro/input features inspired by reWASD, using documented evidence and clean-room implementation practices.
