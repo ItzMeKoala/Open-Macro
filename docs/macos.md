@@ -57,7 +57,7 @@ connected) to get a detailed, animated drawing of that controller. It follows yo
 with the analog value, sticks lean and shrink when clicked, and the button you are editing is outlined in gold.
 Click any part of the drawing to select it. The drawings are `src/ReWASD.Core/Skins/Art/dualsense.svg` and `xboxone.svg`; they open in a
 browser (`docs/design/*-preview.html` also react to a real controller) and carries the part names and motion settings as `data-*` attributes (see `SvgArtParser`). The Xbox picture is an Xbox One style pad with a trigger and a bumper on each side. The PlayStation 4 and Switch Pro pictures
-and the Windows app still use the outline drawings.
+still use the outline drawings.
 
 The PlayStation logo on the PS button and the Xbox sphere on the Xbox button are the public-domain "PlayStation logo.svg" and
 "Xbox one logo.svg" from Wikimedia Commons. The marks are trademarks of Sony Interactive Entertainment and Microsoft and are
