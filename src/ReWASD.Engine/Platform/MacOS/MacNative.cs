@@ -185,7 +185,18 @@ internal static class ObjC
     [DllImport(Lib, EntryPoint = "objc_msgSend")] private static extern float SendFloat(IntPtr self, IntPtr sel);
     [DllImport(Lib, EntryPoint = "objc_msgSend")] private static extern void SendVoidBool(IntPtr self, IntPtr sel, [MarshalAs(UnmanagedType.I1)] bool value);
 
+    [DllImport(Lib, EntryPoint = "objc_msgSend")] private static extern IntPtr SendPtrPtr(IntPtr self, IntPtr sel, IntPtr a);
+    [DllImport(Lib, EntryPoint = "objc_msgSend")] private static extern IntPtr SendPtrPtrError(IntPtr self, IntPtr sel, IntPtr a, ref IntPtr error);
+    [DllImport(Lib, EntryPoint = "objc_msgSend")] private static extern IntPtr SendPtrPtrPtrError(IntPtr self, IntPtr sel, IntPtr a, IntPtr b, ref IntPtr error);
+    [DllImport(Lib, EntryPoint = "objc_msgSend")] private static extern IntPtr SendPtrPtrFloat(IntPtr self, IntPtr sel, IntPtr a, float value);
+    [DllImport(Lib, EntryPoint = "objc_msgSend")] private static extern IntPtr SendPtrPtrPtrDoubleDouble(IntPtr self, IntPtr sel, IntPtr a, IntPtr b, double c, double d);
+    [DllImport(Lib, EntryPoint = "objc_msgSend")] [return: MarshalAs(UnmanagedType.I1)] private static extern bool SendBoolError(IntPtr self, IntPtr sel, ref IntPtr error);
+    [DllImport(Lib, EntryPoint = "objc_msgSend")] [return: MarshalAs(UnmanagedType.I1)] private static extern bool SendBoolDoubleError(IntPtr self, IntPtr sel, double time, ref IntPtr error);
+    [DllImport(Lib, EntryPoint = "objc_msgSend")] [return: MarshalAs(UnmanagedType.I1)] private static extern bool SendBoolPtr(IntPtr self, IntPtr sel, IntPtr a);
+    [DllImport(Lib, EntryPoint = "objc_msgSend")] private static extern void SendVoidPtr(IntPtr self, IntPtr sel, IntPtr a);
+
     [DllImport("/usr/lib/libSystem.B.dylib")] private static extern IntPtr dlopen(string path, int mode);
+    [DllImport("/usr/lib/libSystem.B.dylib")] private static extern IntPtr dlsym(IntPtr handle, string symbol);
 
     private static readonly Dictionary<string, IntPtr> Selectors = new();
 
@@ -225,5 +236,73 @@ internal static class ObjC
         if (nsString == IntPtr.Zero) return null;
         var utf8 = Get(nsString, "UTF8String");
         return utf8 == IntPtr.Zero ? null : Marshal.PtrToStringUTF8(utf8);
+    }
+
+    /// <summary>True if this object responds to the selector.</summary>
+    public static bool RespondsTo(IntPtr obj, string selector) =>
+        obj != IntPtr.Zero && class_respondsToSelector(object_getClass(obj), Sel(selector));
+
+    public static IntPtr Retain(IntPtr obj) => Get(obj, "retain");
+    public static void Release(IntPtr obj) => Get(obj, "release");
+    public static IntPtr Autorelease(IntPtr obj) => Get(obj, "autorelease");
+    public static IntPtr New(string className) => Autorelease(Get(Get(Class(className), "alloc"), "init"));
+
+    /// <summary>An autoreleased NSString.</summary>
+    public static IntPtr NSString(string text)
+    {
+        var utf8 = Marshal.StringToCoTaskMemUTF8(text);
+        try { return SendPtrPtr(Class("NSString"), Sel("stringWithUTF8String:"), utf8); }
+        finally { Marshal.FreeCoTaskMem(utf8); }
+    }
+
+    /// <summary>The NSString constant a framework exports under this name (for example a CoreHaptics key), or the text itself when it cannot be found.</summary>
+    public static IntPtr StringConstant(string symbol, string fallback)
+    {
+        var address = dlsym(new IntPtr(-2), symbol); // RTLD_DEFAULT: the frameworks are already loaded
+        var value = address == IntPtr.Zero ? IntPtr.Zero : Marshal.ReadIntPtr(address);
+        return value != IntPtr.Zero ? value : NSString(fallback);
+    }
+
+    public static IntPtr NewArray() => Get(Class("NSMutableArray"), "array");
+    public static void Add(IntPtr array, IntPtr item) => SendVoidPtr(array, Sel("addObject:"), item);
+    public static bool SetContains(IntPtr set, IntPtr item) => set != IntPtr.Zero && SendBoolPtr(set, Sel("containsObject:"), item);
+
+    /// <summary>[[Class alloc] initWithEventType:parameters:relativeTime:duration:], autoreleased.</summary>
+    public static IntPtr NewHapticEvent(IntPtr type, IntPtr parameters, double relativeTime, double duration) =>
+        Autorelease(SendPtrPtrPtrDoubleDouble(Get(Class("CHHapticEvent"), "alloc"), Sel("initWithEventType:parameters:relativeTime:duration:"), type, parameters, relativeTime, duration));
+
+    /// <summary>[[CHHapticEventParameter alloc] initWithParameterID:value:], autoreleased.</summary>
+    public static IntPtr NewHapticParameter(IntPtr id, float value) =>
+        Autorelease(SendPtrPtrFloat(Get(Class("CHHapticEventParameter"), "alloc"), Sel("initWithParameterID:value:"), id, value));
+
+    /// <summary>[[CHHapticPattern alloc] initWithEvents:parameters:error:], autoreleased; zero when it could not be made.</summary>
+    public static IntPtr NewHapticPattern(IntPtr events, IntPtr parameters)
+    {
+        var error = IntPtr.Zero;
+        return Autorelease(SendPtrPtrPtrError(Get(Class("CHHapticPattern"), "alloc"), Sel("initWithEvents:parameters:error:"), events, parameters, ref error));
+    }
+
+    public static IntPtr WithArgument(IntPtr obj, string selector, IntPtr argument) =>
+        obj == IntPtr.Zero ? IntPtr.Zero : SendPtrPtr(obj, Sel(selector), argument);
+
+    /// <summary>obj.selector(argument, error:), for example createPlayerWithPattern:error:. The error is dropped.</summary>
+    public static IntPtr WithArgumentAndError(IntPtr obj, string selector, IntPtr argument)
+    {
+        var error = IntPtr.Zero;
+        return obj == IntPtr.Zero ? IntPtr.Zero : SendPtrPtrError(obj, Sel(selector), argument, ref error);
+    }
+
+    /// <summary>obj.selector(error:), for example startAndReturnError:.</summary>
+    public static bool CallWithError(IntPtr obj, string selector)
+    {
+        var error = IntPtr.Zero;
+        return obj != IntPtr.Zero && SendBoolError(obj, Sel(selector), ref error);
+    }
+
+    /// <summary>obj.selector(time, error:), for example startAtTime:error:.</summary>
+    public static bool CallAtTime(IntPtr obj, string selector, double time)
+    {
+        var error = IntPtr.Zero;
+        return obj != IntPtr.Zero && SendBoolDoubleError(obj, Sel(selector), time, ref error);
     }
 }

@@ -182,9 +182,10 @@ public class TesterViewModelTests
     [Fact]
     public void Vibration_IsOnlyOfferedWhereItWorks_ShakesBriefly_AndStops()
     {
-        var mac = new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo), new Fakes.Ui(), Fakes.TempProfiles());
-        Assert.False(mac.CanVibrate);
-        mac.VibrateBothCommand.Execute(null);                        // does nothing, harmlessly
+        var mute = new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo with { SupportsRumble = false }), new Fakes.Ui(), Fakes.TempProfiles());
+        Assert.False(mute.CanVibrate);
+        mute.VibrateBothCommand.Execute(null);                       // does nothing, harmlessly
+        Assert.True(new MainViewModel(Fakes.Platform(PlatformServices.MacOSInfo), new Fakes.Ui(), Fakes.TempProfiles()).CanVibrate);
 
         var rumble = new FakeRumble();
         var vm = new MainViewModel(Fakes.Platform(PlatformServices.WindowsInfo, rumble: rumble), new Fakes.Ui(), Fakes.TempProfiles());

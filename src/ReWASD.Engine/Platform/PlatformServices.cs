@@ -41,6 +41,7 @@ public sealed class PlatformBackends : IDisposable
 
     public void Dispose()
     {
+        (Rumble as IDisposable)?.Dispose();
         VirtualPad.Dispose();
         (InputBackend as IDisposable)?.Dispose();
     }
@@ -52,7 +53,7 @@ public static class PlatformServices
         SupportsVirtualController: true, SupportsDeviceHiding: true, SupportsRumble: true, NeedsInputPermissions: false);
 
     public static readonly PlatformInfo MacOSInfo = new("macOS", "GameController", "No game controller detected", "Control + Option + Shift + F12",
-        SupportsVirtualController: false, SupportsDeviceHiding: false, SupportsRumble: false, NeedsInputPermissions: true);
+        SupportsVirtualController: false, SupportsDeviceHiding: false, SupportsRumble: true, NeedsInputPermissions: true);
 
     /// <summary>Describes the platform this process runs on.</summary>
     public static PlatformInfo Current =>
@@ -88,12 +89,13 @@ public static class PlatformServices
     private static PlatformBackends CreateMacOS()
     {
         MacInputHook? hook = null;
+        var reader = new MacGameController();
         return new PlatformBackends
         {
             Info = MacOSInfo,
-            Reader = new MacGameController(),
+            Reader = reader,
             InputBackend = new MacInputBackend(() => hook?.SwallowedModifierFlags ?? 0),
-            Rumble = new NullRumbleOutput(),
+            Rumble = new MacRumbleOutput(reader),
             VirtualPad = new NullVirtualGamepad(),
             CreateHook = (key, mouse) => hook = new MacInputHook(key, mouse),
             Foreground = MacForeground.Current,

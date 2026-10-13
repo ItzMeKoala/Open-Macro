@@ -47,6 +47,23 @@ public sealed class MacGameController : IPhysicalController
     // bookkeeping are not meant to run at the same time on several threads
     private readonly object _sync = new();
 
+    /// <summary>
+    /// Runs <paramref name="action"/> with the controller currently in use (the one read, or the first when none has been yet),
+    /// under the lock and an autorelease pool. False when no controller is connected.
+    /// </summary>
+    internal bool WithActiveController(Action<IntPtr> action)
+    {
+        if (!_available) return false;
+        lock (_sync)
+        {
+            using var scope = new PoolScope();
+            var controllers = ExtendedControllers();
+            if (controllers.Count == 0) return false;
+            action(controllers.Contains(_activeController) ? _activeController : controllers[0]);
+            return true;
+        }
+    }
+
     public IReadOnlyList<int> ConnectedSlots()
     {
         var slots = new List<int>();

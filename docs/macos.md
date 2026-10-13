@@ -40,9 +40,9 @@ the app. The `.app` build is ad-hoc signed, so rebuilding it may ask for the per
 | Keyboard and mouse as sources, macro recording, activators (single, long, double…), shift layers, turbo and toggle | Yes |
 | Saved configs (`~/Library/Application Support/ReWASD-OpenSource/profiles`) | Yes, the same JSON files as on Windows |
 | Panic key **Control + Option + Shift + F12** (hold `fn` on laptops with media keys) | Yes |
-| Virtual Xbox 360 / DualShock 4 controller | **No.** macOS has no driver that can present one, so a mapping to another pad button does nothing |
-| Hiding the physical controller from other apps (HidHide) | **No** |
-| Vibration macro steps | **No** |
+| Virtual Xbox 360 / DualShock 4 controller | **No.** macOS only lets an app create a virtual gamepad with a driver Apple has approved (a DriverKit extension or an Apple-granted entitlement), so a mapping to another pad button does nothing |
+| Hiding the physical controller from other apps (HidHide) | **No.** The only way is to take the device exclusively, which would also cut it off from ReWASD's own reading |
+| Vibration (the tester's test buttons and macro steps) | Yes, on pads macOS can shake (Xbox, DualSense, DualShock 4): through GameController haptics, a motor per handle where the pad has them. Not tried with real pads yet |
 | Everything in [features.md](features.md): stick modes, combos, scripts, command wheel, per-app profiles, overlay… | Yes |
 
 Controllers are read through Apple's GameController framework, so any pad macOS lists under

@@ -116,7 +116,7 @@ tester:
 - **Timing:** how many times a second the pad reports something new, the usual (median) gap, the average and worst gap and jitter, read by
   a fast thread so the figures are real. A **reaction test** (press any button when the box turns green) keeps best and average.
 - **Graph** of the last six seconds of all axes, a **timestamped event log**, the animated controller picture, and a **vibration test**
-  (left motor, right motor, both) where the system can shake the pad (Windows).
+  (left motor, right motor, both) where the system can shake the pad (Windows, and macOS for Xbox, DualSense and DualShock 4 pads).
 - **Reset** per stick or for everything. Nothing is read faster than normal unless the tester or the live readings are on screen.
 
 - **Health:** drift is graded against the deadzones games use (under 8 % good, under 15 % fair), roundness by circle error (under 10 %

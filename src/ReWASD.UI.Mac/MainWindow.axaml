@@ -555,9 +555,9 @@
                                     <TextBlock Text="ON THIS MAC" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8" />
                                     <Border Classes="card">
                                         <StackPanel>
-                                            <TextBlock Text="Works: controller buttons, sticks and triggers to keyboard keys, mouse buttons, scrolling, layers and macros; keyboard and mouse remapping; macro recording."
+                                            <TextBlock Text="Works: controller buttons, sticks and triggers to keyboard keys, mouse buttons, scrolling, layers and macros; keyboard and mouse remapping; macro recording; vibration on pads macOS can shake (Xbox, DualSense, DualShock 4)."
                                                        Foreground="{StaticResource BrushTextPrimary}" FontSize="12" TextWrapping="Wrap" />
-                                            <TextBlock Text="Not on macOS: a virtual Xbox or DualShock controller (there is no driver for it), hiding the physical controller from other apps, and vibration."
+                                            <TextBlock Text="Not on macOS: a virtual Xbox or DualShock controller (there is no driver for it), and hiding the physical controller from other apps (macOS does not let an app do either)."
                                                        Foreground="{StaticResource BrushTextSecondary}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0" />
                                         </StackPanel>
                                     </Border>

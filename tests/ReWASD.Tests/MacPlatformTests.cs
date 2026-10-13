@@ -18,7 +18,43 @@ public class MacPlatformTests
         Assert.IsType<MacInputBackend>(backends.InputBackend);
         using var hook = backends.CreateHook(_ => false, _ => false);
         Assert.IsType<MacInputHook>(hook);
-        backends.Rumble.Rumble(1, 1); // must be accepted and ignored
+        Assert.IsType<MacRumbleOutput>(backends.Rumble);
+        Assert.True(backends.Info.SupportsRumble);
+        backends.Rumble.Rumble(1, 1); // no controller connected: accepted and ignored
+        backends.Rumble.Rumble(0, 0);
+    }
+
+    [MacFact]
+    public void MacRumble_BuildsAHapticPatternWithoutAnyHardware()
+    {
+        Assert.True(ObjC.LoadFramework("Foundation") && ObjC.LoadFramework("CoreHaptics"));
+        var pool = ObjC.objc_autoreleasePoolPush();
+        try
+        {
+            // A wrong message signature here would crash the process, so this proves the calls are shaped right
+            Assert.NotEqual(IntPtr.Zero, MacRumbleOutput.BuildPattern(1.0));
+            Assert.NotEqual(IntPtr.Zero, MacRumbleOutput.BuildPattern(0.3));
+        }
+        finally
+        {
+            ObjC.objc_autoreleasePoolPop(pool);
+        }
+    }
+
+    [MacFact]
+    public void MacRumble_WithoutAControllerNeverCrashes_AndCanBeDisposedRepeatedly()
+    {
+        var reader = new MacGameController();
+        var rumble = new MacRumbleOutput(reader);
+        for (int i = 0; i < 100; i++)
+        {
+            rumble.Rumble(i % 2, 1 - i % 2);
+            rumble.Rumble(double.NaN, 5);       // nonsense is clamped, not passed on
+        }
+        rumble.Rumble(0, 0);
+        rumble.Dispose();
+        rumble.Dispose();
+        rumble.Rumble(1, 1);                    // after disposal still harmless
     }
 
     [MacFact]
