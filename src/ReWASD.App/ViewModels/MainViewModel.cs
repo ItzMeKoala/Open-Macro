@@ -139,6 +139,9 @@ public partial class MainViewModel : ObservableObject
     private bool _isOutputMenuOpen;
 
     [ObservableProperty]
+    private bool _isSlotMenuOpen;
+
+    [ObservableProperty]
     private bool _isConfigMenuOpen;
 
     [ObservableProperty]
@@ -150,7 +153,11 @@ public partial class MainViewModel : ObservableObject
 
     /// <summary>The kind of virtual controller games will see (stored per config).</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPlayStationOutput))]
     private ControllerType _selectedVirtualController = ControllerType.Xbox360;
+
+    /// <summary>The virtual controller is a PlayStation one (the button shows the PlayStation logo; otherwise the Xbox logo).</summary>
+    public bool IsPlayStationOutput => SelectedVirtualController == ControllerType.DualShock4;
 
     public IReadOnlyList<VirtualControllerOption> VirtualControllerOptions { get; }
 
@@ -162,10 +169,7 @@ public partial class MainViewModel : ObservableObject
         return new[]
         {
             new VirtualControllerOption(ControllerType.Xbox360, "Xbox 360", can, can ? "Works with every game that supports an Xbox controller" : NoMac),
-            new VirtualControllerOption(ControllerType.DualShock4, "DualShock 4", can, can ? "For games and emulators that expect a PlayStation 4 controller" : NoMac),
-            new VirtualControllerOption(ControllerType.XboxOne, "Xbox One", false, "Not available: the ViGEm driver cannot emulate an Xbox One controller"),
-            new VirtualControllerOption(ControllerType.DualSense, "DualSense (PS5)", false, "Not available: the ViGEm driver cannot emulate a DualSense controller"),
-            new VirtualControllerOption(ControllerType.SwitchPro, "Switch Pro", false, "Not available: the ViGEm driver cannot emulate a Switch Pro controller")
+            new VirtualControllerOption(ControllerType.DualShock4, "DualShock 4", can, can ? "For games and emulators that expect a PlayStation 4 controller" : NoMac)
         };
     }
 
@@ -185,9 +189,6 @@ public partial class MainViewModel : ObservableObject
     {
         SelectedProfile.TargetControllerType = value;
         IsOutputMenuOpen = false;
-
-        // The drawing follows the emulated controller (it can still be changed by hand afterwards)
-        SelectedSkin = value == ControllerType.DualShock4 ? SkinKind.PlayStation4 : SkinKind.Xbox;
 
         var name = VirtualControllerOptions.FirstOrDefault(o => o.Type == value)?.Name ?? value.ToString();
         StatusMessage = $"Virtual controller: {name}";
@@ -223,6 +224,7 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnActiveSlotChanged(int value)
     {
+        IsSlotMenuOpen = false;
         SelectedProfile.ActiveSlot = value;
     }
 

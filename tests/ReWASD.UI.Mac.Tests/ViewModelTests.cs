@@ -33,6 +33,24 @@ public class ViewModelTests
     }
 
     [Fact]
+    public void VirtualController_OffersXbox360AndDualShock4Only_AndLeavesThePictureAlone()
+    {
+        var vm = New();
+
+        Assert.Equal(new[] { ControllerType.Xbox360, ControllerType.DualShock4 }, vm.VirtualControllerOptions.Select(o => o.Type));
+        Assert.False(vm.IsPlayStationOutput);
+
+        var picture = vm.SelectedSkin;
+        vm.SelectedVirtualController = ControllerType.DualShock4;
+        Assert.True(vm.IsPlayStationOutput);
+        Assert.Equal(picture, vm.SelectedSkin);
+
+        vm.SelectedVirtualController = ControllerType.Xbox360;
+        Assert.False(vm.IsPlayStationOutput);
+        Assert.Equal(picture, vm.SelectedSkin);
+    }
+
+    [Fact]
     public void ConnectedController_IsNamed()
     {
         var pad = new Fakes.Pad { State = new PhysicalState(new HashSet<ControllerButton>(), 0, 0, 0, 0, 0, 0) };

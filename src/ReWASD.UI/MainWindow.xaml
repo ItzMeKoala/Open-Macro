@@ -721,32 +721,78 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <!-- Start / stop remapping -->
-                    <Button Command="{Binding ToggleApplyCommand}" Style="{StaticResource ApplyButtonRunningStyle}" MinWidth="170" Height="38"
-                            ToolTip="Start or stop remapping" AutomationProperties.Name="Start or stop remapping">
-                        <StackPanel Orientation="Horizontal">
-                            <Ellipse Width="9" Height="9" Fill="#2EF2A0" Margin="0,0,9,0" VerticalAlignment="Center"
-                                     Visibility="{Binding IsRemappingActive, Converter={StaticResource BoolToVisibility}}" />
-                            <TextBlock FontWeight="Bold" FontSize="14" Text="{Binding ApplyButtonText}" />
-                        </StackPanel>
+                    <!-- Start / stop remapping (an icon), with the slot picker attached on its right -->
+                    <Button Command="{Binding ToggleApplyCommand}" Style="{StaticResource ApplySplitButtonStyle}" Width="64" Height="44"
+                            ToolTip="{Binding ApplyButtonText}" AutomationProperties.Name="Start or stop remapping">
+                        <Grid Width="28" Height="28">
+                            <Path Data="{StaticResource IconPlay}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Stretch="Uniform">
+                                <Path.Style>
+                                    <Style TargetType="Path">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsRemappingActive}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Path.Style>
+                            </Path>
+                            <Path Data="{StaticResource IconStop}" Fill="#2EF2A0" Stretch="Uniform" Margin="3"
+                                  Visibility="{Binding IsRemappingActive, Converter={StaticResource BoolToVisibility}}" />
+                        </Grid>
                     </Button>
+                    <ToggleButton x:Name="SlotToggle" Style="{StaticResource ApplySlotToggleStyle}" Width="56" Height="44" Margin="0,0,14,0"
+                                  ToolTip="Which controller slot (1 to 4) the virtual controller takes" AutomationProperties.Name="Controller slot"
+                                  IsChecked="{Binding IsSlotMenuOpen, Mode=TwoWay}"
+                                  IsHitTestVisible="{Binding IsOpen, ElementName=SlotPopup, Converter={StaticResource InverseBool}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding ActiveSlot}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock Text="&#xE70D;" FontFamily="{StaticResource IconFont}" FontSize="9" Foreground="{StaticResource BrushTextSecondary}" Margin="7,1,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </ToggleButton>
 
-                    <!-- Slot -->
-                    <TextBlock Text="Slot" Foreground="{StaticResource BrushTextMuted}" FontSize="12" VerticalAlignment="Center" Margin="14,0,6,0"
-                               ToolTip="Which controller slot (1 to 4) the virtual controller takes" />
-                    <ComboBox ItemsSource="{Binding SlotNumbers}" SelectedItem="{Binding ActiveSlot, Mode=TwoWay}"
-                              Width="80" Height="36" FontSize="14" FontWeight="SemiBold" Margin="0,0,14,0" VerticalAlignment="Center"
-                              ToolTip="Which controller slot (1 to 4) the virtual controller takes" />
+                    <Popup x:Name="SlotPopup" IsOpen="{Binding IsSlotMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=SlotToggle}"
+                           Placement="Top" HorizontalOffset="0" VerticalOffset="-6" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                        <Border Width="120" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorderLight}" BorderThickness="1" CornerRadius="8" Padding="10">
+                            <StackPanel>
+                                <TextBlock Text="SLOT" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="4,2,0,8"
+                                           ToolTip="Which controller slot (1 to 4) the virtual controller takes" />
+                                <ListBox ItemsSource="{Binding SlotNumbers}" SelectedItem="{Binding ActiveSlot, Mode=TwoWay}"
+                                         Background="Transparent" BorderThickness="0" Foreground="{StaticResource BrushTextPrimary}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" FontSize="14" Margin="4,3" Foreground="{StaticResource BrushTextPrimary}" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
 
-                    <!-- Virtual controller: which controller games will see -->
-                    <ToggleButton x:Name="OutputToggle" Style="{StaticResource IconToggle}" Content="&#xE7FC;" Width="44" Height="36" Margin="0,0,6,0"
+                    <!-- Virtual controller: which controller games will see. The icon is the logo of the chosen one. -->
+                    <ToggleButton x:Name="OutputToggle" Style="{StaticResource IconToggle}" Width="48" Height="40" Margin="0,0,6,0"
                                   ToolTip="Virtual controller: what games will see"
                                   IsChecked="{Binding IsOutputMenuOpen, Mode=TwoWay}"
-                                  IsHitTestVisible="{Binding IsOpen, ElementName=OutputPopup, Converter={StaticResource InverseBool}}" />
+                                  IsHitTestVisible="{Binding IsOpen, ElementName=OutputPopup, Converter={StaticResource InverseBool}}">
+                        <Grid Width="24" Height="24">
+                            <Path Data="{StaticResource IconXboxLogo}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" Stretch="Uniform">
+                                <Path.Style>
+                                    <Style TargetType="Path">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsPlayStationOutput}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Path.Style>
+                            </Path>
+                            <Path Data="{StaticResource IconPlayStationLogo}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" Stretch="Uniform"
+                                  Visibility="{Binding IsPlayStationOutput, Converter={StaticResource BoolToVisibility}}" />
+                        </Grid>
+                    </ToggleButton>
 
                     <Popup x:Name="OutputPopup" IsOpen="{Binding IsOutputMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=OutputToggle}"
                            Placement="Top" HorizontalOffset="-10" VerticalOffset="-6" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
-                        <Border Width="340" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorderLight}" BorderThickness="1" CornerRadius="8" Padding="10">
+                        <Border Width="260" Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorderLight}" BorderThickness="1" CornerRadius="8" Padding="10">
                             <StackPanel>
                                 <TextBlock Text="VIRTUAL CONTROLLER" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="4,2,0,8" />
                                 <ListBox ItemsSource="{Binding VirtualControllerOptions}" SelectedValuePath="Type"

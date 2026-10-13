@@ -87,6 +87,61 @@
         </Style.Triggers>
     </Style>
 
+    <!-- The Start / Stop half of the split button: square on the right, where the slot picker attaches -->
+    <Style x:Key="ApplySplitButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource BrushCyan}" />
+        <Setter Property="Foreground" Value="#101318" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="8,0,0,8">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Opacity" Value="0.92" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="border" Property="Opacity" Value="0.8" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsRemappingActive}" Value="True">
+                <Setter Property="Background" Value="#2A2D35" />
+                <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- The slot half of the split button: a dark segment on the right of Start, opening a small list -->
+    <Style x:Key="ApplySlotToggleStyle" TargetType="ToggleButton">
+        <Setter Property="Background" Value="{StaticResource BrushBgCard}" />
+        <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,1,1" CornerRadius="0,8,8,0">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource BrushBgCardHover}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource BrushCyan}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Labelled buttons in the top bar -->
     <Style x:Key="BarButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="Transparent" />

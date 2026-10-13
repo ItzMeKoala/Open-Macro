@@ -177,10 +177,11 @@
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="Padding" Value="18,8" />
+        <Setter Property="CornerRadius" Value="6" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <ControlTemplate>
-                <Border Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                <Border Name="Bd" Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}">
                     <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>

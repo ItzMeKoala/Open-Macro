@@ -8,6 +8,12 @@
     <!-- System icon font: glyphs come from Windows, no bundled artwork -->
     <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 
+    <!-- Start / stop and the controller logos (24x24 drawings, filled with the control's colour) -->
+    <Geometry x:Key="IconPlay">M7 4.5 L20 12 L7 19.5 Z</Geometry>
+    <Geometry x:Key="IconStop">M6 6 H18 V18 H6 Z</Geometry>
+    <Geometry x:Key="IconPlayStationLogo">M8.984 2.596v17.547l3.915 1.261V6.688c0-.69.304-1.151.794-.991.636.18.76.814.76 1.505v5.875c2.441 1.193 4.362-.002 4.362-3.153 0-3.237-1.126-4.675-4.438-5.827-1.307-.44-3.73-1.186-5.393-1.501zm4.656 16.241l6.296-2.275c.715-.258.826-.625.246-.818-.586-.192-1.637-.139-2.357.123l-4.205 1.499v-2.385l.24-.085s1.201-.42 2.913-.615c1.696-.18 3.785.03 5.437.661 1.848.601 2.041 1.472 1.576 2.072s-1.622 1.036-1.622 1.036l-8.544 3.107v-2.297zM1.807 18.6c-1.9-.545-2.214-1.668-1.352-2.32.801-.586 2.16-1.052 2.16-1.052l5.615-2.013v2.313L4.205 17c-.705.271-.825.632-.239.826.586.195 1.637.15 2.343-.12L8.247 17v2.074c-.12.03-.256.044-.376.074-1.934.351-3.995.21-6.064-.549z</Geometry>
+    <Geometry x:Key="IconXboxLogo">F1 M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.2c2.1 0 4 .75 5.5 2-.9-.15-2.05.6-3.35 1.7L12 7.7 9.85 5.9C8.55 4.8 7.4 4.05 6.5 4.2c1.5-1.25 3.4-2 5.5-2zM4.9 5.6c.6 0 1.8.7 3.2 2.1l2.6 3.1L12 12.4l-5.6 6.3C4.3 16.8 3.8 14 5 11.6l1.4-2.9-.6-1.5c-.5-.9-.9-1.5-.9-1.6zm14.2 0c0 .1-.4.7-.9 1.6l-.6 1.5L19 11.6c1.2 2.4.7 5.2-1.4 7.1L12 12.4l1.3-1.6 2.6-3.1c1.4-1.4 2.6-2.1 3.2-2.1zM12 13.9l5 5.6c-1.4 1.4-3.1 2.3-5 2.3s-3.6-.9-5-2.3l5-5.6z</Geometry>
+
     <!-- Flat icon button -->
     <Style x:Key="IconButton" TargetType="Button">
         <Setter Property="FontFamily" Value="{StaticResource IconFont}" />

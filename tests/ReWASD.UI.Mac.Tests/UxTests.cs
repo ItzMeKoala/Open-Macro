@@ -23,6 +23,9 @@ public class UxTests
     private static List<string?> VisibleTexts(Window window) =>
         window.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text).ToList();
 
+    private static Button StartButton(Window window) =>
+        window.GetVisualDescendants().OfType<Button>().Single(b => Avalonia.Automation.AutomationProperties.GetName(b) == "Start or stop remapping");
+
     // ---- settings -------------------------------------------------------------------------------------------------------
 
     [AvaloniaFact]
@@ -158,14 +161,15 @@ public class UxTests
 
         Assert.Contains("Tester", texts);
         Assert.Contains("Settings", texts);
-        Assert.Contains("Start remapping", texts);
+        Assert.DoesNotContain("Start remapping", texts);   // the Start button is an icon; its words are the tooltip
+        Assert.Equal("Start remapping", StartButton(window).GetValue(ToolTip.TipProperty));
         Assert.Contains("Saved", texts);
         Assert.Contains("Remapping is off.", texts);
         Assert.DoesNotContain("APPLY", texts);
 
         vm.IsRemappingActive = true;
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-        Assert.Contains("Stop remapping", VisibleTexts(window));
+        Assert.Equal("Stop remapping", StartButton(window).GetValue(ToolTip.TipProperty));
     }
 
     // ---- shortcuts ----------------------------------------------------------------------------------------------------------
