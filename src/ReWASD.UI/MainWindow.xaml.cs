@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Shell;
 
 namespace ReWASD.UI;
 
@@ -42,6 +43,29 @@ public partial class MainWindow : Window
     internal bool IsFullScreen => _fullScreen;
 
     /// <summary>Full screen is the controller tester: F11 or the Tester button opens it, Esc leaves it.</summary>
+    private readonly WindowChrome? _chrome;
+
+    private void OnMinimize(object sender, RoutedEventArgs e) => SystemCommands.MinimizeWindow(this);
+    private void OnMaximize(object sender, RoutedEventArgs e)
+    {
+        if (WindowState == WindowState.Maximized) SystemCommands.RestoreWindow(this);
+        else SystemCommands.MaximizeWindow(this);
+    }
+    private void OnClose(object sender, RoutedEventArgs e) => SystemCommands.CloseWindow(this);
+
+    /// <summary>
+    /// A maximised window with its own title bar reaches past the screen by the width of the resize border, so the content is
+    /// pulled back in by that much; the maximize button shows the right symbol for what it will do.
+    /// </summary>
+    private void UpdateCaption()
+    {
+        bool maximized = WindowState == WindowState.Maximized && !_fullScreen;
+        Root.Margin = maximized ? SystemParameters.WindowResizeBorderThickness : new Thickness(0);
+        MaximizeButton.Content = maximized ? "\uE923" : "\uE922";
+        MaximizeButton.ToolTip = maximized ? "Restore" : "Maximize";
+        MaximizeButton.SetValue(System.Windows.Automation.AutomationProperties.NameProperty, maximized ? "Restore" : "Maximize");
+    }
+
     internal void SetFullScreen(bool on)
     {
         if (on == _fullScreen) return;
@@ -57,8 +81,10 @@ public partial class MainWindow : Window
             WindowState = WindowState.Normal;
             WindowStyle = WindowStyle.None;
             ResizeMode = ResizeMode.NoResize;
+            WindowChrome.SetWindowChrome(this, null);      // full screen has no title bar of its own to draw
             WindowState = WindowState.Maximized;
             _fullScreen = true;
+            UpdateCaption();
 
             _tester = new Views.TesterView { DataContext = vm };
             _tester.ExitRequested += (_, _) => SetFullScreen(false);
@@ -77,13 +103,18 @@ public partial class MainWindow : Window
             WindowState = WindowState.Normal;
             WindowStyle = _styleBefore;
             ResizeMode = _resizeBefore;
+            WindowChrome.SetWindowChrome(this, _chrome);
             WindowState = _stateBefore == WindowState.Minimized ? WindowState.Normal : _stateBefore;
+            UpdateCaption();
         }
     }
 
     public MainWindow()
     {
         InitializeComponent();
+        _chrome = WindowChrome.GetWindowChrome(this);
+        StateChanged += (_, _) => UpdateCaption();
+        UpdateCaption();
 
         // The window is made for 1280 x 800; on a smaller screen it takes what fits instead of running off the edge
         var area = SystemParameters.WorkArea;

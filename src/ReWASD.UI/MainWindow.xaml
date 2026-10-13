@@ -14,6 +14,11 @@
         WindowStartupLocation="CenterScreen"
         Style="{StaticResource ModernWindowStyle}">
 
+    <!-- The top bar is the title bar: Windows draws only the window frame and the resize edges, the bar below draws the rest -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="48" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
     <Window.DataContext>
         <vm:MainViewModel />
     </Window.DataContext>
@@ -71,17 +76,20 @@
         </Style>
     </Window.Resources>
 
-    <Grid>
+    <Grid x:Name="Root">
         <Grid.RowDefinitions>
             <RowDefinition Height="48" />   <!-- top bar -->
             <RowDefinition Height="*" />    <!-- rail and workspace -->
         </Grid.RowDefinitions>
 
-        <!-- TOP BAR: the name on the left; what needs attention and the two other pages on the right -->
-        <Border Grid.Row="0" Background="{StaticResource BrushBgDeep}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,0,1" Padding="24,0,12,0">
+        <!-- TOP BAR and title bar in one: the name on the left; what needs attention, the two other pages and the window buttons on the right -->
+        <Border Grid.Row="0" Background="{StaticResource BrushBgDeep}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,0,1" Padding="24,0,0,0">
             <Grid>
-                <TextBlock Text="Open-Macro" Foreground="{StaticResource BrushTextPrimary}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Left" />
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <Image Source="pack://application:,,,/Assets/ReWASD.ico" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality" />
+                    <TextBlock Text="Open-Macro" Foreground="{StaticResource BrushTextPrimary}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Stretch" WindowChrome.IsHitTestVisibleInChrome="True">
                     <Button Content="Update available" Command="{Binding InstallUpdateCommand}" Style="{StaticResource BarButtonStyle}"
                             Visibility="{Binding ShowUpdateButton, Converter={StaticResource BoolToVisibility}}" ToolTip="{Binding UpdateStatusText}"  Margin="0,0,4,0" />
                     <ProgressBar Minimum="0" Maximum="1" Value="{Binding UpdateProgress, Mode=OneWay}" Width="120" Height="8" VerticalAlignment="Center"
@@ -100,6 +108,10 @@
                             <TextBlock Text="Settings" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
+                    <Border Width="1" Height="20" Background="{StaticResource BrushBorder}" Margin="12,0,8,0" VerticalAlignment="Center" />
+                    <Button x:Name="MinimizeButton" Style="{StaticResource CaptionButtonStyle}" Content="&#xE921;" ToolTip="Minimize" AutomationProperties.Name="Minimize" Click="OnMinimize" />
+                    <Button x:Name="MaximizeButton" Style="{StaticResource CaptionButtonStyle}" Content="&#xE922;" ToolTip="Maximize" AutomationProperties.Name="Maximize" Click="OnMaximize" />
+                    <Button x:Name="CloseButton" Style="{StaticResource CaptionButtonStyle}" Content="&#xE8BB;" ToolTip="Close" AutomationProperties.Name="Close" Click="OnClose" Tag="Close" />
                 </StackPanel>
             </Grid>
         </Border>

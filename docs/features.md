@@ -11,7 +11,8 @@
 - **Shortcuts:** Cmd/Ctrl+S saves now, Cmd/Ctrl+comma opens and closes settings, Cmd/Ctrl+Enter starts or stops remapping, F11 opens and
   closes the full-screen tester, Esc leaves settings, the tester or full screen.
 - New users see three plain steps above the header until they press "Got it" or start remapping once.
-- **Layout:** a slim top bar holds the name, Tester and Settings (and **Update available** or **Allow access…** when they apply). A left rail
+- **Layout:** a slim top bar holds the name, Tester and Settings (and **Update available** or **Allow access…** when they apply). On Windows it is
+  also the title bar: the minimize, maximize and close buttons sit at its right end, and dragging or double-clicking it moves or maximizes the window. A left rail
   switches between Gamepad / Keyboard / Mouse and lists your configs (the three dots beside them hold "use only in one app", presets,
   import, export and delete). The header shows the current config with its save state, the layer, Save and the one white **Start / Stop**
   button. Under it the drawing (with the controller picture menu in its corner) and the mapping editor sit in two panels in a fixed 5 : 3
