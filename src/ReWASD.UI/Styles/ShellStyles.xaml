@@ -76,6 +76,46 @@
         </Setter>
     </Style>
 
+    <!-- The same pill switch with no box around it, for a switch that sits among other controls -->
+    <Style x:Key="PlainToggleSwitchStyle" TargetType="ToggleButton">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Padding" Value="6,4" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Background="Transparent" Margin="{TemplateBinding Padding}">
+                        <Grid x:Name="TrackGrid" Width="40" Height="22" Margin="0,0,10,0" VerticalAlignment="Center">
+                            <Border x:Name="TrackBorder" Background="#2A2A2E" BorderBrush="{StaticResource BrushBorderLight}" BorderThickness="1.5" CornerRadius="11" />
+                            <Ellipse x:Name="ThumbEllipse" Width="14" Height="14" Fill="{StaticResource BrushTextSecondary}" HorizontalAlignment="Left" Margin="4,0,0,0" />
+                        </Grid>
+                        <ContentPresenter x:Name="LabelContent" VerticalAlignment="Center" TextElement.FontSize="14" TextElement.FontWeight="SemiBold" TextElement.Foreground="{StaticResource BrushTextSecondary}" />
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="TrackBorder" Property="BorderBrush" Value="{StaticResource BrushCyanDark}" />
+                            <Setter TargetName="LabelContent" Property="TextElement.Foreground" Value="{StaticResource BrushTextPrimary}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="TrackBorder" Property="Background" Value="{StaticResource BrushCyan}" />
+                            <Setter TargetName="TrackBorder" Property="BorderBrush" Value="{StaticResource BrushCyan}" />
+                            <Setter TargetName="ThumbEllipse" Property="Fill" Value="#101318" />
+                            <Setter TargetName="ThumbEllipse" Property="HorizontalAlignment" Value="Right" />
+                            <Setter TargetName="ThumbEllipse" Property="Margin" Value="0,0,4,0" />
+                            <Setter TargetName="LabelContent" Property="TextElement.Foreground" Value="{StaticResource BrushTextPrimary}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.38" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Modern Pill Toggle Switch -->
     <Style x:Key="ToggleSwitchStyle" TargetType="ToggleButton">
         <Setter Property="Background" Value="Transparent" />

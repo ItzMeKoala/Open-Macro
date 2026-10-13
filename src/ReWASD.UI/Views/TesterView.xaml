@@ -363,28 +363,32 @@
                 </Grid>
             </Border>
 
-            <!-- VIBRATION: two big motor buttons; "both motors" shakes both at once; "infinite" makes the shaking last until it is switched off -->
+            <!-- VIBRATION: two motor buttons, with the "both" and "infinite" switches centred under them -->
             <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource Tile}" Margin="0,0,12,0" Visibility="{Binding CanVibrate, Converter={StaticResource BoolToVisibility}}">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" /><RowDefinition Height="*" />
                     </Grid.RowDefinitions>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10"><Border Style="{StaticResource Bar}" /><TextBlock Text="VIBRATION TEST" Style="{StaticResource H}" /></StackPanel>
-                    <UniformGrid Grid.Row="1" Columns="2">
-                        <Button Content="Left motor" Command="{Binding VibrateLeftCommand}" Style="{StaticResource Chip}" FontSize="17" FontWeight="SemiBold" Margin="0,0,6,0"
-                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ToolTip="Shake the left motor: the heavy, low rumble" />
-                        <Button Content="Right motor" Command="{Binding VibrateRightCommand}" Style="{StaticResource Chip}" FontSize="17" FontWeight="SemiBold" Margin="6,0,0,0"
-                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ToolTip="Shake the right motor: the light, fine buzz" />
-                    </UniformGrid>
-                    <ToggleButton Grid.Row="2" Style="{StaticResource ToggleSwitchStyle}" Margin="0,12,0,0" IsChecked="{Binding VibrateBoth, Mode=TwoWay}"
-                                  ToolTip="Shake both motors at once, for as long as a left or right test lasts">
-                        <TextBlock Text="Both motors" />
-                    </ToggleButton>
-                    <ToggleButton Grid.Row="3" Style="{StaticResource ToggleSwitchStyle}" Margin="0,8,0,0" IsChecked="{Binding VibrateContinuously, Mode=TwoWay}"
-                                  ToolTip="Make the motor buttons keep shaking until you switch this off, instead of for under a second">
-                        <TextBlock Text="Infinite vibration" />
-                    </ToggleButton>
-                    <TextBlock Grid.Row="4" Text="Left, right and both motors shake for under a second. Infinite vibration keeps them shaking until you switch it off." Style="{StaticResource Soft}" FontSize="11" Margin="0,10,0,0" />
+                    <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                        <UniformGrid Columns="2">
+                            <Button Content="Left motor" Command="{Binding VibrateLeftCommand}" Style="{StaticResource Chip}" FontSize="17" FontWeight="SemiBold" Height="92" Margin="0,0,6,0"
+                                    HorizontalAlignment="Stretch" ToolTip="Shake the left motor: the heavy, low rumble" />
+                            <Button Content="Right motor" Command="{Binding VibrateRightCommand}" Style="{StaticResource Chip}" FontSize="17" FontWeight="SemiBold" Height="92" Margin="6,0,0,0"
+                                    HorizontalAlignment="Stretch" ToolTip="Shake the right motor: the light, fine buzz" />
+                        </UniformGrid>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
+                            <ToggleButton Style="{StaticResource PlainToggleSwitchStyle}" Margin="0,0,28,0" IsChecked="{Binding VibrateBoth, Mode=TwoWay}"
+                                          ToolTip="Shake both motors at once, for as long as a left or right test lasts">
+                                <TextBlock Text="Both" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource BrushTextPrimary}" />
+                            </ToggleButton>
+                            <ToggleButton Style="{StaticResource PlainToggleSwitchStyle}" IsChecked="{Binding VibrateContinuously, Mode=TwoWay}"
+                                          ToolTip="Infinite vibration: make the motor buttons keep shaking until you switch this off, instead of for under a second">
+                                <TextBlock Text="&#x221E;" FontSize="28" FontWeight="Normal" Foreground="{StaticResource BrushTextPrimary}" />
+                            </ToggleButton>
+                        </StackPanel>
+                        <TextBlock Text="Both shakes the two motors at once. The infinity switch keeps the shaking going until you switch it off; otherwise a shake lasts under a second." Style="{StaticResource Soft}" FontSize="11" TextAlignment="Center" Margin="0,12,0,0" />
+                    </StackPanel>
                 </Grid>
             </Border>
 
