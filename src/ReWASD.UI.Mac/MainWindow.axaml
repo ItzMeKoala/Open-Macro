@@ -650,21 +650,41 @@
             <Grid ColumnDefinitions="Auto,*,Auto">
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <!-- Start / stop remapping (an icon), with the slot picker attached on its right -->
-                    <Border CornerRadius="8" ClipToBounds="True" Height="44" VerticalAlignment="Center" Margin="0,0,14,0">
-                        <StackPanel Orientation="Horizontal">
-                            <Button Command="{Binding ToggleApplyCommand}" Classes="apply" Classes.on="{Binding IsRemappingActive}" CornerRadius="0" Width="64" Height="44" Padding="0"
-                                    ToolTip.Tip="{Binding ApplyButtonText}" AutomationProperties.Name="Start or stop remapping">
-                                <Panel Width="28" Height="28">
-                                    <PathIcon Data="{StaticResource IconPlay}" Width="28" Height="28" IsVisible="{Binding !IsRemappingActive}" />
-                                    <PathIcon Data="{StaticResource IconStop}" Width="22" Height="22" Foreground="#2EF2A0" IsVisible="{Binding IsRemappingActive}" />
+                    <!-- Start / stop remapping: a pill with the slot picker (a dark chevron segment) tucked behind its right edge -->
+                    <Grid Height="44" Margin="0,0,14,0" VerticalAlignment="Center">
+                        <ToggleButton Name="SlotToggle" Classes="slot" Width="80" Margin="82,0,0,0" HorizontalAlignment="Left" IsVisible="{Binding SupportsVirtualController}"
+                                      ToolTip.Tip="Which controller slot (1 to 4) the virtual controller takes" AutomationProperties.Name="Controller slot"
+                                      IsChecked="{Binding IsSlotMenuOpen, Mode=TwoWay}">
+                            <PathIcon Data="{StaticResource IconChevronDown}" Width="14" Height="14" Margin="34,0,0,0" />
+                        </ToggleButton>
+                        <Button Command="{Binding ToggleApplyCommand}" Classes="apply" Classes.on="{Binding IsRemappingActive}" CornerRadius="22" Width="116" Height="44" Padding="0" HorizontalAlignment="Left"
+                                ToolTip.Tip="{Binding ApplyButtonText}" AutomationProperties.Name="Start or stop remapping">
+                            <StackPanel Orientation="Horizontal" Spacing="9" HorizontalAlignment="Center">
+                                <Panel Width="16" Height="16" VerticalAlignment="Center">
+                                    <PathIcon Data="{StaticResource IconPlay}" Width="16" Height="16" IsVisible="{Binding !IsRemappingActive}" />
+                                    <PathIcon Data="{StaticResource IconStop}" Width="14" Height="14" Foreground="#2EF2A0" IsVisible="{Binding IsRemappingActive}" />
                                 </Panel>
-                            </Button>
-                            <ComboBox ItemsSource="{Binding SlotNumbers}" SelectedItem="{Binding ActiveSlot, Mode=TwoWay}" IsVisible="{Binding SupportsVirtualController}"
-                                      CornerRadius="0" Width="72" Height="44" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"
-                                      ToolTip.Tip="Which controller slot (1 to 4) the virtual controller takes" AutomationProperties.Name="Controller slot" />
-                        </StackPanel>
-                    </Border>
+                                <TextBlock Text="{Binding ApplyLabel}" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <Popup IsOpen="{Binding IsSlotMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding #SlotToggle}" Placement="Top"
+                           VerticalOffset="-6" IsLightDismissEnabled="True" WindowManagerAddShadowHint="False">
+                        <Border Classes="menu" Width="120" Padding="10">
+                            <StackPanel>
+                                <TextBlock Text="SLOT" Foreground="{StaticResource BrushTextMuted}" FontSize="11" FontWeight="Bold" Margin="4,2,0,8"
+                                           ToolTip.Tip="Which controller slot (1 to 4) the virtual controller takes" />
+                                <ListBox ItemsSource="{Binding SlotNumbers}" SelectedItem="{Binding ActiveSlot, Mode=TwoWay}" Background="Transparent" BorderThickness="0">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" FontSize="14" Margin="4,3" Foreground="{StaticResource BrushTextPrimary}" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
 
                     <!-- Virtual controller: which controller games will see. The icon is the logo of the chosen one (Windows only: macOS has no virtual controller) -->
                     <ToggleButton Name="OutputToggle" Classes="icon" Width="48" Height="40" Margin="0,0,6,0"

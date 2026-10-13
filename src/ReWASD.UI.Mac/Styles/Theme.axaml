@@ -155,6 +155,25 @@
         <Setter Property="Opacity" Value="0.35" />
     </Style>
 
+    <!-- The slot half of the Start split button: a dark rounded segment tucked behind the Start pill -->
+    <Style Selector="ToggleButton.slot">
+        <Setter Property="Background" Value="#3A3E49" />
+        <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="22" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="Bd" Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}">
+                    <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ToggleButton.slot:pointerover /template/ Border#Bd"><Setter Property="Background" Value="#474C59" /></Style>
+    <Style Selector="ToggleButton.slot:checked /template/ Border#Bd"><Setter Property="Background" Value="#474C59" /></Style>
+
     <!-- A toggle that shows only its content (the config name in the top bar) -->
     <Style Selector="ToggleButton.bare">
         <Setter Property="Background" Value="Transparent" />

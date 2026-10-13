@@ -87,7 +87,7 @@
         </Style.Triggers>
     </Style>
 
-    <!-- The Start / Stop half of the split button: square on the right, where the slot picker attaches -->
+    <!-- The Start / Stop pill of the split button; the slot picker is tucked behind its right edge -->
     <Style x:Key="ApplySplitButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="{StaticResource BrushCyan}" />
         <Setter Property="Foreground" Value="#101318" />
@@ -96,7 +96,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="8,0,0,8">
+                    <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="22">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -118,23 +118,23 @@
         </Style.Triggers>
     </Style>
 
-    <!-- The slot half of the split button: a dark segment on the right of Start, opening a small list -->
+    <!-- The slot half of the split button: a dark rounded segment behind the right of Start, with a chevron, opening a small list -->
     <Style x:Key="ApplySlotToggleStyle" TargetType="ToggleButton">
-        <Setter Property="Background" Value="{StaticResource BrushBgCard}" />
+        <Setter Property="Background" Value="#3A3E49" />
         <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToggleButton">
-                    <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,1,1" CornerRadius="0,8,8,0">
+                    <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="22">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource BrushBgCardHover}" />
+                            <Setter TargetName="border" Property="Background" Value="#474C59" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource BrushCyan}" />
+                            <Setter TargetName="border" Property="Background" Value="#474C59" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

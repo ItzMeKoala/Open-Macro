@@ -219,6 +219,9 @@ public partial class MainViewModel : ObservableObject
     /// <summary>What the big button at the bottom does right now.</summary>
     public string ApplyButtonText => IsRemappingActive ? "Stop remapping" : "Start remapping";
 
+    /// <summary>The one word on the Start button.</summary>
+    public string ApplyLabel => IsRemappingActive ? "Stop" : "Start";
+
     /// <summary>One plain line saying whether the controller is doing anything.</summary>
     public string RemappingStateText => IsRemappingActive ? "Remapping is on" : "Remapping is off";
 
@@ -284,7 +287,7 @@ public partial class MainViewModel : ObservableObject
     private int _activeShiftLayer = 0;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ApplyButtonText), nameof(RemappingStateText))]
+    [NotifyPropertyChangedFor(nameof(ApplyButtonText), nameof(ApplyLabel), nameof(RemappingStateText))]
     private bool _isRemappingActive = false;
 
     [ObservableProperty]

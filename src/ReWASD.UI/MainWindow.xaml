@@ -721,34 +721,37 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <!-- Start / stop remapping (an icon), with the slot picker attached on its right -->
-                    <Button Command="{Binding ToggleApplyCommand}" Style="{StaticResource ApplySplitButtonStyle}" Width="64" Height="44"
-                            ToolTip="{Binding ApplyButtonText}" AutomationProperties.Name="Start or stop remapping">
-                        <Grid Width="28" Height="28">
-                            <Path Data="{StaticResource IconPlay}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Stretch="Uniform">
-                                <Path.Style>
-                                    <Style TargetType="Path">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsRemappingActive}" Value="True">
-                                                <Setter Property="Visibility" Value="Collapsed" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Path.Style>
-                            </Path>
-                            <Path Data="{StaticResource IconStop}" Fill="#2EF2A0" Stretch="Uniform" Margin="3"
-                                  Visibility="{Binding IsRemappingActive, Converter={StaticResource BoolToVisibility}}" />
-                        </Grid>
-                    </Button>
-                    <ToggleButton x:Name="SlotToggle" Style="{StaticResource ApplySlotToggleStyle}" Width="56" Height="44" Margin="0,0,14,0"
-                                  ToolTip="Which controller slot (1 to 4) the virtual controller takes" AutomationProperties.Name="Controller slot"
-                                  IsChecked="{Binding IsSlotMenuOpen, Mode=TwoWay}"
-                                  IsHitTestVisible="{Binding IsOpen, ElementName=SlotPopup, Converter={StaticResource InverseBool}}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding ActiveSlot}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            <TextBlock Text="&#xE70D;" FontFamily="{StaticResource IconFont}" FontSize="9" Foreground="{StaticResource BrushTextSecondary}" Margin="7,1,0,0" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </ToggleButton>
+                    <!-- Start / stop remapping: a pill with the slot picker (a dark chevron segment) tucked behind its right edge -->
+                    <Grid Width="162" Height="44" Margin="0,0,14,0" VerticalAlignment="Center">
+                        <ToggleButton x:Name="SlotToggle" Style="{StaticResource ApplySlotToggleStyle}" Width="80" HorizontalAlignment="Right"
+                                      ToolTip="Which controller slot (1 to 4) the virtual controller takes" AutomationProperties.Name="Controller slot"
+                                      IsChecked="{Binding IsSlotMenuOpen, Mode=TwoWay}"
+                                      IsHitTestVisible="{Binding IsOpen, ElementName=SlotPopup, Converter={StaticResource InverseBool}}">
+                            <TextBlock Text="&#xE70D;" FontFamily="{StaticResource IconFont}" FontSize="12" Foreground="{StaticResource BrushTextPrimary}" Margin="34,0,0,0" VerticalAlignment="Center" />
+                        </ToggleButton>
+                        <Button Command="{Binding ToggleApplyCommand}" Style="{StaticResource ApplySplitButtonStyle}" Width="116" HorizontalAlignment="Left"
+                                ToolTip="{Binding ApplyButtonText}" AutomationProperties.Name="Start or stop remapping">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Grid Width="16" Height="16" Margin="0,0,9,0" VerticalAlignment="Center">
+                                    <Path Data="{StaticResource IconPlay}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Stretch="Uniform">
+                                        <Path.Style>
+                                            <Style TargetType="Path">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsRemappingActive}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Path.Style>
+                                    </Path>
+                                    <Path Data="{StaticResource IconStop}" Fill="#2EF2A0" Stretch="Uniform" Margin="1"
+                                          Visibility="{Binding IsRemappingActive, Converter={StaticResource BoolToVisibility}}" />
+                                </Grid>
+                                <TextBlock Text="{Binding ApplyLabel}" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"
+                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
 
                     <Popup x:Name="SlotPopup" IsOpen="{Binding IsSlotMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=SlotToggle}"
                            Placement="Top" HorizontalOffset="0" VerticalOffset="-6" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
