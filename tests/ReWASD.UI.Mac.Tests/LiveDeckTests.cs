@@ -63,7 +63,7 @@ public class LiveDeckTests
     [AvaloniaFact]
     public void ABigWindow_ShowsTheReadings_UnderAControllerOfTheSameSize()
     {
-        var (vm, window, pad) = Open(1500, 940);
+        var (vm, window, pad) = Open(1500, 1040);
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
         Assert.True(Stage(window).IsDeckShown);
@@ -97,7 +97,7 @@ public class LiveDeckTests
     [AvaloniaFact]
     public void ATallWindow_AddsTheGraph()
     {
-        var (vm, window, pad) = Open(1700, 1100);
+        var (vm, window, pad) = Open(1700, 1200);
         vm.Shutdown();      // stop the reader: this test feeds the model itself
         var m = vm.Tester.Model;
         m.Reset();
@@ -118,7 +118,7 @@ public class LiveDeckTests
     [AvaloniaFact]
     public void AMediumWindow_ShowsTheReadingsWithoutTheGraph()
     {
-        var (vm, window, _) = Open(1300, 920);
+        var (vm, window, _) = Open(1300, 1000);
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
         Assert.True(Stage(window).IsDeckShown);
@@ -130,7 +130,7 @@ public class LiveDeckTests
     [AvaloniaFact]
     public void TheFullTesterLink_OpensTheTester()
     {
-        var (vm, window, _) = Open(1500, 940);
+        var (vm, window, _) = Open(1500, 1040);
         var link = Deck(window).GetVisualDescendants().OfType<Button>().Single(b => b.Content as string == "Full tester");
         link.Command!.Execute(null);
 

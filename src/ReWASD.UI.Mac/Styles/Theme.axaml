@@ -2,13 +2,20 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Styles.Resources>
-        <!-- ReWASD palette: the same values as the Windows front end -->
-        <Color x:Key="ColorBgDeep">#161617</Color>
-        <Color x:Key="ColorBgPanel">#1E1E20</Color>
-        <Color x:Key="ColorBgCard">#2A2A2C</Color>
-        <Color x:Key="ColorBgCardHover">#363638</Color>
-        <Color x:Key="ColorBorder">#3A3A3D</Color>
-        <Color x:Key="ColorBorderLight">#4A4A4E</Color>
+        <!-- Open-Macro palette: the same values as the Windows front end. Neutral charcoal surfaces in a few close tones, one gold accent. -->
+        <Color x:Key="ColorBgDeep">#0D0F12</Color>
+        <Color x:Key="ColorBgNav">#101215</Color>
+        <Color x:Key="ColorBgPanel">#111316</Color>
+        <Color x:Key="ColorBgInset">#17191D</Color>
+        <Color x:Key="ColorBgCard">#1D2024</Color>
+        <Color x:Key="ColorBgControl">#292C31</Color>
+        <Color x:Key="ColorBgCardHover">#35383E</Color>
+        <Color x:Key="ColorBgSelected">#3D3F44</Color>
+        <Color x:Key="ColorBorder">#2A2D33</Color>
+        <Color x:Key="ColorBorderLight">#454A53</Color>
+        <Color x:Key="ColorPrimary">#FFFFFF</Color>
+        <Color x:Key="ColorOnPrimary">#20242C</Color>
+        <Color x:Key="ColorFocus">#ADB8FF</Color>
 
         <!-- Accents: the "Cyan" keys are kept so both front ends share names; the accent is the warm gold -->
         <Color x:Key="ColorCyan">#E9C46A</Color>
@@ -18,12 +25,19 @@
         <Color x:Key="ColorGreen">#00E676</Color>
         <Color x:Key="ColorYellow">#FFCC00</Color>
 
-        <Color x:Key="ColorTextPrimary">#F4F7FB</Color>
-        <Color x:Key="ColorTextSecondary">#8E9BAE</Color>
-        <Color x:Key="ColorTextMuted">#566173</Color>
+        <Color x:Key="ColorTextPrimary">#F4F5F7</Color>
+        <Color x:Key="ColorTextSecondary">#B8BCC5</Color>
+        <Color x:Key="ColorTextMuted">#969DA9</Color>
 
         <SolidColorBrush x:Key="BrushBgDeep" Color="{StaticResource ColorBgDeep}" />
+        <SolidColorBrush x:Key="BrushBgNav" Color="{StaticResource ColorBgNav}" />
         <SolidColorBrush x:Key="BrushBgPanel" Color="{StaticResource ColorBgPanel}" />
+        <SolidColorBrush x:Key="BrushBgInset" Color="{StaticResource ColorBgInset}" />
+        <SolidColorBrush x:Key="BrushBgControl" Color="{StaticResource ColorBgControl}" />
+        <SolidColorBrush x:Key="BrushBgSelected" Color="{StaticResource ColorBgSelected}" />
+        <SolidColorBrush x:Key="BrushPrimary" Color="{StaticResource ColorPrimary}" />
+        <SolidColorBrush x:Key="BrushOnPrimary" Color="{StaticResource ColorOnPrimary}" />
+        <SolidColorBrush x:Key="BrushFocus" Color="{StaticResource ColorFocus}" />
         <SolidColorBrush x:Key="BrushBgCard" Color="{StaticResource ColorBgCard}" />
         <SolidColorBrush x:Key="BrushBgCardHover" Color="{StaticResource ColorBgCardHover}" />
         <SolidColorBrush x:Key="BrushBorder" Color="{StaticResource ColorBorder}" />
@@ -47,24 +61,24 @@
         <Color x:Key="SystemAccentColorLight2">#F7E3B0</Color>
         <Color x:Key="SystemAccentColorLight3">#FBEFCF</Color>
 
-        <SolidColorBrush x:Key="ComboBoxBackground" Color="{StaticResource ColorBgCard}" />
+        <SolidColorBrush x:Key="ComboBoxBackground" Color="{StaticResource ColorBgControl}" />
         <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="{StaticResource ColorBgCardHover}" />
         <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="{StaticResource ColorBgPanel}" />
-        <SolidColorBrush x:Key="ComboBoxBackgroundFocused" Color="{StaticResource ColorBgCard}" />
-        <SolidColorBrush x:Key="ComboBoxBackgroundUnfocused" Color="{StaticResource ColorBgCard}" />
+        <SolidColorBrush x:Key="ComboBoxBackgroundFocused" Color="{StaticResource ColorBgControl}" />
+        <SolidColorBrush x:Key="ComboBoxBackgroundUnfocused" Color="{StaticResource ColorBgControl}" />
         <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="{StaticResource ColorBorder}" />
         <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="{StaticResource ColorBorderLight}" />
         <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="{StaticResource ColorBgPanel}" />
         <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="{StaticResource ColorBorderLight}" />
-        <SolidColorBrush x:Key="TextControlBackground" Color="{StaticResource ColorBgCard}" />
-        <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="{StaticResource ColorBgCard}" />
-        <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="{StaticResource ColorBgCard}" />
+        <SolidColorBrush x:Key="TextControlBackground" Color="{StaticResource ColorBgControl}" />
+        <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="{StaticResource ColorBgControl}" />
+        <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="{StaticResource ColorBgControl}" />
         <SolidColorBrush x:Key="TextControlBorderBrush" Color="{StaticResource ColorBorder}" />
         <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="{StaticResource ColorBorderLight}" />
         <SolidColorBrush x:Key="ListBoxItemBackgroundPointerOver" Color="{StaticResource ColorBgCardHover}" />
-        <SolidColorBrush x:Key="ListBoxItemBackgroundSelected" Color="{StaticResource ColorBgCard}" />
+        <SolidColorBrush x:Key="ListBoxItemBackgroundSelected" Color="{StaticResource ColorBgSelected}" />
         <SolidColorBrush x:Key="ListBoxItemBackgroundSelectedPointerOver" Color="{StaticResource ColorBgCardHover}" />
-        <SolidColorBrush x:Key="ListBoxItemBackgroundSelectedPressed" Color="{StaticResource ColorBgCard}" />
+        <SolidColorBrush x:Key="ListBoxItemBackgroundSelectedPressed" Color="{StaticResource ColorBgSelected}" />
         <SolidColorBrush x:Key="ListBoxItemBackgroundPressed" Color="{StaticResource ColorBgCardHover}" />
     </Styles.Resources>
 
@@ -157,7 +171,7 @@
 
     <!-- The slot half of the Start split button: a dark rounded segment tucked behind the Start pill -->
     <Style Selector="ToggleButton.slot">
-        <Setter Property="Background" Value="#3A3E49" />
+        <Setter Property="Background" Value="#33363C" />
         <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="CornerRadius" Value="22" />
@@ -171,8 +185,8 @@
             </ControlTemplate>
         </Setter>
     </Style>
-    <Style Selector="ToggleButton.slot:pointerover /template/ Border#Bd"><Setter Property="Background" Value="#474C59" /></Style>
-    <Style Selector="ToggleButton.slot:checked /template/ Border#Bd"><Setter Property="Background" Value="#474C59" /></Style>
+    <Style Selector="ToggleButton.slot:pointerover /template/ Border#Bd"><Setter Property="Background" Value="#41454C" /></Style>
+    <Style Selector="ToggleButton.slot:checked /template/ Border#Bd"><Setter Property="Background" Value="#41454C" /></Style>
 
     <!-- A toggle that shows only its content (the config name in the top bar) -->
     <Style Selector="ToggleButton.bare">
@@ -189,18 +203,19 @@
         </Setter>
     </Style>
 
-    <!-- APPLY / STOP -->
+    <!-- START / STOP: the one white action of the page; while remapping it becomes a quiet Stop beside a green square -->
     <Style Selector="Button.apply">
-        <Setter Property="Background" Value="{StaticResource BrushCyan}" />
-        <Setter Property="Foreground" Value="#101318" />
-        <Setter Property="FontWeight" Value="Bold" />
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="Padding" Value="18,8" />
-        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Background" Value="{StaticResource BrushPrimary}" />
+        <Setter Property="Foreground" Value="{StaticResource BrushOnPrimary}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Padding" Value="18,0" />
+        <Setter Property="CornerRadius" Value="22" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <ControlTemplate>
-                <Border Name="Bd" Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}">
+                <Border Name="Bd" Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}"
+                        BorderThickness="2" BorderBrush="Transparent">
                     <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
@@ -208,19 +223,150 @@
         </Setter>
     </Style>
     <Style Selector="Button.apply:pointerover /template/ Border#Bd">
-        <Setter Property="Background" Value="{StaticResource BrushCyanHover}" />
+        <Setter Property="Background" Value="#E6E8EC" />
     </Style>
     <Style Selector="Button.apply:pressed /template/ Border#Bd">
-        <Setter Property="Background" Value="{StaticResource BrushCyanDark}" />
+        <Setter Property="Background" Value="#CDD0D6" />
     </Style>
-
-    <!-- Start remapping is the one gold action; while remapping it turns into a quiet Stop with a green dot -->
+    <Style Selector="Button.apply:focus-visible /template/ Border#Bd">
+        <Setter Property="BorderBrush" Value="{StaticResource BrushFocus}" />
+    </Style>
     <Style Selector="Button.apply.on">
-        <Setter Property="Background" Value="#2A2D35" />
+        <Setter Property="Background" Value="{StaticResource BrushBgControl}" />
         <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
     </Style>
     <Style Selector="Button.apply.on:pointerover /template/ Border#Bd">
-        <Setter Property="Background" Value="#363A44" />
+        <Setter Property="Background" Value="{StaticResource BrushBgCardHover}" />
+    </Style>
+
+    <!-- A round utility button in the header -->
+    <Style Selector="Button.circle, ToggleButton.circle">
+        <Setter Property="Width" Value="40" />
+        <Setter Property="Height" Value="40" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
+        <Setter Property="Background" Value="{StaticResource BrushBgControl}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="Bd" Background="{TemplateBinding Background}" CornerRadius="20" BorderThickness="2" BorderBrush="Transparent">
+                    <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.circle:pointerover /template/ Border#Bd, ToggleButton.circle:pointerover /template/ Border#Bd">
+        <Setter Property="Background" Value="{StaticResource BrushBgCardHover}" />
+    </Style>
+    <Style Selector="Button.circle:pointerover, ToggleButton.circle:pointerover, ToggleButton.circle:checked">
+        <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+    </Style>
+    <Style Selector="Button.circle:focus-visible /template/ Border#Bd, ToggleButton.circle:focus-visible /template/ Border#Bd">
+        <Setter Property="BorderBrush" Value="{StaticResource BrushFocus}" />
+    </Style>
+    <Style Selector="Button.circle:disabled, ToggleButton.circle:disabled">
+        <Setter Property="Opacity" Value="0.4" />
+    </Style>
+
+    <!-- A rounded work panel, and the band across its top -->
+    <Style Selector="Border.panel">
+        <Setter Property="Background" Value="{StaticResource BrushBgPanel}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BrushBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="18" />
+        <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+    <Style Selector="Border.panelhead">
+        <Setter Property="Background" Value="{StaticResource BrushBgInset}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BrushBorder}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Height" Value="48" />
+        <Setter Property="Padding" Value="16,0" />
+    </Style>
+
+    <!-- Navigation rows in the rail: a filled gray row for the current one -->
+    <Style Selector="RadioButton.rail">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="Height" Value="38" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="Bd" Background="{TemplateBinding Background}" CornerRadius="12" Padding="{TemplateBinding Padding}" BorderThickness="2" BorderBrush="Transparent">
+                    <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                                      HorizontalAlignment="Left" VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="RadioButton.rail:pointerover /template/ Border#Bd">
+        <Setter Property="Background" Value="#1AFFFFFF" />
+    </Style>
+    <Style Selector="RadioButton.rail:checked">
+        <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+    </Style>
+    <Style Selector="RadioButton.rail:checked /template/ Border#Bd">
+        <Setter Property="Background" Value="{StaticResource BrushBgSelected}" />
+    </Style>
+    <Style Selector="RadioButton.rail:checked PathIcon">
+        <Setter Property="Foreground" Value="{StaticResource BrushCyan}" />
+    </Style>
+    <Style Selector="RadioButton.rail:focus-visible /template/ Border#Bd">
+        <Setter Property="BorderBrush" Value="{StaticResource BrushFocus}" />
+    </Style>
+
+    <!-- A full-width row button inside a rail group -->
+    <Style Selector="ToggleButton.row">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+        <Setter Property="Padding" Value="4,0" />
+        <Setter Property="Height" Value="36" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="Bd" Background="{TemplateBinding Background}" CornerRadius="10" Padding="{TemplateBinding Padding}" BorderThickness="2" BorderBrush="Transparent">
+                    <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                                      HorizontalContentAlignment="Stretch" VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ToggleButton.row:pointerover /template/ Border#Bd">
+        <Setter Property="Background" Value="#1AFFFFFF" />
+    </Style>
+    <Style Selector="ToggleButton.row:focus-visible /template/ Border#Bd">
+        <Setter Property="BorderBrush" Value="{StaticResource BrushFocus}" />
+    </Style>
+
+    <!-- The list of configs in the rail -->
+    <Style Selector="ListBox.rail">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="ListBox.rail ListBoxItem">
+        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="Margin" Value="0,0,0,2" />
+        <Setter Property="MinHeight" Value="44" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="ListBox.rail ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource BrushBgSelected}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.rail ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource BrushBgSelected}" />
+    </Style>
+    <Style Selector="ListBox.rail ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#1AFFFFFF" />
     </Style>
 
     <!-- Labelled buttons in the top bar -->

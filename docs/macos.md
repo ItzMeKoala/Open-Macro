@@ -30,8 +30,8 @@ macOS only lets an app watch the keyboard and mouse, or press keys for you, afte
 - **Accessibility**: to press keys and move the mouse, and to swallow the originals of remapped keys.
 - **Input Monitoring**: to see real key and mouse presses.
 
-When started from a terminal (`dotnet run`), the permission belongs to that terminal app. The app shows
-"Permissions: needed" in the bottom bar until both are granted, and **Apply** asks for them. After granting, restart
+When started from a terminal (`dotnet run`), the permission belongs to that terminal app. The app shows an
+**Allow access…** button in the top bar until both are granted, and it asks for them. After granting, restart
 the app. The `.app` build is ad-hoc signed, so rebuilding it may ask for the permissions again.
 
 ## What works

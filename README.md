@@ -62,12 +62,12 @@ rebuild instead.
 
 ## Quick start
 
-1. Open the app and plug in or pair a controller. The bottom bar names the controller in use.
-2. Pick **Gamepad**, **Keyboard** or **Mouse** at the top, then click a part of the drawing. It gets a gold outline.
+1. Open the app and plug in or pair a controller. The card at the top of the left rail names the controller in use.
+2. Pick **Gamepad**, **Keyboard** or **Mouse** in the left rail, then click a part of the drawing. It gets a gold outline.
 3. In the editor on the right choose **when** it fires (Press, Hold, Double, Triple, On down, On release), **what** it does (Remap,
    Macro or Script) and **how** it behaves (hold while pressed, repeat, toggle, one pulse).
-4. Press **Start remapping**. The mapping works in every app until you stop it.
-5. Changes save by themselves. **Settings** holds sticks, timing, configs, integrations, window and system options.
+4. Press **Start**, the white button at the top right. The mapping works in every app until you stop it.
+5. Changes save by themselves, and your configs are listed in the rail. **Settings** holds sticks, timing, configs, integrations, window and system options.
 
 Shortcuts (use Cmd instead of Ctrl on a Mac): `Ctrl+S` save, `Ctrl+,` settings, `Ctrl+Enter` start or stop remapping, `F11` the
 full-screen tester, `Esc` leave settings or the tester.
@@ -187,7 +187,7 @@ mapping to another pad button does nothing there. [docs/macos.md](docs/macos.md)
 - **Accessibility** to press keys, move the mouse and swallow the originals of remapped keys.
 - **Input Monitoring** to see real key and mouse presses.
 
-The bottom bar shows "Permissions: needed" until both are granted; **Apply** asks for them. After granting, restart the app. When
+The top bar shows an **Allow access…** button until both are granted; it asks for them. After granting, restart the app. When
 run from a terminal, the permission belongs to that terminal app.
 
 **Your data.** Configs live in `%APPDATA%\ReWASD-OpenSource\profiles` on Windows and
@@ -223,7 +223,7 @@ dotnet run --project src/ReWASD.UI.Mac    # macOS
 dotnet run --project src/ReWASD.UI        # Windows
 ```
 
-The bottom bar shows the version and git commit a build was made from, so you can tell which build you are running.
+The status line in the rail shows the version and git commit a build was made from, so you can tell which build you are running.
 
 ## How it is built
 

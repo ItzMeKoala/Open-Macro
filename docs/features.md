@@ -10,9 +10,13 @@
 - **Settings** has six sections down the left: Sticks, Combos and timing, Configs, Integrations, Window, System.
 - **Shortcuts:** Cmd/Ctrl+S saves now, Cmd/Ctrl+comma opens and closes settings, Cmd/Ctrl+Enter starts or stops remapping, F11 opens and
   closes the full-screen tester, Esc leaves settings, the tester or full screen.
-- New users see three plain steps under the toolbar until they press "Got it" or start remapping once.
-- **Layout:** the top bar holds the config, Tester and Settings; one toolbar holds Gamepad / Keyboard / Mouse, the layer and the controller
-  picture; the bottom bar starts remapping and names the controller in use (with a warning only when something needs attention).
+- New users see three plain steps above the header until they press "Got it" or start remapping once.
+- **Layout:** a slim top bar holds the name, Tester and Settings (and **Update available** or **Allow access…** when they apply). A left rail
+  names the controller in use, switches between Gamepad / Keyboard / Mouse and lists your configs (the three dots beside them hold
+  "use only in one app", presets, import, export and delete). The header shows the current config with its save state, the layer, and
+  the one white **Start / Stop** button. Under it the drawing (with the controller picture menu) and the mapping editor sit in two panels.
+  On Windows the rail also holds the virtual controller and Hide Physical Device, and Start has the slot picker beside it. Messages
+  appear at the bottom of the rail.
 - **Keyboard tab:** a detailed tenkeyless keyboard drawn like the controllers: an aluminium case, sculpted two-tone keycaps and their
   shadows. Keys sink and light while held (also with remapping off, while Open-Macro is in front), the key being edited has a gold outline
   and remapped keys carry a dot. Every key can be remapped, punctuation and the right-hand Shift, Ctrl and Alt included, except Fn

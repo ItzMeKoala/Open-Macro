@@ -87,24 +87,28 @@
         </Style.Triggers>
     </Style>
 
-    <!-- The Start / Stop pill of the split button; the slot picker is tucked behind its right edge -->
+    <!-- The Start / Stop pill: the one white action of the page; while remapping it becomes a quiet Stop -->
     <Style x:Key="ApplySplitButtonStyle" TargetType="Button">
-        <Setter Property="Background" Value="{StaticResource BrushCyan}" />
-        <Setter Property="Foreground" Value="#101318" />
+        <Setter Property="Background" Value="{StaticResource BrushPrimary}" />
+        <Setter Property="Foreground" Value="{StaticResource BrushOnPrimary}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="22">
+                    <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="22" BorderThickness="2" BorderBrush="Transparent">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Opacity" Value="0.92" />
+                            <Setter TargetName="border" Property="Background" Value="#E6E8EC" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Opacity" Value="0.8" />
+                            <Setter TargetName="border" Property="Background" Value="#CDD0D6" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource BrushFocus}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -112,7 +116,7 @@
         </Setter>
         <Style.Triggers>
             <DataTrigger Binding="{Binding IsRemappingActive}" Value="True">
-                <Setter Property="Background" Value="#2A2D35" />
+                <Setter Property="Background" Value="{StaticResource BrushBgControl}" />
                 <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
             </DataTrigger>
         </Style.Triggers>
@@ -120,7 +124,7 @@
 
     <!-- The slot half of the split button: a dark rounded segment behind the right of Start, with a chevron, opening a small list -->
     <Style x:Key="ApplySlotToggleStyle" TargetType="ToggleButton">
-        <Setter Property="Background" Value="#3A3E49" />
+        <Setter Property="Background" Value="#33363C" />
         <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
@@ -131,10 +135,113 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#474C59" />
+                            <Setter TargetName="border" Property="Background" Value="#41454C" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#474C59" />
+                            <Setter TargetName="border" Property="Background" Value="#41454C" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A rounded work panel, and the band across its top -->
+    <Style x:Key="PanelBorder" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource BrushBgPanel}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BrushBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="18" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+    <Style x:Key="PanelHead" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource BrushBgInset}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BrushBorder}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Height" Value="48" />
+        <Setter Property="Padding" Value="16,0" />
+        <Setter Property="CornerRadius" Value="17,17,0,0" />
+    </Style>
+
+    <!-- Navigation rows in the rail: a filled gray row for the current one -->
+    <Style x:Key="RailRadioStyle" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="Height" Value="38" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="12" Padding="{TemplateBinding Padding}" BorderThickness="2" BorderBrush="Transparent">
+                        <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="#1AFFFFFF" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource BrushBgSelected}" />
+                            <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource BrushFocus}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- The current config in the rail list: a filled gray row, no outline -->
+    <Style x:Key="RailListItemStyle" TargetType="ListBoxItem">
+        <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="Margin" Value="0,0,0,2" />
+        <Setter Property="MinHeight" Value="44" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="12" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="#1AFFFFFF" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource BrushBgSelected}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A full-width row button inside a rail group -->
+    <Style x:Key="RowToggleStyle" TargetType="ToggleButton">
+        <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+        <Setter Property="Padding" Value="4,0" />
+        <Setter Property="Height" Value="36" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="10" Padding="{TemplateBinding Padding}" BorderThickness="2" BorderBrush="Transparent">
+                        <ContentPresenter VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="#1AFFFFFF" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource BrushFocus}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

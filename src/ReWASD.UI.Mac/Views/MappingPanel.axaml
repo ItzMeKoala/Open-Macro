@@ -58,7 +58,7 @@
         </Style>
     </UserControl.Styles>
 
-    <Border Background="{StaticResource BrushBgPanel}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1,0,0,0">
+    <Border Background="Transparent">
         <Grid RowDefinitions="Auto,*,Auto">
 
             <!-- Which input is being edited, and what it does now -->
